@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vente de Barriques et Cartons</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header class="app-header">
+        <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
+        <h1>Ventes du Jour</h1>
+    </header>
+
+    <nav class="navigation">
+        <a href="index.html" class="active">Saisie</a>
+        <a href="dashboard.html">Tableau de Bord</a>
+        <a href="history.html">Historique</a>
+    </nav>
+
+    <div id="caisseForm">
+        <div class="form-grid-six-colonnes">
+            <input type="date" id="date" required>
+            <input type="text" id="produit" placeholder="Produit" required list="referenceList">
+            <datalist id="referenceList"></datalist>
+            <input type="number" id="prixUnitaire" placeholder="Prix Unitaire">
+            <input type="number" id="quantite" placeholder="Quantité" required value="1">
+            <input type="number" id="total" placeholder="Total" readonly class="total-field">
+            <select id="modeDePaiement" required>
+                <option value="">-- Mode de Paiement --</option>
+                <option value="Espèce" class="option-espece">Espèce</option>
+                <option value="Virement" class="option-virement">Virement</option>
+                <option value="Carte Bleue" class="option-carte">Carte Bleue</option>
+            </select>
+        </div>
+        <div class="form-buttons">
+            <button id="addEntryBtn">Ajouter la Vente</button>
+            <button id="saveDayBtn" class="primary">Enregistrer la Journée</button>
+        </div>
+    </div>
+
+    <h2>Ventes de la journée en cours <span id="dailyCount" class="tag">0</span></h2>
+    <table id="dailyTable">
+        <thead>
+            <tr>
+                <th>Date</th> <th>Produit</th>
+                <th>Qté</th>
+                <th>Total</th>
+                <th>Mode Paiement</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="dailyTableBody"></tbody>
+    </table>
+
+    <div class="daily-summary">
+        <div class="summary-item">
+            <h4>Total Ventes</h4>
+            <span id="dailyTotalVentes">0,00 €</span>
+        </div>
+        <div class="summary-item">
+            <h4>Total Espèces</h4>
+            <span id="dailyTotalEspeces">0,00 €</span>
+        </div>
+        <div class="summary-item">
+            <h4>Total Virements</h4>
+            <span id="dailyTotalVirements">0,00 €</span>
+        </div>
+        <div class="summary-item">
+            <h4>Total Cartes</h4> <span id="dailyTotalCartes">0,00 €</span>
+        </div>
+    </div>
+
+    <script>
+       const firebaseConfig = {
+     apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+     authDomain: "app-ventes-barriques.firebaseapp.com",
+     projectId: "app-ventes-barriques",
+     storageBucket: "app-ventes-barriques.firebasestorage.app",
+     messagingSenderId: "615546459847",
+     appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+     };
+
+     // Initialize Firebase
+     const app = initializeApp(firebaseConfig);
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

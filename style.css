@@ -1,0 +1,94 @@
+/* --- STYLES DE BASE ET POLICE --- */
+body {
+    font-family: 'Comfortaa', sans-serif; font-size: 14px; 
+    background-color: #f0f2f5; color: #333;
+    margin: 0; padding: 0 10px 20px 10px;
+}
+.app-header {
+    display: flex; align-items: center; justify-content: center;
+    padding: 15px 20px; background-color: #fff;
+    border-bottom: 1px solid #e0e0e0; margin-bottom: 20px;
+}
+.app-logo { height: 50px; margin-right: 15px; }
+.app-header h1 { margin: 0; font-size: 24px; }
+h2 { text-align: center; color: #1c1e21; }
+
+/* --- NAVIGATION --- */
+.navigation {
+    display: flex; justify-content: center; gap: 10px;
+    margin-bottom: 25px; flex-wrap: wrap;
+}
+.navigation a {
+    text-decoration: none; padding: 10px 20px; border-radius: 6px;
+    background-color: #e9ecef; color: #333; font-weight: bold;
+    transition: background-color 0.2s;
+}
+.navigation a:hover { background-color: #ced4da; }
+.navigation a.active { background-color: #1877f2; color: white; }
+
+/* --- FORMULAIRE DE SAISIE --- */
+#caisseForm {
+    background-color: #fff; padding: 20px; border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;
+}
+.form-grid-six-colonnes {
+    display: grid; grid-template-columns: repeat(6, 1fr);
+    gap: 15px; margin-bottom: 20px;
+}
+input, select {
+    width: 100%; padding: 10px; border: 1px solid #ddd;
+    border-radius: 6px; font-size: 14px; box-sizing: border-box;
+}
+.form-buttons { display: flex; gap: 10px; margin-top: 20px; }
+.form-buttons button {
+    flex-grow: 1; padding: 12px; font-size: 16px; font-weight: bold;
+    cursor: pointer; border: 1px solid #ccc; border-radius: 6px; background-color: #f0f2f5;
+}
+.form-buttons button.primary { background-color: #28a745; color: white; border-color: #28a745; }
+.prix-container { display: flex; align-items: center; gap: 5px; }
+.prix-container input { flex-grow: 1; }
+.cfa-label { font-weight: bold; color: #555; }
+
+/* --- NOUVEAU : COULEURS POUR LE SÉLECTEUR DE MODE DE PAIEMENT --- */
+#modeDePaiement { font-weight: bold; transition: color 0.2s, border-color 0.2s; }
+#modeDePaiement.select-espece { color: #528f76; border-color: #528f76; }
+#modeDePaiement.select-virement { color: #4d5964; border-color: #343a40; }
+#modeDePaiement.select-carte-bleue { color: #007bff; border-color: #007bff; }
+
+/* --- TABLEAUX (STYLE GÉNÉRAL) --- */
+table {
+    width: 100%; border-collapse: collapse; background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+thead { background-color: #f5f6f7; }
+tbody tr:nth-child(even) { background-color: #f9f9f9; }
+td button.deleteBtn {
+    background-color: #dc3545; color: white; border: none;
+    padding: 5px 10px; border-radius: 3px; cursor: pointer;
+}
+
+/* --- NOUVEAU : COULEURS POUR LES CELLULES DU TABLEAU --- */
+td.paiement-espece { background-color: #528f76; color: white; font-weight: bold; }
+td.paiement-virement { background-color: #f8f9fa; color: #4d5964; font-weight: bold; border: 1px solid #dfe6ec; }
+td.paiement-carte-bleue { background-color: #007bff; color: white; font-weight: bold; }
+
+/* --- RÉCAPITULATIF JOURNALIER (PAGE SAISIE) --- */
+.daily-summary { display: flex; justify-content: space-around; gap: 15px; margin-top: 25px; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; }
+.summary-item { text-align: center; flex-grow: 1; }
+.summary-item h4 { margin-top: 0; margin-bottom: 5px; font-size: 14px; color: #6c757d; font-weight: normal; }
+.summary-item span { font-size: 18px; font-weight: bold; }
+
+/* --- NOUVEAU : COULEURS POUR LES TOTAUX --- */
+#dailyTotalEspeces { color: #528f76; }
+#dailyTotalVirements { color: #4d5964; }
+#dailyTotalCartes { color: #007bff; }
+#dailyTotalReste.reste-negatif { color: #dc3545; }
+#dailyTotalReste.reste-positif { color: #191970; }
+
+/* --- RESPONSIVE DESIGN --- */
+@media screen and (max-width: 1000px) {
+    .form-grid-six-colonnes {
+        grid-template-columns: 1fr;
+    }
+}

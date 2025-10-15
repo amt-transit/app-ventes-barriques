@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Historique des Ventes</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-history">
+    <header class="app-header">
+        <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
+        <h1>Historique des Ventes</h1>
+    </header>
+
+    <nav class="navigation">
+        <a href="index.html">Saisie</a>
+        <a href="dashboard.html">Tableau de Bord</a>
+        <a href="history.html" class="active">Historique</a>
+    </nav>
+
+    <table id="caisseTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Produit</th>
+                <th>Qté</th>
+                <th>PU</th>
+                <th>Total</th>
+                <th>Mode Paiement</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+
+    <script>
+      const firebaseConfig = {
+     apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+     authDomain: "app-ventes-barriques.firebaseapp.com",
+     projectId: "app-ventes-barriques",
+     storageBucket: "app-ventes-barriques.firebasestorage.app",
+     messagingSenderId: "615546459847",
+     appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+     };
+
+     // Initialize Firebase
+     const app = initializeApp(firebaseConfig);
+    </script>
+    <script src="history.js"></script>
+</body>
+</html>
