@@ -14,26 +14,16 @@
         <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
         <h1>Tableau de Bord</h1>
     </header>
-
     <nav class="navigation">
         <a href="index.html">Saisie</a>
         <a href="dashboard.html" class="active">Tableau de Bord</a>
         <a href="history.html">Historique</a>
     </nav>
-
     <div class="dashboard-container">
-        
         <div id="grandTotals" class="totals-container">
-            <div class="total-card">
-                <h3>Chiffre d'Affaires (Période)</h3>
-                <p id="grandTotalVentes">0,00 €</p>
-            </div>
-            <div class="total-card">
-                <h3>Quantité Totale (Période)</h3>
-                <p id="grandTotalQuantite">0</p>
-            </div>
+            <div class="total-card"><h3>Chiffre d'Affaires (Période)</h3><p id="grandTotalVentes">0,00 €</p></div>
+            <div class="total-card"><h3>Quantité Totale (Période)</h3><p id="grandTotalQuantite">0</p></div>
         </div>
-
         <div class="filter-container">
             <h3>Filtrer par Période</h3>
             <div class="filter-fields">
@@ -42,36 +32,32 @@
                 <button id="clearFilterBtn">Réinitialiser</button>
             </div>
         </div>
-        
         <h2 style="margin-top: 30px;">Récapitulatif par Produit</h2>
         <table id="productSummaryTable">
-            <thead>
-                <tr><th>Produit</th><th>Quantité Vendue</th><th>Chiffre d'Affaires</th></tr>
-            </thead>
+            <thead><tr><th>Produit</th><th>Quantité Vendue</th><th>Chiffre d'Affaires</th></tr></thead>
             <tbody id="productSummaryTableBody"></tbody>
         </table>
-
         <h2 style="margin-top: 30px;">Récapitulatif par Mode de Paiement</h2>
         <table id="paymentSummaryTable">
-            <thead>
-                <tr><th>Mode de Paiement</th><th>Nombre de Ventes</th><th>Total Encaissé</th></tr>
-            </thead>
+            <thead><tr><th>Mode de Paiement</th><th>Nombre de Ventes</th><th>Total Encaissé</th></tr></thead>
             <tbody id="paymentSummaryTableBody"></tbody>
         </table>
-        
-    </div> <script>
-      const firebaseConfig = {
-    apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-    authDomain: "app-ventes-barriques.firebaseapp.com",
-    projectId: "app-ventes-barriques",
-    storageBucket: "app-ventes-barriques.firebasestorage.app",
-    messagingSenderId: "615546459847",
-    appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-  };
+    </div>
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-</script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+      // Votre nouvelle configuration Firebase, correctement formatée
+      const firebaseConfig = {
+        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+        authDomain: "app-ventes-barriques.firebaseapp.com",
+        projectId: "app-ventes-barriques",
+        storageBucket: "app-ventes-barriques.appspot.com",
+        messagingSenderId: "615546459847",
+        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
     </script>
     <script src="dashboard.js"></script>
 </body>
