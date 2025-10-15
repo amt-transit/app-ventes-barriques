@@ -52,7 +52,7 @@ input, select {
 /* --- NOUVEAU : COULEURS POUR LE SÉLECTEUR DE MODE DE PAIEMENT --- */
 #modeDePaiement { font-weight: bold; transition: color 0.2s, border-color 0.2s; }
 #modeDePaiement.select-espece { color: #528f76; border-color: #528f76; }
-#modeDePaiement.select-virement { color: #4d5964; border-color: #343a40; }
+#modeDePaiement.select-virement { color: #57636e; border-color: #343a40; }
 #modeDePaiement.select-carte-bleue { color: #007bff; border-color: #007bff; }
 
 /* --- TABLEAUX (STYLE GÉNÉRAL) --- */
