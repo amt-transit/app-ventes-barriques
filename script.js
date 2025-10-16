@@ -20,6 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     const quantiteInput = document.getElementById('quantite');
     const totalInput = document.getElementById('total');
     const modeDePaiementInput = document.getElementById('modeDePaiement');
+    const clientInput = document.getElementById('client');
+    const vendeurInput = document.getElementById('vendeur');
     const referenceList = document.getElementById('referenceList');
     const dailyTotalVentesEl = document.getElementById('dailyTotalVentes');
     const dailyTotalEspecesEl = document.getElementById('dailyTotalEspeces');
@@ -59,17 +61,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!text) return '';
         return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     }
+    
     function renderDailyTable() {
         dailyTableBody.innerHTML = '';
         dailySales.forEach((data, index) => {
             const row = document.createElement('tr');
             const paymentClass = `paiement-${textToClassName(data.modeDePaiement)}`;
             row.innerHTML = `
-                <td data-label="Date">${data.date}</td>
+                <td data-label="Client">${data.client}</td>
                 <td data-label="Produit">${data.produit}</td>
                 <td data-label="Qté">${data.quantite}</td>
                 <td data-label="Total">${formatEUR(data.total)}</td>
                 <td data-label="Paiement" class="${paymentClass}">${data.modeDePaiement}</td>
+                <td data-label="Vendeur">${data.vendeur}</td>
                 <td data-label="Action"><button class="deleteBtn" data-index="${index}">X</button></td>
             `;
             dailyTableBody.appendChild(row);
@@ -77,6 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('dailyCount').textContent = dailySales.length;
         updateDailySummary();
     }
+
     produitInput.addEventListener('input', () => {
         const productValue = produitInput.value;
         if (productDB[productValue]) {
@@ -95,21 +100,33 @@ document.addEventListener('DOMContentLoaded', async () => {
             selectEl.classList.add(className);
         }
     });
+
     addEntryBtn.addEventListener('click', () => {
+        const user = firebase.auth().currentUser;
+        if (!user) {
+            return alert("Erreur : utilisateur non trouvé. Veuillez vous reconnecter.");
+        }
+
         const newSale = {
             date: document.getElementById('date').value,
             produit: produitInput.value,
             prixUnitaire: parseFloat(prixUnitaireInput.value) || 0,
             quantite: parseFloat(quantiteInput.value) || 0,
             total: parseFloat(totalInput.value) || 0,
-            modeDePaiement: modeDePaiementInput.value
+            modeDePaiement: modeDePaiementInput.value,
+            client: clientInput.value,
+            vendeur: vendeurInput.value,
+            enregistrePar: user.email // Garde la trace de qui a fait la saisie
         };
-        if (!newSale.date || !newSale.produit || newSale.quantite <= 0 || !newSale.modeDePaiement) {
-            return alert("Veuillez remplir la date, le produit, la quantité et le mode de paiement.");
+
+        if (!newSale.date || !newSale.produit || !newSale.quantite <= 0 || !newSale.modeDePaiement || !newSale.client || !newSale.vendeur) {
+            return alert("Veuillez remplir tous les champs obligatoires.");
         }
+        
         dailySales.push(newSale);
         saveDailyToLocalStorage();
         renderDailyTable();
+        
         formContainer.querySelectorAll('input, select').forEach(el => {
             if (el.type !== 'date') {
                 if (el.id === 'quantite') el.value = '1';
@@ -119,6 +136,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         modeDePaiementInput.classList.remove('select-espece', 'select-virement', 'select-carte-bleue');
         produitInput.focus();
     });
+
     dailyTableBody.addEventListener('click', (event) => {
         if (event.target.classList.contains('deleteBtn')) {
             const index = parseInt(event.target.getAttribute('data-index'), 10);
@@ -130,11 +148,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveDayBtn.addEventListener('click', () => {
         if (dailySales.length === 0) return alert("Aucune vente à enregistrer.");
         if (!confirm(`Voulez-vous vraiment enregistrer les ${dailySales.length} ventes de la journée ?`)) return;
+
         const batch = db.batch();
         dailySales.forEach(sale => {
             const docRef = salesCollection.doc();
             batch.set(docRef, sale);
         });
+
         batch.commit().then(() => {
             alert(`${dailySales.length} ventes ont été enregistrées avec succès !`);
             dailySales = [];
@@ -152,6 +172,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             referenceList.appendChild(option);
         }
     }
+
     renderDailyTable();
     populateDatalist();
 });
+

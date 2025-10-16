@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1000">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vente de Barriques et Cartons</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,20 +18,37 @@
         <a href="index.html" class="active">Saisie</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="history.html">Historique</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
     <div id="caisseForm">
-        <div class="form-grid-six-colonnes">
+        <div class="form-grid">
             <input type="date" id="date" required>
             <input type="text" id="produit" placeholder="Produit" required list="referenceList">
             <datalist id="referenceList"></datalist>
             <input type="number" id="prixUnitaire" placeholder="Prix Unitaire">
             <input type="number" id="quantite" placeholder="Quantité" required value="1">
-            <input type="number" id="total" placeholder="Total" readonly class="total-field">
+            <input type="number" id="total" placeholder="Total" readonly>
             <select id="modeDePaiement" required>
                 <option value="">-- Mode de Paiement --</option>
                 <option value="Espèce">Espèce</option>
                 <option value="Virement">Virement</option>
                 <option value="Carte Bleue">Carte Bleue</option>
+            </select>
+            <!-- NOUVEAUX CHAMPS AJOUTÉS -->
+            <input type="text" id="client" placeholder="Nom du Client" required>
+            <select id="vendeur" required>
+                <option value="">-- Vendeur --</option>
+                <option value="Abdoul">Abdoul</option>
+                <option value="Ali">Ali</option>
+                <option value="Cheick">Cheick</option>
+                <option value="Demba">Demba</option>
+                <option value="Idriss">Idriss</option>
+                <option value="Kady">Kady</option>
+                <option value="Kaïs">Kaïs</option>
+                <option value="Kara">Kara</option>
+                <option value="Mohamed">Mohamed</option>
+                <option value="Mr Doucoure">Mr Doucoure</option>
+                <option value="Zoum">Zoum</option>
             </select>
         </div>
         <div class="form-buttons">
@@ -42,7 +59,7 @@
     <h2>Ventes de la journée en cours <span id="dailyCount" class="tag">0</span></h2>
     <table id="dailyTable">
         <thead>
-            <tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th><th>Mode Paiement</th><th>Action</th></tr>
+            <tr><th>Client</th><th>Produit</th><th>Qté</th><th>Total</th><th>Paiement</th><th>Vendeur</th><th>Action</th></tr>
         </thead>
         <tbody id="dailyTableBody"></tbody>
     </table>
@@ -50,24 +67,19 @@
         <div class="summary-item"><h4>Total Ventes</h4><span id="dailyTotalVentes">0,00 €</span></div>
         <div class="summary-item"><h4>Total Espèces</h4><span id="dailyTotalEspeces">0,00 €</span></div>
         <div class="summary-item"><h4>Total Virements</h4><span id="dailyTotalVirements">0,00 €</span></div>
-        <div class="summary-item"><h4>Total Cartes Bleu</h4><span id="dailyTotalCartes">0,00 €</span></div>
+        <div class="summary-item"><h4>Total Cartes</h4><span id="dailyTotalCartes">0,00 €</span></div>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-      // Votre nouvelle configuration Firebase, correctement formatée
-      const firebaseConfig = {
-        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-        authDomain: "app-ventes-barriques.firebaseapp.com",
-        projectId: "app-ventes-barriques",
-        storageBucket: "app-ventes-barriques.appspot.com",
-        messagingSenderId: "615546459847",
-        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-      };
+      const firebaseConfig = { /* Votre configuration */ };
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
     </script>
+    <script src="auth-guard.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
+

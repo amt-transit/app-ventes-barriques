@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - Ventes</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <header class="app-header">
+            <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
+            <h1>Accès Vendeur</h1>
+        </header>
+        <div class="login-form">
+            <input type="email" id="email" placeholder="Adresse e-mail" required>
+            <input type="password" id="password" placeholder="Mot de passe" required>
+            <p id="error-message" class="error-text"></p>
+            <div class="form-buttons">
+                <button id="loginBtn">Se Connecter</button>
+                <button id="signupBtn" class="primary">Créer un Compte</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+        authDomain: "app-ventes-barriques.firebaseapp.com",
+        projectId: "app-ventes-barriques",
+        storageBucket: "app-ventes-barriques.appspot.com",
+        messagingSenderId: "615546459847",
+        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
+    <script src="auth.js"></script>
+</body>
+</html>

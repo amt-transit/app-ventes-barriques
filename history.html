@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1000">
+    <meta name="viewport" content="width=1200">
     <title>Historique des Ventes</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,18 +18,28 @@
         <a href="index.html">Saisie</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="history.html" class="active">Historique</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
     <table id="caisseTable">
         <thead>
-            <tr><th>Date</th><th>Produit</th><th>Qté</th><th>PU</th><th>Total</th><th>Mode Paiement</th><th>Action</th></tr>
+            <tr>
+                <th>Date</th>
+                <th>Produit</th>
+                <th>Qté</th>
+                <th>PU</th>
+                <th>Total</th>
+                <th>Mode Paiement</th>
+                <th>Vendeur</th>
+                <th>Action</th>
+            </tr>
         </thead>
         <tbody id="tableBody"></tbody>
     </table>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-      // Votre nouvelle configuration Firebase, correctement formatée
       const firebaseConfig = {
         apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
         authDomain: "app-ventes-barriques.firebaseapp.com",
@@ -41,6 +51,8 @@
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
     </script>
+    <script src="auth-guard.js"></script>
     <script src="history.js"></script>
 </body>
 </html>
+

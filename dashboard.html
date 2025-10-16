@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1000">
+    <meta name="viewport" content="width=1200">
     <title>Tableau de Bord - Ventes</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -19,66 +19,62 @@
         <a href="index.html">Saisie</a>
         <a href="dashboard.html" class="active">Tableau de Bord</a>
         <a href="history.html">Historique</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
     <div class="dashboard-container">
         
         <div class="dashboard-header">
-            
             <div class="total-card">
                 <h3>Chiffre d'Affaires (Période)</h3>
                 <p id="grandTotalVentes">0,00 €</p>
             </div>
-            
             <div class="total-card">
                 <h3>Quantité Totale (Période)</h3>
                 <p id="grandTotalQuantite">0</p>
             </div>
-    
             <div class="filter-container">
                 <h3>Filtrer par Période</h3>
                 <div class="filter-fields">
-                    <div>
-                        <label for="startDate">Du :</label>
-                        <input type="date" id="startDate">
-                    </div>
-                    <div>
-                        <label for="endDate">Au :</label>
-                        <input type="date" id="endDate">
-                    </div>
+                    <div><label for="startDate">Du :</label><input type="date" id="startDate"></div>
+                    <div><label for="endDate">Au :</label><input type="date" id="endDate"></div>
                     <button id="clearFilterBtn">Réinitialiser</button>
                 </div>
             </div>
-
         </div>
         
         <h2 style="margin-top: 30px;">Récapitulatif par Produit</h2>
         <table id="productSummaryTable">
-    <thead>
-        <tr>
-            <th>Produit</th>
-            <th>Quantité Vendue</th>
-            <th>Chiffre d'Affaires</th>
-            <th>Total Espèces</th>
-            <th>Total Virement</th>
-            <th>Total Carte Bleue</th>
-        </tr>
-    </thead>
-    <tbody id="productSummaryTableBody"></tbody>
-</table>
-
-        <h2 style="margin-top: 30px;">Récapitulatif par Mode de Paiement</h2>
-        <table id="paymentSummaryTable">
             <thead>
-                <tr><th>Mode de Paiement</th><th>Nombre de Ventes</th><th>Total Encaissé</th></tr>
+                <tr>
+                    <th>Produit</th>
+                    <th>Quantité Vendue</th>
+                    <th>Chiffre d'Affaires</th>
+                    <th>Total Espèces</th>
+                    <th>Total Virement</th>
+                    <th>Total Carte Bleue</th>
+                </tr>
             </thead>
-            <tbody id="paymentSummaryTableBody"></tbody>
+            <tbody id="productSummaryTableBody"></tbody>
+        </table>
+
+        <h2 style="margin-top: 30px;">Récapitulatif par Vendeur</h2>
+        <table id="agentSummaryTable">
+            <thead>
+                <tr>
+                    <th>Vendeur</th>
+                    <th>Nombre de Ventes</th>
+                    <th>Chiffre d'Affaires</th>
+                </tr>
+            </thead>
+            <tbody id="agentSummaryTableBody"></tbody>
         </table>
         
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
@@ -91,6 +87,8 @@
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
     </script>
+    <script src="auth-guard.js"></script>
     <script src="dashboard.js"></script>
 </body>
 </html>
+
