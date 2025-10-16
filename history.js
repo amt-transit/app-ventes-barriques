@@ -24,9 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function formatEUR(number) {
+        if (typeof number !== 'number') return 'N/A';
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number);
     }
-    
+
     function textToClassName(text) {
         if (!text) return '';
         return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
@@ -44,11 +45,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const paymentClass = `paiement-${textToClassName(data.modeDePaiement)}`;
             row.innerHTML = `
                 <td data-label="Date">${data.date}</td>
-                <td data-label="Client">${data.client || 'N/A'}</td>
                 <td data-label="Produit">${data.produit}</td>
                 <td data-label="Qté">${data.quantite}</td>
+                <td data-label="P.U.">${formatEUR(data.prixUnitaire)}</td>
                 <td data-label="Total">${formatEUR(data.total)}</td>
-                <td data-label="Paiement" class="${paymentClass}">${data.modeDePaiement}</td>
+                <td data-label="Paiement" class="${paymentClass}">${data.modeDePaiement || 'N/A'}</td>
                 <td data-label="Vendeur">${data.vendeur || 'N/A'}</td>
                 <td data-label="Saisi par">${data.enregistrePar || 'N/A'}</td>
                 <td data-label="Action"><button class="deleteBtn" data-id="${data.id}">Suppr.</button></td>
@@ -57,4 +58,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-

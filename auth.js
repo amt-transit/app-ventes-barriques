@@ -7,17 +7,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupBtn = document.getElementById('signupBtn');
     const errorMessage = document.getElementById('error-message');
 
-    // Redirige si déjà connecté
-    auth.onAuthStateChanged(user => {
-        if (user) {
-            window.location.href = 'index.html';
-        }
-    });
+    // ATTENTION : Le bloc qui redirigeait automatiquement a été SUPPRIMÉ.
+    // C'était la cause principale de la boucle.
 
     loginBtn.addEventListener('click', () => {
         const email = emailInput.value;
         const password = passwordInput.value;
         auth.signInWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // L'utilisateur est connecté, on redirige vers l'accueil
+                window.location.href = 'index.html';
+            })
             .catch((error) => {
                 errorMessage.textContent = "Erreur : E-mail ou mot de passe incorrect.";
             });
@@ -31,6 +31,10 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         auth.createUserWithEmailAndPassword(email, password)
+            .then((userCredential) => {
+                // Le compte est créé, on redirige vers l'accueil
+                window.location.href = 'index.html';
+            })
             .catch((error) => {
                 if (error.code === 'auth/email-already-in-use') {
                     errorMessage.textContent = "Cette adresse e-mail est déjà utilisée.";

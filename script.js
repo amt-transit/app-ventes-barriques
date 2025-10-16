@@ -11,37 +11,49 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error("Erreur: Impossible de charger le fichier references.json.", error);
     }
 
+    // Récupération des éléments du DOM
     const addEntryBtn = document.getElementById('addEntryBtn');
     const saveDayBtn = document.getElementById('saveDayBtn');
     const dailyTableBody = document.getElementById('dailyTableBody');
     const formContainer = document.getElementById('caisseForm');
+    
+    // Champs du formulaire
+    const dateInput = document.getElementById('date');
     const produitInput = document.getElementById('produit');
     const prixUnitaireInput = document.getElementById('prixUnitaire');
     const quantiteInput = document.getElementById('quantite');
     const totalInput = document.getElementById('total');
     const modeDePaiementInput = document.getElementById('modeDePaiement');
-    const clientInput = document.getElementById('client');
-    const vendeurInput = document.getElementById('vendeur');
+    const vendeurAMTInput = document.getElementById('vendeurAMT');
+    const autreVendeurInput = document.getElementById('autreVendeur');
     const referenceList = document.getElementById('referenceList');
+
+    // Éléments du résumé
     const dailyTotalVentesEl = document.getElementById('dailyTotalVentes');
     const dailyTotalEspecesEl = document.getElementById('dailyTotalEspeces');
     const dailyTotalVirementsEl = document.getElementById('dailyTotalVirements');
     const dailyTotalCartesEl = document.getElementById('dailyTotalCartes');
+    const dailyCountEl = document.getElementById('dailyCount');
+
+    dateInput.valueAsDate = new Date();
 
     let dailySales = JSON.parse(localStorage.getItem('dailySales')) || [];
 
     function saveDailyToLocalStorage() {
         localStorage.setItem('dailySales', JSON.stringify(dailySales));
     }
+
     function formatEUR(number) {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number);
     }
+
     function calculateTotal() {
         const prixUnitaire = parseFloat(prixUnitaireInput.value) || 0;
         const quantite = parseFloat(quantiteInput.value) || 0;
         const total = prixUnitaire * quantite;
         totalInput.value = total.toFixed(2);
     }
+
     function updateDailySummary() {
         let totalVentes = 0, totalEspeces = 0, totalVirements = 0, totalCartes = 0;
         dailySales.forEach(sale => {
@@ -56,7 +68,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         dailyTotalEspecesEl.textContent = formatEUR(totalEspeces);
         dailyTotalVirementsEl.textContent = formatEUR(totalVirements);
         dailyTotalCartesEl.textContent = formatEUR(totalCartes);
+        dailyCountEl.textContent = dailySales.length;
     }
+
     function textToClassName(text) {
         if (!text) return '';
         return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
@@ -68,7 +82,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const row = document.createElement('tr');
             const paymentClass = `paiement-${textToClassName(data.modeDePaiement)}`;
             row.innerHTML = `
-                <td data-label="Client">${data.client}</td>
+                <td data-label="Date">${data.date}</td>
                 <td data-label="Produit">${data.produit}</td>
                 <td data-label="Qté">${data.quantite}</td>
                 <td data-label="Total">${formatEUR(data.total)}</td>
@@ -78,7 +92,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             `;
             dailyTableBody.appendChild(row);
         });
-        document.getElementById('dailyCount').textContent = dailySales.length;
         updateDailySummary();
     }
 
@@ -89,9 +102,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             calculateTotal();
         }
     });
+
     [prixUnitaireInput, quantiteInput].forEach(input => {
         input.addEventListener('input', calculateTotal);
     });
+
     modeDePaiementInput.addEventListener('change', (event) => {
         const selectEl = event.target;
         selectEl.classList.remove('select-espece', 'select-virement', 'select-carte-bleue');
@@ -107,19 +122,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             return alert("Erreur : utilisateur non trouvé. Veuillez vous reconnecter.");
         }
 
+        const vendeur = autreVendeurInput.value.trim() || vendeurAMTInput.value;
+
         const newSale = {
-            date: document.getElementById('date').value,
+            date: dateInput.value,
             produit: produitInput.value,
             prixUnitaire: parseFloat(prixUnitaireInput.value) || 0,
             quantite: parseFloat(quantiteInput.value) || 0,
             total: parseFloat(totalInput.value) || 0,
             modeDePaiement: modeDePaiementInput.value,
-            client: clientInput.value,
-            vendeur: vendeurInput.value,
-            enregistrePar: user.email // Garde la trace de qui a fait la saisie
+            vendeur: vendeur,
+            enregistrePar: user.email
         };
 
-        if (!newSale.date || !newSale.produit || !newSale.quantite <= 0 || !newSale.modeDePaiement || !newSale.client || !newSale.vendeur) {
+        if (!newSale.date || !newSale.produit || newSale.quantite <= 0 || !newSale.modeDePaiement || !newSale.vendeur) {
             return alert("Veuillez remplir tous les champs obligatoires.");
         }
         
@@ -127,12 +143,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         saveDailyToLocalStorage();
         renderDailyTable();
         
-        formContainer.querySelectorAll('input, select').forEach(el => {
-            if (el.type !== 'date') {
-                if (el.id === 'quantite') el.value = '1';
-                else el.value = '';
-            }
-        });
+        produitInput.value = '';
+        prixUnitaireInput.value = '';
+        quantiteInput.value = '1';
+        totalInput.value = '';
+        modeDePaiementInput.value = '';
+        vendeurAMTInput.value = '';
+        autreVendeurInput.value = '';
         modeDePaiementInput.classList.remove('select-espece', 'select-virement', 'select-carte-bleue');
         produitInput.focus();
     });
@@ -145,6 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             renderDailyTable();
         }
     });
+
     saveDayBtn.addEventListener('click', () => {
         if (dailySales.length === 0) return alert("Aucune vente à enregistrer.");
         if (!confirm(`Voulez-vous vraiment enregistrer les ${dailySales.length} ventes de la journée ?`)) return;
@@ -165,6 +183,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             alert("Une erreur est survenue. Vérifiez votre connexion internet.");
         });
     });
+
     function populateDatalist() {
         for (const product in productDB) {
             const option = document.createElement('option');
@@ -176,4 +195,3 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderDailyTable();
     populateDatalist();
 });
-

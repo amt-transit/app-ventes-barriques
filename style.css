@@ -31,9 +31,9 @@ h2 { text-align: center; color: #1c1e21; }
     background-color: #fff; padding: 20px; border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px;
 }
-.form-grid-six-colonnes {
-    display: grid; grid-template-columns: repeat(6, 1fr);
-    gap: 15px; margin-bottom: 20px;
+.form-grid-huit-colonnes {
+    display: grid; grid-template-columns: repeat(8, 1fr);
+    gap: 15px;
 }
 input, select {
     width: 100%; padding: 10px; border: 1px solid #ddd;
@@ -45,9 +45,6 @@ input, select {
     cursor: pointer; border: 1px solid #ccc; border-radius: 6px; background-color: #f0f2f5;
 }
 .form-buttons button.primary { background-color: #28a745; color: white; border-color: #28a745; }
-.prix-container { display: flex; align-items: center; gap: 5px; }
-.prix-container input { flex-grow: 1; }
-.cfa-label { font-weight: bold; color: #555; }
 
 /* --- COULEURS POUR LE SÉLECTEUR DE MODE DE PAIEMENT --- */
 #modeDePaiement { font-weight: bold; transition: color 0.2s, border-color 0.2s; }
@@ -69,9 +66,9 @@ td button.deleteBtn {
 }
 
 /* --- COULEURS POUR LES CELLULES DU TABLEAU --- */
-td.paiement-espece { background-color: #528f76; color: white; font-weight: bold; }
-td.paiement-virement { background-color: #f8f9fa; color: #4d5964; font-weight: bold; border: 1px solid #dfe6ec; }
-td.paiement-carte-bleue { background-color: #007bff; color: white; font-weight: bold; }
+td.paiement-espece { background-color: #d4edda; color: #155724; font-weight: bold; }
+td.paiement-virement { background-color: #e2e3e5; color: #383d41; font-weight: bold; }
+td.paiement-carte-bleue { background-color: #cce5ff; color: #004085; font-weight: bold; }
 
 /* --- RÉCAPITULATIF JOURNALIER (PAGE SAISIE) --- */
 .daily-summary { display: flex; justify-content: space-around; gap: 15px; margin-top: 25px; padding: 20px; background-color: #fff; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; }
@@ -80,11 +77,9 @@ td.paiement-carte-bleue { background-color: #007bff; color: white; font-weight: 
 .summary-item span { font-size: 18px; font-weight: bold; }
 
 /* --- COULEURS POUR LES TOTAUX --- */
-#dailyTotalEspeces { color: #528f76; }
-#dailyTotalVirements { color: #4d5964; }
-#dailyTotalCartes { color: #007bff; }
-#dailyTotalReste.reste-negatif { color: #dc3545; }
-#dailyTotalReste.reste-positif { color: #191970; }
+#dailyTotalEspeces { color: #155724; }
+#dailyTotalVirements { color: #383d41; }
+#dailyTotalCartes { color: #004085; }
 
 /* --- STYLE PAGE DASHBOARD --- */
 .dashboard-container { background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
@@ -93,7 +88,6 @@ td.paiement-carte-bleue { background-color: #007bff; color: white; font-weight: 
     align-items: flex-start; gap: 20px;
     margin-bottom: 30px; flex-wrap: wrap;
 }
-.totals-container { display: flex; gap: 20px; flex-grow: 1; }
 .total-card {
     flex-grow: 1; background-color: #f8f9fa; border-radius: 8px;
     padding: 15px; text-align: center; border: 1px solid #dee2e6;
@@ -112,6 +106,7 @@ td.paiement-carte-bleue { background-color: #007bff; color: white; font-weight: 
     padding: 8px 15px; border: none; background-color: #87CEEB;
     color: white; font-weight: bold; border-radius: 6px; cursor: pointer;
 }
+
 /* --- STYLE PAGE DE CONNEXION --- */
 .login-page {
     display: flex;

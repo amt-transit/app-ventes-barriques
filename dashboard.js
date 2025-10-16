@@ -87,12 +87,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const agentData = {};
         sales.forEach(s => {
-            const agentEmail = s.vendeurEmail || "Non spécifié";
-            if (!agentData[agentEmail]) {
-                agentData[agentEmail] = { count: 0, total: 0 };
+            const agentName = s.vendeur || "Non spécifié";
+            if (!agentData[agentName]) {
+                agentData[agentName] = { count: 0, total: 0 };
             }
-            agentData[agentEmail].count++;
-            agentData[agentEmail].total += s.total;
+            agentData[agentName].count++;
+            agentData[agentName].total += s.total;
         });
 
         const sortedAgents = Object.keys(agentData).sort((a, b) => agentData[b].total - agentData[a].total);
@@ -124,4 +124,3 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number);
     }
 });
-
