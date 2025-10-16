@@ -7,15 +7,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const signupBtn = document.getElementById('signupBtn');
     const errorMessage = document.getElementById('error-message');
 
-    // ATTENTION : Le bloc qui redirigeait automatiquement a été SUPPRIMÉ.
-    // C'était la cause principale de la boucle.
-
+    // Action pour le bouton de connexion
     loginBtn.addEventListener('click', () => {
         const email = emailInput.value;
         const password = passwordInput.value;
         auth.signInWithEmailAndPassword(email, password)
             .then((userCredential) => {
-                // L'utilisateur est connecté, on redirige vers l'accueil
+                // Connexion réussie, on redirige vers l'accueil
                 window.location.href = 'index.html';
             })
             .catch((error) => {
@@ -23,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     });
 
+    // Action pour le bouton d'inscription
     signupBtn.addEventListener('click', () => {
         const email = emailInput.value;
         const password = passwordInput.value;
@@ -32,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         auth.createUserWithEmailAndPassword(email, password)
             .then((userCredential) => {
-                // Le compte est créé, on redirige vers l'accueil
+                // Inscription réussie, on redirige vers l'accueil
                 window.location.href = 'index.html';
             })
             .catch((error) => {
