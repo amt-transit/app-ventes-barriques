@@ -1,29 +1,36 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Note : La connexion Firebase est en pause.
-    // const db = firebase.firestore();
-    // const salesCollection = db.collection("ventes");
-    
+    if (typeof firebase === 'undefined' || typeof db === 'undefined') {
+        return alert("Erreur: La connexion à la base de données a échoué.");
+    }
+
+    const salesCollection = db.collection("ventes");
     const tableBody = document.getElementById('tableBody');
 
-    // Pour le test en local, on affiche un message
-    tableBody.innerHTML = '<tr><td colspan="7">L\'historique sera disponible après la connexion à la base de données.</td></tr>';
+    salesCollection.orderBy("date", "desc").onSnapshot(snapshot => {
+        const sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderTable(sales);
+    }, error => console.error("Erreur Firestore: ", error));
+
+    tableBody.addEventListener('click', (event) => {
+        if (event.target.classList.contains('deleteBtn')) {
+            const docId = event.target.getAttribute('data-id');
+            if (confirm("Confirmer la suppression définitive de cette vente ?")) {
+                salesCollection.doc(docId).delete();
+            }
+        }
+    });
 
     function formatEUR(number) {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number);
     }
-    
     function textToClassName(text) {
         if (!text) return '';
         return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
     }
-
     function renderTable(sales) {
+        tableBody.innerHTML = '<tr><td colspan="7">Aucun historique de vente trouvé.</td></tr>';
+        if (sales.length === 0) return;
         tableBody.innerHTML = '';
-        if (sales.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="7">Aucun historique de vente trouvé.</td></tr>';
-            return;
-        }
-
         sales.forEach(data => {
             const row = document.createElement('tr');
             const paymentClass = `paiement-${textToClassName(data.modeDePaiement)}`;
@@ -39,10 +46,4 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.appendChild(row);
         });
     }
-
-    // NOTE : La logique de suppression sera activée avec Firebase
-    // tableBody.addEventListener('click', (event) => { ... });
-
-    // NOTE : L'écouteur Firebase sera activé ici
-    // salesCollection.orderBy("date", "desc").onSnapshot(snapshot => { ... });
 });
