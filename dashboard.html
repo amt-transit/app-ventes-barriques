@@ -18,6 +18,7 @@
 
     <nav class="navigation">
         <a href="index.html">Saisie</a>
+        <a href="stock.html">Stock</a>
         <a href="dashboard.html" class="active">Tableau de Bord</a>
         <a href="history.html">Historique</a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
@@ -54,6 +55,7 @@
                     <th>Total Espèces</th>
                     <th>Total Virement</th>
                     <th>Total Carte Bleue</th>
+                    <th>Bénéfice</th>
                 </tr>
             </thead>
             <tbody id="productSummaryTableBody"></tbody>
@@ -70,6 +72,7 @@
             </thead>
             <tbody id="agentSummaryTableBody"></tbody>
         </table>
+        <div id="rachatCapacite" class="info-box" style="margin-top:20px; padding:15px; background:#e8f5e9; border-radius:8px;"></div>
         
     </div>
 

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1200">
+    <title>Gestion du Stock</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <header class="app-header">
+        <img src="logo.png" alt="Logo" class="app-logo">
+        <h1>Gestion des Stocks</h1>
+    </header>
+
+    <nav class="navigation">
+        <a href="index.html">Saisie</a>
+        <a href="stock.html" class="active">Stock</a>
+        <a href="dashboard.html">Tableau de Bord</a>
+        <a href="history.html">Historique</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
+    </nav>
+
+    <div id="caisseForm">
+        <div class="form-grid-huit-colonnes">
+            <input type="date" id="stockDate">
+            <input type="text" id="stockProduit" placeholder="Produit" list="referenceList">
+            <datalist id="referenceList"></datalist>
+            <input type="number" id="prixAchat" placeholder="Prix Achat Unit.">
+            <input type="number" id="prixVenteRef" placeholder="Prix Vente Unit.">
+            <input type="number" id="quantiteInitiale" placeholder="Qté Achetée">
+            <button id="addStockBtn" class="primary">Ajouter au Stock</button>
+        </div>
+    </div>
+
+    <div class="dashboard-header" style="margin-top: 20px;">
+        <div class="total-card"><h3>Valeur Achat</h3><p id="valeurAchatTotal">0,00 €</p></div>
+        <div class="total-card"><h3>Valeur Vente</h3><p id="valeurVenteTotal">0,00 €</p></div>
+        <div class="total-card"><h3>Volume Total</h3><p id="volumeTotal">0</p></div>
+        <div class="total-card">
+            <h3>Bénéfice Estimé Total</h3>
+            <p id="beneficeTotalStock" style="color: #28a745;">0,00 €</p>
+        </div>
+        <div class="filter-container">
+            <input type="text" id="stockSearch" placeholder="Rechercher un produit...">
+        </div>
+    </div>
+
+    <table id="stockTable">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Produit</th>
+                <th>Achat (U)</th>
+                <th>Vente (U)</th>
+                <th>Total (Entré)</th>
+                <th>Vendu</th>
+                <th>Reste</th>
+                <th>Bénéfice Est.</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody id="stockTableBody"></tbody>
+    </table>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
+      // Insérez votre firebaseConfig ici
+      const firebaseConfig = {
+        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+        authDomain: "app-ventes-barriques.firebaseapp.com",
+        projectId: "app-ventes-barriques",
+        storageBucket: "app-ventes-barriques.appspot.com",
+        messagingSenderId: "615546459847",
+        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
+    <script src="auth-guard.js"></script>
+    <script src="stock.js"></script>
+</body>
+</html>

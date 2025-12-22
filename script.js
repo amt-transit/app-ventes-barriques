@@ -4,12 +4,31 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const salesCollection = db.collection("ventes");
+    const stocksCollection = db.collection("stocks"); // Accès à la collection des stocks
+
     let productDB = {};
+    let latestStockPrices = {}; // Stockage local des prix du stock
+
+    // 1. Charger le fichier references.json (Fallback)
     try {
         productDB = await fetch('references.json').then(res => res.json());
     } catch (error) {
         console.error("Erreur: Impossible de charger le fichier references.json.", error);
     }
+
+    // 2. Écouter la collection STOCKS pour récupérer les prix de vente définis
+    stocksCollection.onSnapshot(snapshot => {
+        latestStockPrices = {};
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            // On associe le nom du produit à son prix de vente le plus récent
+            if (data.produit && data.prixVente) {
+                latestStockPrices[data.produit] = data.prixVente;
+            }
+        });
+    }, error => {
+        console.error("Erreur lors de la récupération des prix du stock:", error);
+    });
 
     // Récupération des éléments du DOM
     const addEntryBtn = document.getElementById('addEntryBtn');
@@ -17,7 +36,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const dailyTableBody = document.getElementById('dailyTableBody');
     const formContainer = document.getElementById('caisseForm');
     
-    // Champs du formulaire
     const dateInput = document.getElementById('date');
     const produitInput = document.getElementById('produit');
     const prixUnitaireInput = document.getElementById('prixUnitaire');
@@ -28,7 +46,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     const autreVendeurInput = document.getElementById('autreVendeur');
     const referenceList = document.getElementById('referenceList');
 
-    // Éléments du résumé
     const dailyTotalVentesEl = document.getElementById('dailyTotalVentes');
     const dailyTotalEspecesEl = document.getElementById('dailyTotalEspeces');
     const dailyTotalVirementsEl = document.getElementById('dailyTotalVirements');
@@ -95,10 +112,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateDailySummary();
     }
 
+    // --- MODIFICATION ICI : Priorité au prix du Stock ---
+    // --- DANS VOTRE ÉCOUTEUR PRODUITEXISTANT ---
     produitInput.addEventListener('input', () => {
         const productValue = produitInput.value;
-        if (productDB[productValue]) {
+        
+        if (latestStockPrices[productValue]) {
+            // PRIX TROUVÉ DANS LE STOCK
+            prixUnitaireInput.value = latestStockPrices[productValue];
+            
+            // VERROUILLAGE DU CHAMP
+            prixUnitaireInput.readOnly = true; 
+            prixUnitaireInput.style.backgroundColor = "#e9ecef"; // Gris clair (aspect désactivé)
+            prixUnitaireInput.style.cursor = "not-allowed";
+            
+            calculateTotal();
+        } 
+        else if (productDB[productValue]) {
+            // PRIX TROUVÉ DANS LE JSON (FALLBACK)
             prixUnitaireInput.value = productDB[productValue];
+            
+            // On peut choisir de le laisser modifiable ou non. 
+            // Ici, on le déverrouille pour permettre la flexibilité si ce n'est pas en stock.
+            prixUnitaireInput.readOnly = false;
+            prixUnitaireInput.style.backgroundColor = "#ffffff";
+            prixUnitaireInput.style.cursor = "text";
+            
+            calculateTotal();
+        } 
+        else {
+            // PRODUIT INCONNU
+            prixUnitaireInput.value = '';
+            prixUnitaireInput.readOnly = false;
+            prixUnitaireInput.style.backgroundColor = "#ffffff";
+            prixUnitaireInput.style.cursor = "text";
             calculateTotal();
         }
     });
