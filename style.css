@@ -1,48 +1,66 @@
-/* --- STYLES DE BASE COMPACTS --- */
+/* ==========================================================================
+   1. STYLES DE BASE (ULTRA-COMPACTS)
+   ========================================================================== */
 body {
     font-family: 'Comfortaa', sans-serif; 
-    font-size: 13px; /* Réduit de 14px */
+    font-size: 12px; 
     background-color: #f0f2f5; 
     color: #333;
     margin: 0; 
-    padding: 0 5px 10px 5px;
+    padding: 0 5px 5px 5px;
 }
 
 .app-header {
     display: flex; 
     align-items: center; 
     justify-content: center;
-    padding: 5px 15px; /* Très condensé */
+    padding: 4px 15px;
     background-color: #fff;
     border-bottom: 1px solid #e0e0e0; 
-    margin-bottom: 10px;
+    margin-bottom: 8px;
 }
 
-.app-logo { height: 35px; margin-right: 10px; }
-.app-header h1 { margin: 0; font-size: 18px; }
-h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 15px; }
+.app-logo { height: 28px; margin-right: 10px; }
+.app-header h1 { margin: 0; font-size: 16px; }
+h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 14px; }
 
-/* --- NAVIGATION SERRÉE --- */
+/* ==========================================================================
+   2. NAVIGATION
+   ========================================================================== */
 .navigation {
     display: flex; 
     justify-content: center; 
-    gap: 5px;
-    margin-bottom: 15px;
+    gap: 4px;
+    margin-bottom: 12px;
 }
 
 .navigation a {
     text-decoration: none; 
-    padding: 6px 12px; 
+    padding: 5px 12px; 
     border-radius: 4px;
     background-color: #e9ecef; 
     color: #333; 
     font-weight: bold;
-    font-size: 12px;
+    font-size: 11px;
     transition: background-color 0.2s;
 }
+.navigation a:hover { background-color: #ced4da; }
 .navigation a.active { background-color: #1877f2; color: white; }
 
-/* --- FORMULAIRE DE SAISIE (LIGNE UNIQUE) --- */
+.logout-button {
+    background-color: #6c757d; 
+    color: white; 
+    border: none; 
+    padding: 5px 12px;
+    border-radius: 4px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    font-size: 11px;
+}
+
+/* ==========================================================================
+   3. FORMULAIRES DE SAISIE (SAISIE & STOCK)
+   ========================================================================== */
 #caisseForm {
     background-color: #fff; 
     padding: 10px; 
@@ -53,40 +71,39 @@ h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 15px; }
 
 .form-grid-huit-colonnes {
     display: grid;
-    /* On force strictement 8 colonnes sur une ligne */
-    grid-template-columns: repeat(8, minmax(0, 1fr)); 
+    grid-template-columns: repeat(8, 1fr); /* Force l'alignement strict */
     gap: 8px;
     align-items: start;
 }
 
-/* Gestion du groupe Produit + Alerte Stock */
 .input-group {
     display: flex;
     flex-direction: column;
 }
 
 .stock-status {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: bold;
-    height: 12px; /* Hauteur fixe : l'alerte ne fera plus sauter la ligne */
+    height: 12px; /* Hauteur fixe pour empêcher le saut de ligne */
     margin-top: 2px;
+    color: #1877f2;
     overflow: hidden;
     white-space: nowrap;
 }
 
 input, select {
     width: 100%; 
-    padding: 5px 8px; /* Champs plus fins */
-    border: 1px solid #ddd;
+    padding: 5px 8px; 
+    border: 1px solid #ccc;
     border-radius: 4px; 
-    font-size: 12px; 
+    font-size: 11px; 
     box-sizing: border-box;
 }
 
 .form-buttons { 
     display: flex; 
-    gap: 8px; 
-    margin-top: 8px; 
+    gap: 10px; 
+    margin-top: 10px; 
     justify-content: center;
 }
 
@@ -98,265 +115,140 @@ input, select {
     font-weight: bold;
     cursor: pointer; 
     border-radius: 4px;
+    border: 1px solid #333;
+    background-color: #f8f9fa;
 }
 
-/* --- TABLEAUX ULTRA-COMPACTS --- */
-table {
-    width: 100%; 
-    border-collapse: collapse; 
+.form-buttons button.primary { 
+    background-color: #28a745; 
+    color: white; 
+    border-color: #28a745; 
+}
+
+/* ==========================================================================
+   4. RÉSUMÉS ET CARTES (ALIGNEMENT HORIZONTAL)
+   ========================================================================== */
+
+/* Barre de Stock & Résumé Journalier */
+.stock-summary-bar, .daily-summary {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+    align-items: stretch;
+    gap: 8px;
+    margin: 10px 0;
+    padding: 8px;
     background-color: #fff;
-    font-size: 12px;
-}
-
-th, td { 
-    padding: 5px 8px; /* Cellules resserrées */
-    text-align: left; 
-    border-bottom: 1px solid #eee; 
-}
-
-thead { background-color: #f5f6f7; }
-
-/* --- RÉSUMÉ JOURNALIER HORIZONTAL --- */
-.daily-summary {
-    display: flex; 
-    flex-direction: row; /* Aligne les totaux sur une seule ligne */
-    justify-content: space-around; 
-    gap: 10px; 
-    margin-top: 15px; 
-    padding: 10px; 
-    background-color: #fff; 
-    border-radius: 6px; 
+    border-radius: 6px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
-.summary-item { 
-    text-align: center; 
+.summary-item, .total-card {
     flex: 1;
-}
-
-.summary-item h4 { margin: 0; font-size: 11px; color: #666; font-weight: normal; }
-.summary-item span { font-size: 14px; font-weight: bold; }
-
-/* --- DASHBOARD COMPACT --- */
-.total-card {
-    flex: 1;
-    padding: 8px; 
-    background-color: #f8f9fa; 
-    border-radius: 6px;
-    text-align: center; 
-    border: 1px solid #dee2e6;
-}
-.total-card h3 { margin: 0; font-size: 10px; text-transform: uppercase; color: #777; }
-.total-card p { margin: 2px 0 0 0; font-size: 16px; font-weight: bold; }
-
-/* --- MODALE --- */
-.modal-content {
-    margin: 2% auto; 
-    padding: 15px; 
-    width: 85%;
-    max-height: 95vh;
-}
-
-/* --- COULEURS ET ALERTES --- */
-td.paiement-espece { background-color: #d4edda; color: #155724; font-weight: bold; }
-td.paiement-virement { background-color: #e2e3e5; color: #383d41; font-weight: bold; }
-td.paiement-carte-bleue { background-color: #cce5ff; color: #004085; font-weight: bold; }
-
-.alert-success { color: #28a745; }
-.alert-warning { background-color: #fff3cd; color: #fd7e14; border: 1px solid #ffeeba; }
-.alert-danger { background-color: #f8d7da; color: #dc3545; border: 1px solid #f5c6cb; }
-
-/* --- GRAPHES --- */
-canvas {
-    max-height: 200px !important; /* Graphiques plus petits pour ne pas manger l'espace */
-}
-
-/* --- IMPRESSION --- */
-@media print {
-    .navigation, .app-header, .filter-container, .logout-button, #printReinvestmentBtn { display: none !important; }
-    body { padding: 0; }
-    .dashboard-container { box-shadow: none !important; }
-}
-/* --- STYLES DE BASE ULTRA-COMPACTS --- */
-body {
-    font-family: 'Comfortaa', sans-serif; 
-    font-size: 12px; /* Réduit à 12px pour plus de densité */
-    background-color: #f0f2f5; 
-    color: #333;
-    margin: 0; 
-    padding: 0 5px 5px 5px;
-}
-
-.app-header {
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    padding: 3px 15px; /* Hauteur minimale */
-    background-color: #fff;
-    border-bottom: 1px solid #e0e0e0; 
-    margin-bottom: 8px;
-}
-
-.app-logo { height: 25px; margin-right: 8px; } /* Logo miniature */
-.app-header h1 { margin: 0; font-size: 16px; }
-h2 { text-align: center; color: #1c1e21; margin: 5px 0; font-size: 14px; }
-
-/* --- NAVIGATION COMPACTE --- */
-.navigation {
-    display: flex; 
-    justify-content: center; 
-    gap: 3px;
-    margin-bottom: 10px;
-}
-
-.navigation a {
-    text-decoration: none; 
-    padding: 4px 10px; 
-    border-radius: 3px;
-    background-color: #e9ecef; 
-    color: #333; 
-    font-weight: bold;
-    font-size: 11px;
-}
-.navigation a.active { background-color: #1877f2; color: white; }
-
-/* --- FORMULAIRE DE SAISIE (FORMAT LIGNE UNIQUE) --- */
-#caisseForm {
-    background-color: #fff; 
-    padding: 8px; 
-    border-radius: 4px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1); 
-    margin-bottom: 10px;
-}
-
-.form-grid-huit-colonnes {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr); /* Force les 8 colonnes sur une ligne */
-    gap: 5px;
-    align-items: start;
-}
-
-input, select {
-    width: 100%; 
-    padding: 4px 6px; 
-    border: 1px solid #ccc;
-    border-radius: 3px; 
-    font-size: 11px;
-}
-
-.form-buttons { 
-    display: flex; 
-    gap: 5px; 
-    margin-top: 5px; 
-    justify-content: center;
-}
-
-.form-buttons button {
-    width: auto;
-    min-width: 150px;
-    padding: 4px 12px; 
-    font-size: 12px; 
-}
-
-/* --- RÉSUMÉ JOURNALIER (FORMAT BARRE HORIZONTALE) --- */
-.daily-summary {
-    display: flex; 
-    flex-direction: row; 
-    justify-content: space-around; 
-    background-color: #fff; 
-    padding: 8px; 
-    border-radius: 4px; 
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    margin-top: 10px;
-}
-
-.summary-item { 
-    text-align: center; 
+    text-align: center;
+    padding: 5px;
     border-right: 1px solid #eee;
-    flex: 1;
-}
-.summary-item:last-child { border-right: none; }
-.summary-item h4 { margin: 0; font-size: 10px; color: #666; }
-.summary-item span { font-size: 13px; font-weight: bold; }
-
-/* --- TABLEAUX DENSES --- */
-table { font-size: 11px; }
-th, td { padding: 3px 6px; border-bottom: 1px solid #eee; }
-
-/* --- DASHBOARD CÔTE À CÔTE (PC) --- */
-@media (min-width: 1000px) {
-    .dashboard-grid-2-col {
-        display: grid;
-        grid-template-columns: 1fr 1fr; /* Deux colonnes */
-        gap: 15px;
-        align-items: start;
-    }
 }
 
-.total-card {
-    padding: 5px; 
-    background-color: #f8f9fa; 
-    border: 1px solid #dee2e6;
-    text-align: center;
-}
-.total-card p { font-size: 16px; margin: 2px 0; }
+.summary-item:last-child, .total-card:last-child { border-right: none; }
 
-/* Graphiques limités en hauteur */
-canvas { max-height: 180px !important; }
-/* --- BARRE DE RÉSUMÉ ULTRA-CONDENSÉE --- */
-.stock-summary-bar {
-    display: flex;
-    flex-direction: row; /* Aligne tout sur une ligne */
-    align-items: stretch; /* Même hauteur pour tous les éléments */
-    gap: 8px;
-    margin: 10px 0;
-    width: 100%;
-}
-
-.stock-summary-bar .total-card {
-    flex: 1; /* Chaque carte prend la même largeur */
-    padding: 8px 5px;
-    background-color: #fff;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    text-align: center;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
-}
-
-.stock-summary-bar .total-card h3 {
-    margin: 0;
-    font-size: 11px;
-    color: #666;
+.summary-item h4, .total-card h3 { 
+    margin: 0; 
+    font-size: 10px; 
+    color: #666; 
     text-transform: uppercase;
 }
 
-.stock-summary-bar .total-card p {
-    margin: 3px 0 0 0;
-    font-size: 16px; /* Taille adaptée pour tenir sur une ligne */
-    font-weight: bold;
-    color: #1c1e21;
+.summary-item span, .total-card p { 
+    margin: 2px 0 0 0; 
+    font-size: 14px; 
+    font-weight: bold; 
 }
 
-/* Barre de recherche compacte à droite des cartes */
-.stock-summary-bar .search-container {
-    flex: 2; /* Donne plus d'espace à la barre de recherche */
+/* Spécifique Stock : Recherche sur la même ligne */
+.search-container {
+    flex: 2 !important;
     display: flex;
     align-items: center;
 }
 
-.stock-summary-bar .search-container input {
-    padding: 8px 12px;
-    font-size: 13px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
+/* ==========================================================================
+   5. TABLEAUX ET MODALES
+   ========================================================================== */
+table {
+    width: 100%; 
+    border-collapse: collapse; 
+    background-color: #fff;
+    font-size: 11px;
 }
 
-/* --- AJUSTEMENT POUR LES PETITS ÉCRANS --- */
-@media (max-width: 900px) {
-    .stock-summary-bar {
-        flex-wrap: wrap; /* Permet de passer sur 2 lignes si l'écran est trop petit */
+th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #eee; }
+thead { background-color: #f5f6f7; }
+tbody tr:nth-child(even) { background-color: #f9f9f9; }
+
+/* Couleurs Paiement */
+td.paiement-espece { background-color: #d4edda; color: #155724; font-weight: bold; }
+td.paiement-virement { background-color: #e2e3e5; color: #383d41; font-weight: bold; }
+td.paiement-carte-bleue { background-color: #cce5ff; color: #004085; font-weight: bold; }
+
+/* Modale */
+.modal {
+    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+    width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+}
+.modal-content {
+    background-color: #fff; margin: 5% auto; padding: 15px;
+    border-radius: 8px; width: 60%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* ==========================================================================
+   6. DASHBOARD (2 COLONNES & GRAPHES)
+   ========================================================================== */
+@media (min-width: 1000px) {
+    .dashboard-grid-2-col {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: start;
     }
-    .stock-summary-bar .total-card {
-        min-width: 45%; /* 2 cartes par ligne sur mobile */
+}
+
+canvas {
+    /* On augmente la hauteur pour laisser de la place à la légende */
+    max-height: 300px !important; 
+    max-width: 100%;
+    margin: 0 auto;
+    display: block;
+}
+
+/* Ajustement spécifique pour l'impression */
+@media print {
+    canvas {
+        max-height: 250px !important;
     }
+}
+
+/* ==========================================================================
+   7. PAGE DE CONNEXION (NON CONDENSÉE)
+   ========================================================================== */
+.login-page {
+    display: flex; justify-content: center; align-items: center;
+    height: 100vh; background-color: #f0f2f5;
+}
+.login-container { width: 100%; max-width: 400px; padding: 20px; }
+.login-form {
+    background-color: #fff; padding: 30px; border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+.login-form h1 { font-size: 22px; margin-bottom: 20px; text-align: center; }
+.login-form input { margin-bottom: 15px; padding: 12px; font-size: 14px; }
+
+/* ==========================================================================
+   8. ALERTES ET IMPRESSION
+   ========================================================================== */
+.alert-success { color: #28a745; }
+.alert-warning { background-color: #fff3cd; color: #fd7e14; border: 1px solid #ffeeba; }
+.alert-danger { background-color: #f8d7da; color: #dc3545; border: 1px solid #f5c6cb; animation: blink 1s infinite; }
+
+@media print {
+    .navigation, .app-header, .filter-container, .logout-button, #printReinvestmentBtn { display: none !important; }
+    body { padding: 0; background-color: white; }
+    table { border: 1px solid #333; }
 }

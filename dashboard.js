@@ -3,7 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return alert("Erreur: La connexion à la base de données a échoué.");
     }
     
-    // Éléments du DOM
     const grandTotalVentesEl = document.getElementById('grandTotalVentes');
     const grandTotalQuantiteEl = document.getElementById('grandTotalQuantite');
     const productSummaryTableBody = document.getElementById('productSummaryTableBody');
@@ -12,13 +11,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const endDateInput = document.getElementById('endDate');
     const clearFilterBtn = document.getElementById('clearFilterBtn');
 
-    // Variables globales
     let allSales = [];
     let allStocks = [];
     let salesChart = null; 
     let agentChart = null; 
-
-    // --- LOGIQUE DE MISE À JOUR PRINCIPALE ---
 
     function updateDashboard() {
         const startDate = startDateInput.value;
@@ -34,7 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
         generateProductSummary(filteredSales, allStocks);
         generateAgentSummary(filteredSales);
         
-        // Mise à jour de la date du rapport
         const dateDisplay = document.getElementById('reportDate');
         if (dateDisplay) {
             const today = new Date();
@@ -49,13 +44,12 @@ document.addEventListener('DOMContentLoaded', () => {
         grandTotalQuantiteEl.textContent = totalQuantite;
     }
 
-    // --- PRODUITS ET BÉNÉFICES ---
-
+    // --- MODIFICATION DE LA FONCTION GENERATEPRODUCTSUMMARY ---
     function generateProductSummary(sales, stocks) {
         if (!productSummaryTableBody) return;
         
         if (sales.length === 0) {
-            productSummaryTableBody.innerHTML = '<tr><td colspan="7">Aucune donnée trouvée.</td></tr>';
+            productSummaryTableBody.innerHTML = '<tr><td colspan="4">Aucune donnée trouvée.</td></tr>';
             return;
         }
 
@@ -64,19 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         sales.forEach(s => {
             if (!productData[s.produit]) {
-                productData[s.produit] = { quantite: 0, total: 0, espece: 0, virement: 0, carteBleue: 0 };
+                productData[s.produit] = { quantite: 0, total: 0 };
             }
             productData[s.produit].quantite += s.quantite;
             productData[s.produit].total += s.total;
-            
-            switch(s.modeDePaiement) {
-                case 'Espèce': productData[s.produit].espece += s.total; break;
-                case 'Virement': productData[s.produit].virement += s.total; break;
-                case 'Carte Bleue': productData[s.produit].carteBleue += s.total; break;
-            }
         });
 
-        // MISE À JOUR DU GRAPHIQUE PRODUITS
+        // Appel du graphique avec les nouvelles options de légende
         updateSalesChart(productData);
 
         const stocksArray = stocks || [];
@@ -90,25 +78,59 @@ document.addEventListener('DOMContentLoaded', () => {
             const beneficeArticle = data.total - (prixAchatUnitaire * data.quantite);
             beneficeTotalGlobal += beneficeArticle;
 
+            // CORRECTION : On génère exactement 4 colonnes pour correspondre au HTML
             productSummaryTableBody.innerHTML += `
                 <tr>
-                    <td data-label="Produit">${product}</td>
-                    <td data-label="Qté">${data.quantite}</td>
-                    <td data-label="CA">${formatEUR(data.total)}</td>
-                    <td data-label="Espèces">${formatEUR(data.espece)}</td>
-                    <td data-label="Virement">${formatEUR(data.virement)}</td>
-                    <td data-label="Carte">${formatEUR(data.carteBleue)}</td>
-                    <td data-label="Bénéfice" style="font-weight:bold; color: #28a745;">${formatEUR(beneficeArticle)}</td>
+                    <td>${product}</td>
+                    <td style="text-align:center;">${data.quantite}</td>
+                    <td>${formatEUR(data.total)}</td>
+                    <td style="font-weight:bold; color: #28a745;">${formatEUR(beneficeArticle)}</td>
                 </tr>`;
         });
 
-        // BÉNÉFICE ET RÉINVESTISSEMENT
         const beneficeDisplay = document.getElementById('beneficeTotalDisplay');
         if (beneficeDisplay) {
             beneficeDisplay.innerHTML = `Bénéfice Global : <span style="color: #28a745;">${formatEUR(beneficeTotalGlobal)}</span>`;
         }
 
         updateReinvestmentTable(beneficeTotalGlobal, stocksArray);
+    }
+
+    // --- CONFIGURATION DE LA LÉGENDE SUR UNE LIGNE ---
+    function updateSalesChart(productData) {
+        const ctx = document.getElementById('salesPieChart');
+        if (!ctx) return;
+
+        const labels = Object.keys(productData);
+        const dataValues = labels.map(l => productData[l].total);
+
+        if (salesChart) salesChart.destroy();
+
+        salesChart = new Chart(ctx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: ['#1877f2', '#28a745', '#ffc107', '#dc3545', '#6610f2', '#fd7e14']
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false,
+                plugins: { 
+                    legend: { 
+                        position: 'bottom',
+                        display: true,
+                        labels: {
+                            boxWidth: 10,    // Réduit la taille des carrés de couleur
+                            padding: 8,     // Réduit l'espace entre les éléments
+                            usePointStyle: true // Utilise des points au lieu de carrés pour gagner de l'espace
+                        }
+                    } 
+                }
+            }
+        });
     }
 
     function updateReinvestmentTable(totalBenefice, stocks) {
@@ -134,8 +156,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- VENDEURS ---
-
     function generateAgentSummary(sales) {
         if (!agentSummaryTableBody) return;
         agentSummaryTableBody.innerHTML = '';
@@ -148,43 +168,19 @@ document.addEventListener('DOMContentLoaded', () => {
             agentData[agentName].total += s.total;
         });
 
-        // MISE À JOUR DU GRAPHIQUE VENDEURS
         updateAgentChart(agentData);
 
         Object.keys(agentData).sort((a,b) => agentData[b].total - agentData[a].total).forEach(agent => {
             const data = agentData[agent];
             agentSummaryTableBody.innerHTML += `
                 <tr>
-                    <td data-label="Vendeur">${agent}</td>
-                    <td data-label="Ventes">${data.count}</td>
-                    <td data-label="CA">${formatEUR(data.total)}</td>
+                    <td>${agent}</td>
+                    <td style="text-align:center;">${data.count}</td>
+                    <td>${formatEUR(data.total)}</td>
                 </tr>`;
         });
     }
 
-    // --- GRAPHICS (CHART.JS) ---
-
-    function updateSalesChart(productData) {
-        const ctx = document.getElementById('salesPieChart');
-        if (!ctx) return;
-
-        const labels = Object.keys(productData);
-        const dataValues = labels.map(l => productData[l].total);
-
-        if (salesChart) salesChart.destroy();
-
-        salesChart = new Chart(ctx.getContext('2d'), {
-            type: 'pie',
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: dataValues,
-                    backgroundColor: ['#1877f2', '#28a745', '#ffc107', '#dc3545', '#6610f2', '#fd7e14']
-                }]
-            },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
-        });
-    }
 
     function updateAgentChart(agentData) {
         const ctx = document.getElementById('agentBarChart');
@@ -213,8 +209,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- FIREBASE LISTENERS ---
-
     db.collection("stocks").onSnapshot(snap => {
         allStocks = snap.docs.map(doc => doc.data());
         updateDashboard();
@@ -224,8 +218,6 @@ document.addEventListener('DOMContentLoaded', () => {
         allSales = snap.docs.map(doc => doc.data());
         updateDashboard();
     });
-
-    // --- EVENTS ---
 
     startDateInput.addEventListener('change', updateDashboard);
     endDateInput.addEventListener('change', updateDashboard);
