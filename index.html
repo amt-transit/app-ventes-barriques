@@ -54,6 +54,10 @@
             </select>
             <input type="text" id="autreVendeur" placeholder="Autres Vendeurs">
         </div>
+        <div class="input-group">
+            <input type="text" id="produit" placeholder="Produit" required list="referenceList">
+            <div id="stockStatus" class="stock-status"></div> </div>
+        <datalist id="referenceList"></datalist>
         <div class="form-buttons">
             <button id="addEntryBtn">Ajouter la Vente</button>
             <button id="saveDayBtn" class="primary">Enregistrer la Journée</button>

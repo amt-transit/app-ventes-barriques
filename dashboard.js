@@ -12,11 +12,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const endDateInput = document.getElementById('endDate');
     const clearFilterBtn = document.getElementById('clearFilterBtn');
 
-    // Variables globales pour stocker les données
+    // Variables globales
     let allSales = [];
     let allStocks = [];
+    let salesChart = null; 
+    let agentChart = null; 
 
-    // --- LOGIQUE DE MISE À JOUR ---
+    // --- LOGIQUE DE MISE À JOUR PRINCIPALE ---
 
     function updateDashboard() {
         const startDate = startDateInput.value;
@@ -29,8 +31,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         updateGrandTotals(filteredSales);
-        generateProductSummary(filteredSales, allStocks); // On passe les stocks ici
+        generateProductSummary(filteredSales, allStocks);
         generateAgentSummary(filteredSales);
+        
+        // Mise à jour de la date du rapport
+        const dateDisplay = document.getElementById('reportDate');
+        if (dateDisplay) {
+            const today = new Date();
+            dateDisplay.textContent = "Établi le : " + today.toLocaleDateString('fr-FR');
+        }
     }
 
     function updateGrandTotals(sales) {
@@ -40,23 +49,22 @@ document.addEventListener('DOMContentLoaded', () => {
         grandTotalQuantiteEl.textContent = totalQuantite;
     }
 
-    // --- RÉCAPITULATIF PRODUITS & BÉNÉFICES ---
+    // --- PRODUITS ET BÉNÉFICES ---
 
     function generateProductSummary(sales, stocks) {
         if (!productSummaryTableBody) return;
         
-        productSummaryTableBody.innerHTML = '<tr><td colspan="7">Aucune donnée pour cette période.</td></tr>';
-        if (sales.length === 0) return;
+        if (sales.length === 0) {
+            productSummaryTableBody.innerHTML = '<tr><td colspan="7">Aucune donnée trouvée.</td></tr>';
+            return;
+        }
 
         const productData = {};
         let beneficeTotalGlobal = 0;
 
-        // 1. Agrégation des ventes
         sales.forEach(s => {
             if (!productData[s.produit]) {
-                productData[s.produit] = { 
-                    quantite: 0, total: 0, espece: 0, virement: 0, carteBleue: 0 
-                };
+                productData[s.produit] = { quantite: 0, total: 0, espece: 0, virement: 0, carteBleue: 0 };
             }
             productData[s.produit].quantite += s.quantite;
             productData[s.produit].total += s.total;
@@ -68,100 +76,156 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
+        // MISE À JOUR DU GRAPHIQUE PRODUITS
+        updateSalesChart(productData);
+
+        const stocksArray = stocks || [];
         const sortedProducts = Object.keys(productData).sort((a, b) => productData[b].total - productData[a].total);
         productSummaryTableBody.innerHTML = '';
 
-        // 2. Calcul des bénéfices avec sécurité (stocks || [])
-        const stocksArray = stocks || [];
-
         sortedProducts.forEach(product => {
             const data = productData[product];
-            
-            // On cherche le prix d'achat dans la collection stocks
             const stockInfo = stocksArray.find(st => st.produit === product);
             const prixAchatUnitaire = stockInfo ? stockInfo.prixAchat : 0;
-            
             const beneficeArticle = data.total - (prixAchatUnitaire * data.quantite);
             beneficeTotalGlobal += beneficeArticle;
 
             productSummaryTableBody.innerHTML += `
                 <tr>
                     <td data-label="Produit">${product}</td>
-                    <td data-label="Qté Vendue">${data.quantite}</td>
+                    <td data-label="Qté">${data.quantite}</td>
                     <td data-label="CA">${formatEUR(data.total)}</td>
                     <td data-label="Espèces">${formatEUR(data.espece)}</td>
                     <td data-label="Virement">${formatEUR(data.virement)}</td>
-                    <td data-label="Carte Bleue">${formatEUR(data.carteBleue)}</td>
+                    <td data-label="Carte">${formatEUR(data.carteBleue)}</td>
                     <td data-label="Bénéfice" style="font-weight:bold; color: #28a745;">${formatEUR(beneficeArticle)}</td>
                 </tr>`;
         });
 
-        // 3. Calcul capacité de rachat
-        const prixAchatMoyen = stocksArray.length > 0 
-            ? (stocksArray.reduce((sum, s) => sum + s.prixAchat, 0) / stocksArray.length) 
-            : 0;
-
-        const qteRachatPossible = prixAchatMoyen > 0 ? Math.floor(beneficeTotalGlobal / prixAchatMoyen) : 0;
-
-        const rachatEl = document.getElementById('rachatCapacite');
-        if (rachatEl) {
-            rachatEl.innerHTML = `
-                <div style="background: #e8f5e9; padding: 15px; border-radius: 8px; border-left: 5px solid #28a745; margin-top: 20px;">
-                    <strong>Bénéfice Global sur la période : ${formatEUR(beneficeTotalGlobal)}</strong><br>
-                    <span style="font-size: 0.9em; color: #555;">
-                        Estimation : Avec ce bénéfice, vous pouvez racheter environ <strong>${qteRachatPossible}</strong> articles 
-                        (basé sur un prix d'achat moyen de ${formatEUR(prixAchatMoyen)}).
-                    </span>
-                </div>
-            `;
+        // BÉNÉFICE ET RÉINVESTISSEMENT
+        const beneficeDisplay = document.getElementById('beneficeTotalDisplay');
+        if (beneficeDisplay) {
+            beneficeDisplay.innerHTML = `Bénéfice Global : <span style="color: #28a745;">${formatEUR(beneficeTotalGlobal)}</span>`;
         }
+
+        updateReinvestmentTable(beneficeTotalGlobal, stocksArray);
     }
 
-    // --- RÉCAPITULATIF VENDEURS ---
+    function updateReinvestmentTable(totalBenefice, stocks) {
+        const tableBody = document.getElementById('reinvestmentTableBody');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+
+        if (totalBenefice <= 0) {
+            tableBody.innerHTML = '<tr><td colspan="3">Aucun bénéfice pour le réinvestissement.</td></tr>';
+            return;
+        }
+
+        stocks.forEach(st => {
+            if (st.prixAchat > 0) {
+                const qtePossible = Math.floor(totalBenefice / st.prixAchat);
+                tableBody.innerHTML += `
+                    <tr>
+                        <td>${st.produit}</td>
+                        <td>${formatEUR(st.prixAchat)}</td>
+                        <td style="font-weight:bold; color: #1877f2;">${qtePossible} unité(s)</td>
+                    </tr>`;
+            }
+        });
+    }
+
+    // --- VENDEURS ---
 
     function generateAgentSummary(sales) {
         if (!agentSummaryTableBody) return;
-        agentSummaryTableBody.innerHTML = '<tr><td colspan="3">Aucune donnée pour cette période.</td></tr>';
-        if (sales.length === 0) return;
-
+        agentSummaryTableBody.innerHTML = '';
+        
         const agentData = {};
         sales.forEach(s => {
             const agentName = s.vendeur || "Non spécifié";
-            if (!agentData[agentName]) {
-                agentData[agentName] = { count: 0, total: 0 };
-            }
+            if (!agentData[agentName]) agentData[agentName] = { count: 0, total: 0 };
             agentData[agentName].count++;
             agentData[agentName].total += s.total;
         });
 
-        const sortedAgents = Object.keys(agentData).sort((a, b) => agentData[b].total - agentData[a].total);
-        agentSummaryTableBody.innerHTML = '';
-        sortedAgents.forEach(agent => {
+        // MISE À JOUR DU GRAPHIQUE VENDEURS
+        updateAgentChart(agentData);
+
+        Object.keys(agentData).sort((a,b) => agentData[b].total - agentData[a].total).forEach(agent => {
             const data = agentData[agent];
             agentSummaryTableBody.innerHTML += `
                 <tr>
                     <td data-label="Vendeur">${agent}</td>
-                    <td data-label="Nb Ventes">${data.count}</td>
-                    <td data-label="Chiffre d'Affaires">${formatEUR(data.total)}</td>
+                    <td data-label="Ventes">${data.count}</td>
+                    <td data-label="CA">${formatEUR(data.total)}</td>
                 </tr>`;
         });
     }
 
-    // --- ÉCOUTEURS FIREBASE (TEMPS RÉEL) ---
+    // --- GRAPHICS (CHART.JS) ---
 
-    // Écoute des stocks
-    db.collection("stocks").onSnapshot(snapshot => {
-        allStocks = snapshot.docs.map(doc => doc.data());
+    function updateSalesChart(productData) {
+        const ctx = document.getElementById('salesPieChart');
+        if (!ctx) return;
+
+        const labels = Object.keys(productData);
+        const dataValues = labels.map(l => productData[l].total);
+
+        if (salesChart) salesChart.destroy();
+
+        salesChart = new Chart(ctx.getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataValues,
+                    backgroundColor: ['#1877f2', '#28a745', '#ffc107', '#dc3545', '#6610f2', '#fd7e14']
+                }]
+            },
+            options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+        });
+    }
+
+    function updateAgentChart(agentData) {
+        const ctx = document.getElementById('agentBarChart');
+        if (!ctx) return;
+
+        const labels = Object.keys(agentData);
+        const dataValues = labels.map(l => agentData[l].total);
+
+        if (agentChart) agentChart.destroy();
+
+        agentChart = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'CA par Vendeur',
+                    data: dataValues,
+                    backgroundColor: '#1877f2'
+                }]
+            },
+            options: { 
+                responsive: true, 
+                scales: { y: { beginAtZero: true } },
+                plugins: { legend: { display: false } } 
+            }
+        });
+    }
+
+    // --- FIREBASE LISTENERS ---
+
+    db.collection("stocks").onSnapshot(snap => {
+        allStocks = snap.docs.map(doc => doc.data());
         updateDashboard();
-    }, error => console.error("Erreur Stocks: ", error));
+    });
 
-    // Écoute des ventes
-    db.collection("ventes").orderBy("date", "desc").onSnapshot(snapshot => {
-        allSales = snapshot.docs.map(doc => doc.data());
+    db.collection("ventes").orderBy("date", "desc").onSnapshot(snap => {
+        allSales = snap.docs.map(doc => doc.data());
         updateDashboard();
-    }, error => console.error("Erreur Ventes: ", error));
+    });
 
-    // --- FILTRES ---
+    // --- EVENTS ---
 
     startDateInput.addEventListener('change', updateDashboard);
     endDateInput.addEventListener('change', updateDashboard);
@@ -170,7 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDashboard();
     });
 
-    // --- UTILITAIRES ---
+    const printBtn = document.getElementById('printReinvestmentBtn');
+    if (printBtn) {
+        printBtn.addEventListener('click', () => { window.print(); });
+    }
 
     function formatEUR(number) {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number);

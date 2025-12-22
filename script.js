@@ -4,38 +4,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     const salesCollection = db.collection("ventes");
-    const stocksCollection = db.collection("stocks"); // Accès à la collection des stocks
+    const stocksCollection = db.collection("stocks");
 
     let productDB = {};
-    let latestStockPrices = {}; // Stockage local des prix du stock
+    let latestStockPrices = {};
+    let allStocksData = []; // Pour le calcul du reste
+    let allSalesData = [];  // Pour le calcul du reste
 
-    // 1. Charger le fichier references.json (Fallback)
-    try {
-        productDB = await fetch('references.json').then(res => res.json());
-    } catch (error) {
-        console.error("Erreur: Impossible de charger le fichier references.json.", error);
-    }
-
-    // 2. Écouter la collection STOCKS pour récupérer les prix de vente définis
-    stocksCollection.onSnapshot(snapshot => {
-        latestStockPrices = {};
-        snapshot.forEach(doc => {
-            const data = doc.data();
-            // On associe le nom du produit à son prix de vente le plus récent
-            if (data.produit && data.prixVente) {
-                latestStockPrices[data.produit] = data.prixVente;
-            }
-        });
-    }, error => {
-        console.error("Erreur lors de la récupération des prix du stock:", error);
-    });
-
-    // Récupération des éléments du DOM
+    // Éléments du DOM
     const addEntryBtn = document.getElementById('addEntryBtn');
     const saveDayBtn = document.getElementById('saveDayBtn');
     const dailyTableBody = document.getElementById('dailyTableBody');
     const formContainer = document.getElementById('caisseForm');
-    
     const dateInput = document.getElementById('date');
     const produitInput = document.getElementById('produit');
     const prixUnitaireInput = document.getElementById('prixUnitaire');
@@ -45,15 +25,99 @@ document.addEventListener('DOMContentLoaded', async () => {
     const vendeurAMTInput = document.getElementById('vendeurAMT');
     const autreVendeurInput = document.getElementById('autreVendeur');
     const referenceList = document.getElementById('referenceList');
+    const stockStatusEl = document.getElementById('stockStatus'); // Assurez-vous que ce DIV existe dans votre HTML
 
-    const dailyTotalVentesEl = document.getElementById('dailyTotalVentes');
-    const dailyTotalEspecesEl = document.getElementById('dailyTotalEspeces');
-    const dailyTotalVirementsEl = document.getElementById('dailyTotalVirements');
-    const dailyTotalCartesEl = document.getElementById('dailyTotalCartes');
-    const dailyCountEl = document.getElementById('dailyCount');
+    // --- SYNCHRONISATION DES DONNÉES ---
+
+    try {
+        productDB = await fetch('references.json').then(res => res.json());
+    } catch (error) {
+        console.error("Erreur: Impossible de charger references.json", error);
+    }
+
+    // Écoute des prix et des quantités de stock
+    stocksCollection.onSnapshot(snapshot => {
+        latestStockPrices = {};
+        allStocksData = snapshot.docs.map(doc => doc.data());
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.produit && data.prixVente) {
+                latestStockPrices[data.produit] = data.prixVente;
+            }
+        });
+        checkStockLevel(produitInput.value); // Re-vérifier si les données changent
+    });
+
+    // Écoute des ventes enregistrées en base
+    salesCollection.onSnapshot(snapshot => {
+        allSalesData = snapshot.docs.map(doc => doc.data());
+        checkStockLevel(produitInput.value);
+    });
+
+    // --- LOGIQUE DE CONTRÔLE DU STOCK ---
+
+    function checkStockLevel(productName) {
+        if (!productName || !stockStatusEl) {
+            if (stockStatusEl) {
+                stockStatusEl.textContent = "";
+                stockStatusEl.className = "stock-status";
+            }
+            addEntryBtn.disabled = false;
+            addEntryBtn.style.opacity = "1";
+            addEntryBtn.style.cursor = "pointer";
+            return;
+        }
+
+        const totalEntre = allStocksData
+            .filter(s => s.produit === productName)
+            .reduce((sum, s) => sum + s.quantite, 0);
+
+        const totalVenduBase = allSalesData
+            .filter(v => v.produit === productName)
+            .reduce((sum, v) => sum + v.quantite, 0);
+
+        const totalVenduLocal = dailySales
+            .filter(v => v.produit === productName)
+            .reduce((sum, v) => sum + v.quantite, 0);
+
+        const reste = totalEntre - (totalVenduBase + totalVenduLocal);
+
+        // Mise à jour visuelle et blocage du bouton
+        if (totalEntre === 0) {
+            stockStatusEl.textContent = "Produit non répertorié en stock";
+            stockStatusEl.className = "stock-status alert-danger";
+            bloquerBouton(true);
+        } else if (reste <= 0) {
+            stockStatusEl.textContent = "RUPTURE DE STOCK !";
+            stockStatusEl.className = "stock-status alert-danger";
+            bloquerBouton(true);
+        } else if (reste < 10) {
+            stockStatusEl.textContent = `Stock Critique : ${reste} restant(s)`;
+            stockStatusEl.className = "stock-status alert-warning";
+            bloquerBouton(false);
+        } else {
+            stockStatusEl.textContent = `Stock disponible : ${reste}`;
+            stockStatusEl.className = "stock-status alert-success";
+            bloquerBouton(false);
+        }
+    }
+
+    function bloquerBouton(status) {
+        addEntryBtn.disabled = status;
+        if (status) {
+            addEntryBtn.style.opacity = "0.5";
+            addEntryBtn.style.cursor = "not-allowed";
+            addEntryBtn.title = "Action impossible : Stock insuffisant";
+        } else {
+            addEntryBtn.style.opacity = "1";
+            addEntryBtn.style.cursor = "pointer";
+            addEntryBtn.title = "";
+        }
+    }
+
+    // --- GESTION DU FORMULAIRE ---
 
     dateInput.valueAsDate = new Date();
-
     let dailySales = JSON.parse(localStorage.getItem('dailySales')) || [];
 
     function saveDailyToLocalStorage() {
@@ -81,93 +145,48 @@ document.addEventListener('DOMContentLoaded', async () => {
                 case 'Carte Bleue': totalCartes += sale.total; break;
             }
         });
-        dailyTotalVentesEl.textContent = formatEUR(totalVentes);
-        dailyTotalEspecesEl.textContent = formatEUR(totalEspeces);
-        dailyTotalVirementsEl.textContent = formatEUR(totalVirements);
-        dailyTotalCartesEl.textContent = formatEUR(totalCartes);
-        dailyCountEl.textContent = dailySales.length;
+        document.getElementById('dailyTotalVentes').textContent = formatEUR(totalVentes);
+        document.getElementById('dailyTotalEspeces').textContent = formatEUR(totalEspeces);
+        document.getElementById('dailyTotalVirements').textContent = formatEUR(totalVirements);
+        document.getElementById('dailyTotalCartes').textContent = formatEUR(totalCartes);
+        document.getElementById('dailyCount').textContent = dailySales.length;
     }
 
-    function textToClassName(text) {
-        if (!text) return '';
-        return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '-');
-    }
-    
-    function renderDailyTable() {
-        dailyTableBody.innerHTML = '';
-        dailySales.forEach((data, index) => {
-            const row = document.createElement('tr');
-            const paymentClass = `paiement-${textToClassName(data.modeDePaiement)}`;
-            row.innerHTML = `
-                <td data-label="Date">${data.date}</td>
-                <td data-label="Produit">${data.produit}</td>
-                <td data-label="Qté">${data.quantite}</td>
-                <td data-label="Total">${formatEUR(data.total)}</td>
-                <td data-label="Paiement" class="${paymentClass}">${data.modeDePaiement}</td>
-                <td data-label="Vendeur">${data.vendeur}</td>
-                <td data-label="Action"><button class="deleteBtn" data-index="${index}">X</button></td>
-            `;
-            dailyTableBody.appendChild(row);
-        });
-        updateDailySummary();
-    }
-
-    // --- MODIFICATION ICI : Priorité au prix du Stock ---
-    // --- DANS VOTRE ÉCOUTEUR PRODUITEXISTANT ---
     produitInput.addEventListener('input', () => {
         const productValue = produitInput.value;
         
+        // 1. Gestion du prix et verrouillage
         if (latestStockPrices[productValue]) {
-            // PRIX TROUVÉ DANS LE STOCK
             prixUnitaireInput.value = latestStockPrices[productValue];
-            
-            // VERROUILLAGE DU CHAMP
             prixUnitaireInput.readOnly = true; 
-            prixUnitaireInput.style.backgroundColor = "#e9ecef"; // Gris clair (aspect désactivé)
+            prixUnitaireInput.style.backgroundColor = "#e9ecef";
             prixUnitaireInput.style.cursor = "not-allowed";
-            
-            calculateTotal();
-        } 
-        else if (productDB[productValue]) {
-            // PRIX TROUVÉ DANS LE JSON (FALLBACK)
+        } else if (productDB[productValue]) {
             prixUnitaireInput.value = productDB[productValue];
-            
-            // On peut choisir de le laisser modifiable ou non. 
-            // Ici, on le déverrouille pour permettre la flexibilité si ce n'est pas en stock.
             prixUnitaireInput.readOnly = false;
             prixUnitaireInput.style.backgroundColor = "#ffffff";
             prixUnitaireInput.style.cursor = "text";
-            
-            calculateTotal();
-        } 
-        else {
-            // PRODUIT INCONNU
+        } else {
             prixUnitaireInput.value = '';
             prixUnitaireInput.readOnly = false;
             prixUnitaireInput.style.backgroundColor = "#ffffff";
-            prixUnitaireInput.style.cursor = "text";
-            calculateTotal();
         }
+
+        // 2. Vérification du stock
+        checkStockLevel(productValue);
+        calculateTotal();
     });
 
     [prixUnitaireInput, quantiteInput].forEach(input => {
-        input.addEventListener('input', calculateTotal);
-    });
-
-    modeDePaiementInput.addEventListener('change', (event) => {
-        const selectEl = event.target;
-        selectEl.classList.remove('select-espece', 'select-virement', 'select-carte-bleue');
-        const className = `select-${textToClassName(selectEl.value)}`;
-        if (selectEl.value) {
-            selectEl.classList.add(className);
-        }
+        input.addEventListener('input', () => {
+            calculateTotal();
+            checkStockLevel(produitInput.value); // Re-vérifier si la quantité saisie change
+        });
     });
 
     addEntryBtn.addEventListener('click', () => {
         const user = firebase.auth().currentUser;
-        if (!user) {
-            return alert("Erreur : utilisateur non trouvé. Veuillez vous reconnecter.");
-        }
+        if (!user) return alert("Veuillez vous reconnecter.");
 
         const vendeur = autreVendeurInput.value.trim() || vendeurAMTInput.value;
 
@@ -183,13 +202,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         };
 
         if (!newSale.date || !newSale.produit || newSale.quantite <= 0 || !newSale.modeDePaiement || !newSale.vendeur) {
-            return alert("Veuillez remplir tous les champs obligatoires.");
+            return alert("Veuillez remplir tous les champs.");
         }
         
         dailySales.push(newSale);
         saveDailyToLocalStorage();
         renderDailyTable();
         
+        // Reset
         produitInput.value = '';
         prixUnitaireInput.value = '';
         quantiteInput.value = '1';
@@ -197,9 +217,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         modeDePaiementInput.value = '';
         vendeurAMTInput.value = '';
         autreVendeurInput.value = '';
-        modeDePaiementInput.classList.remove('select-espece', 'select-virement', 'select-carte-bleue');
+        checkStockLevel(""); // Reset de l'affichage stock
         produitInput.focus();
     });
+
+    function renderDailyTable() {
+        dailyTableBody.innerHTML = '';
+        dailySales.forEach((data, index) => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${data.date}</td>
+                <td>${data.produit}</td>
+                <td>${data.quantite}</td>
+                <td>${formatEUR(data.total)}</td>
+                <td>${data.modeDePaiement}</td>
+                <td>${data.vendeur}</td>
+                <td><button class="deleteBtn" data-index="${index}">X</button></td>
+            `;
+            dailyTableBody.appendChild(row);
+        });
+        updateDailySummary();
+    }
 
     dailyTableBody.addEventListener('click', (event) => {
         if (event.target.classList.contains('deleteBtn')) {
@@ -207,27 +245,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             dailySales.splice(index, 1);
             saveDailyToLocalStorage();
             renderDailyTable();
+            checkStockLevel(produitInput.value); // Mise à jour après suppression
         }
     });
 
     saveDayBtn.addEventListener('click', () => {
-        if (dailySales.length === 0) return alert("Aucune vente à enregistrer.");
-        if (!confirm(`Voulez-vous vraiment enregistrer les ${dailySales.length} ventes de la journée ?`)) return;
-
+        if (dailySales.length === 0) return alert("Aucune vente.");
         const batch = db.batch();
         dailySales.forEach(sale => {
             const docRef = salesCollection.doc();
             batch.set(docRef, sale);
         });
-
         batch.commit().then(() => {
-            alert(`${dailySales.length} ventes ont été enregistrées avec succès !`);
+            alert("Journée enregistrée !");
             dailySales = [];
             saveDailyToLocalStorage();
             renderDailyTable();
-        }).catch(err => {
-            console.error("Erreur d'enregistrement : ", err);
-            alert("Une erreur est survenue. Vérifiez votre connexion internet.");
         });
     });
 

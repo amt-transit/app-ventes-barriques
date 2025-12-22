@@ -25,38 +25,47 @@
     </nav>
 
     <div id="caisseForm">
-        <div class="form-grid-huit-colonnes">
+        <div class="form-grid-huit-colonnes" style="grid-template-columns: repeat(6, 1fr);">
             <input type="date" id="stockDate">
             <input type="text" id="stockProduit" placeholder="Produit" list="referenceList">
-            <datalist id="referenceList"></datalist>
             <input type="number" id="prixAchat" placeholder="Prix Achat Unit.">
             <input type="number" id="prixVenteRef" placeholder="Prix Vente Unit.">
             <input type="number" id="quantiteInitiale" placeholder="Qté Achetée">
-            <button id="addStockBtn" class="primary">Ajouter au Stock</button>
+            <button id="addStockBtn" class="primary" style="padding: 5px;">Ajouter au Stock</button>
         </div>
+        <datalist id="referenceList"></datalist>
     </div>
 
-    <div class="dashboard-header" style="margin-top: 20px;">
-        <div class="total-card"><h3>Valeur Achat</h3><p id="valeurAchatTotal">0,00 €</p></div>
-        <div class="total-card"><h3>Valeur Vente</h3><p id="valeurVenteTotal">0,00 €</p></div>
-        <div class="total-card"><h3>Volume Total</h3><p id="volumeTotal">0</p></div>
+    <div class="stock-summary-bar">
         <div class="total-card">
-            <h3>Bénéfice Estimé Total</h3>
+            <h3>Valeur Achat</h3>
+            <p id="valeurAchatTotal">0,00 €</p>
+        </div>
+        <div class="total-card">
+            <h3>Valeur Vente</h3>
+            <p id="valeurVenteTotal">0,00 €</p>
+        </div>
+        <div class="total-card">
+            <h3>Volume</h3>
+            <p id="volumeTotal">0</p>
+        </div>
+        <div class="total-card">
+            <h3>Bénéfice Estimé</h3>
             <p id="beneficeTotalStock" style="color: #28a745;">0,00 €</p>
         </div>
-        <div class="filter-container">
+        <div class="search-container">
             <input type="text" id="stockSearch" placeholder="Rechercher un produit...">
         </div>
     </div>
 
-    <table id="stockTable">
+    <table id="stockTable" style="margin-top: 10px;">
         <thead>
             <tr>
                 <th>Date</th>
                 <th>Produit</th>
                 <th>Achat (U)</th>
                 <th>Vente (U)</th>
-                <th>Total (Entré)</th>
+                <th>Total</th>
                 <th>Vendu</th>
                 <th>Reste</th>
                 <th>Bénéfice Est.</th>
@@ -66,11 +75,29 @@
         <tbody id="stockTableBody"></tbody>
     </table>
 
+    <div id="historyModal" class="modal">
+        <div class="modal-content" style="width: 50%; margin: 5% auto;">
+            <span class="close-modal">&times;</span>
+            <h2 id="modalTitle" style="font-size: 16px; margin-bottom: 10px;">Historique du produit</h2>
+            <table id="modalTable" class="compact-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Qté</th>
+                        <th>Achat (U)</th>
+                        <th>Vente (U)</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="modalTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-      // Insérez votre firebaseConfig ici
       const firebaseConfig = {
         apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
         authDomain: "app-ventes-barriques.firebaseapp.com",
