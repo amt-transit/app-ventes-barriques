@@ -148,6 +148,54 @@ document.addEventListener('DOMContentLoaded', async () => {
             loadStockData();
         }
     };
+    async function refreshStockTable() {
+        // 1. On récupère les 3 sources de données
+        const [stocksSnap, ventesSnap, recupSnap] = await Promise.all([
+            db.collection("stocks").get(),
+            db.collection("ventes").get(),
+            db.collection("recuperations").get()
+        ]);
+
+        const globalStock = {};
+
+        // 2. On calcule les totaux par produit
+        stocksSnap.forEach(doc => {
+            const d = doc.data();
+            if (!globalStock[d.produit]) globalStock[d.produit] = { in: 0, sold: 0, picked: 0 };
+            globalStock[d.produit].in += d.quantite;
+        });
+
+        ventesSnap.forEach(doc => {
+            const d = doc.data();
+            if (globalStock[d.produit]) globalStock[d.produit].sold += d.quantite;
+        });
+
+        recupSnap.forEach(doc => {
+            const d = doc.data();
+            if (globalStock[d.produit]) globalStock[d.produit].picked += d.quantite;
+        });
+
+        // 3. Rendu du tableau
+        const tbody = document.getElementById('stockTableBody');
+        tbody.innerHTML = '';
+        
+        for (const prod in globalStock) {
+            const s = globalStock[prod];
+            // LE CALCUL CRITIQUE ICI :
+            const resteReelEnMagasin = s.in - (s.sold + s.picked); 
+            
+            tbody.innerHTML += `
+                <tr>
+                    <td>${prod}</td>
+                    <td>${s.in}</td>
+                    <td>${s.sold}</td>
+                    <td>${s.picked}</td> <td style="font-weight:bold; color: ${resteReelEnMagasin < 10 ? 'red' : 'black'}">
+                        ${resteReelEnMagasin}
+                    </td>
+                </tr>
+            `;
+        }
+    }
 
     window.deleteStock = (id) => { 
         if(confirm("Supprimer ce lot d'arrivage ?")) {

@@ -19,9 +19,8 @@
     <nav class="navigation">
         <a href="index.html">Saisie</a>
         <a href="stock.html">Stock</a>
-        <a href="dashboard.html" class="active">Tableau de Bord</a>
-        <a href="history.html">Historique</a>
-        <button onclick="logout()" class="logout-button">Déconnexion</button>
+        <a href="dashboard.html" class="active">Tableau de Bord</a> <a href="history.html">Historique</a>
+        <a href="validation.html">Validation</a> <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
     <div class="dashboard-container">
@@ -79,9 +78,38 @@
                     <tbody id="agentSummaryTableBody"></tbody>
                 </table>
             </div>
-        </div>
 
-        <div class="dashboard-container" style="margin-top: 15px;">
+            <div class="dashboard-container" style="padding: 10px;">
+                <h2 style="margin-top: 0;">Suivi des Colis (Stock en main)</h2>
+                <table id="agentPackageStockTable">
+                    <thead>
+                        <tr>
+                            <th>Vendeur</th>
+                            <th>Récupérés</th>
+                            <th>Vendus</th>
+                            <th style="color: #dc3545;">Reste</th>
+                        </tr>
+                    </thead>
+                    <tbody id="agentPackageStockTableBody"></tbody>
+                </table>
+            </div>
+
+            <div class="dashboard-container" style="padding: 10px;">
+                <h2 style="margin-top: 0;">Balance Financière</h2>
+                <table id="financeBalanceTable">
+                    <thead>
+                        <tr>
+                            <th>Vendeur</th>
+                            <th>CA Déclaré</th>
+                            <th>Reçu</th>
+                            <th style="color: #dc3545;">Dû</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financeBalanceTableBody"></tbody>
+                </table>
+            </div>
+
+        </div> <div class="dashboard-container" style="margin-top: 15px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                 <div>
                     <div id="beneficeTotalDisplay" style="font-size: 1.1em; font-weight: bold;"></div>

@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1200">
+    <title>Validation des Paiements - AMT</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <header class="app-header">
+        <img src="logo.png" alt="Logo" class="app-logo">
+        <h1>Validation Financière</h1>
+    </header>
+
+    <nav class="navigation">
+        <a href="index.html">Saisie</a>
+        <a href="stock.html">Stock</a>
+        <a href="dashboard.html">Tableau de Bord</a>
+        <a href="history.html">Historique</a>
+        <a href="validation.html" class="active">Validation</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
+    </nav>
+
+    <div class="login-page" style="height: auto; padding-top: 20px;">
+        <div class="login-container" style="max-width: 500px;">
+            <div class="login-form">
+                <h2>💰 Encaisser un Vendeur</h2>
+                
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <input type="date" id="payDate">
+                    
+                    <select id="payVendeur">
+                        <option value="">-- Sélectionner le Vendeur --</option>
+                        <option value="Abdoul">Abdoul</option>
+                        <option value="Ali">Ali</option>
+                        <option value="Cheick">Cheick</option>
+                        <option value="Demba">Demba</option>
+                        <option value="Idriss">Idriss</option>
+                        <option value="Kady">Kady</option>
+                        <option value="Kaïs">Kaïs</option>
+                        <option value="Kara">Kara</option>
+                        <option value="Mohamed">Mohamed</option>
+                        <option value="Mr Doucoure">Mr Doucoure</option>
+                        <option value="Zoum">Zoum</option>
+                    </select>
+
+                    <div id="dueAmountBox" style="background: #f8f9fa; padding: 10px; border-radius: 4px; text-align: center; border: 1px dashed #ccc;">
+                        <span style="font-size: 11px; color: #666;">Dette Financière (Ventes déclarées) :</span><br>
+                        <strong id="valeurDue" style="font-size: 18px; color: #dc3545;">0,00 €</strong>
+                    </div>
+
+                    <div id="physicalStockBox" style="margin-top: 15px; display:none;">
+                        <h3 style="font-size: 12px; text-align: center; margin-bottom: 5px;">📦 Colis encore en main du vendeur :</h3>
+                        <table style="font-size: 11px; width: 100%; border: 1px solid #eee;">
+                            <thead>
+                                <tr style="background: #f1f1f1;">
+                                    <th>Produit</th>
+                                    <th>Récupéré</th>
+                                    <th>Vendu</th>
+                                    <th>Reste</th>
+                                </tr>
+                            </thead>
+                            <tbody id="sellerStockBody"></tbody>
+                        </table>
+                    </div>
+
+                    <input type="number" id="payMontant" placeholder="Montant remis (€)">
+                    
+                    <select id="payMode">
+                        <option value="Espèces">Espèces</option>
+                        <option value="Virement">Virement</option>
+                        <option value="Chèque">Chèque</option>
+                    </select>
+
+                    <button id="btnValiderPaiement" class="primary" style="width: 100%; padding: 10px;">Valider l'Encaissement</button>
+                    
+                    <p id="msgStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
+                    <div id="returnStockBox" style="margin-top: 20px; padding: 15px; border: 1px solid #28a745; border-radius: 8px; background-color: #f0fff4;">
+                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #28a745;">🔄 Retour de Colis Invendus</h3>
+                        <div style="display: flex; flex-direction: column; gap: 8px;">
+                            <select id="returnProduit">
+                                <option value="">-- Quel produit est rendu ? --</option>
+                            </select>
+                            <input type="number" id="returnQuantite" placeholder="Quantité rendue">
+                            <button id="btnValiderRetour" class="primary" style="background-color: #28a745; border-color: #218838; width: 100%;">Confirmer le Retour au Stock</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
+        // Config identique aux autres pages
+        const firebaseConfig = {
+            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+            authDomain: "app-ventes-barriques.firebaseapp.com",
+            projectId: "app-ventes-barriques",
+            storageBucket: "app-ventes-barriques.appspot.com",
+            messagingSenderId: "615546459847",
+            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        const payVendeur = document.getElementById('payVendeur');
+        const valeurDue = document.getElementById('valeurDue');
+        document.getElementById('payDate').valueAsDate = new Date();
+
+        // --- MODIFICATION DE LA FONCTION calculateDebt DANS validation.html ---
+        async function calculateDebt() {
+            const vendeur = payVendeur.value;
+            if (!vendeur) {
+                valeurDue.innerText = "0,00 €";
+                return;
+            }
+
+            // 1. Récupérer les prix de vente (depuis stocks), les retraits (depuis recuperations) et les paiements
+            const [stocksSnap, recupSnap, paiementsSnap] = await Promise.all([
+                db.collection("stocks").get(),
+                db.collection("recuperations").where("vendeur", "==", vendeur).get(),
+                db.collection("encaissements_vendeurs").where("vendeur", "==", vendeur).get()
+            ]);
+
+            // 2. Créer un dictionnaire des prix de vente par produit
+            let prixProduits = {};
+            stocksSnap.forEach(doc => {
+                const d = doc.data();
+                prixProduits[d.produit] = d.prixVenteRef || 0; // Utilise le prix de vente référence
+            });
+
+            // 3. Calculer la valeur totale de la marchandise récupérée par le vendeur
+            let totalDuTheorique = 0;
+            recupSnap.forEach(doc => {
+                const d = doc.data();
+                const prixUnitaire = prixProduits[d.produit] || 0;
+                totalDuTheorique += (d.quantite * prixUnitaire); // Dette = Quantité récupérée x Prix de vente
+            });
+
+            // 4. Calculer le total déjà payé par le vendeur
+            let totalPaye = 0;
+            paiementsSnap.forEach(doc => {
+                totalPaye += doc.data().montantRecu;
+            });
+
+            // 5. Résultat : Dette = Valeur du stock récupéré - Sommes déjà versées
+            const reste = totalDuTheorique - totalPaye;
+            valeurDue.innerText = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(reste);
+            valeurDue.style.color = reste > 0 ? "#dc3545" : "#28a745";
+        }
+        const returnProduitSelect = document.getElementById('returnProduit');
+        const returnQuantiteInput = document.getElementById('returnQuantite');
+
+        // Mise à jour de la liste des produits pour le retour (à appeler dans calculateDebt)
+        function updateReturnProductList(productTracking) {
+            returnProduitSelect.innerHTML = '<option value="">-- Quel produit est rendu ? --</option>';
+            for (const prod in productTracking) {
+                const enMain = productTracking[prod].recup - productTracking[prod].vendu;
+                if (enMain > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = prod;
+                    opt.textContent = `${prod} (il en a ${enMain})`;
+                    returnProduitSelect.appendChild(opt);
+                }
+            }
+        }
+
+        // Bouton de validation du retour
+        document.getElementById('btnValiderRetour').addEventListener('click', async () => {
+            const vendeur = payVendeur.value;
+            const produit = returnProduitSelect.value;
+            const quantite = parseInt(returnQuantiteInput.value) || 0;
+
+            if (!vendeur || !produit || quantite <= 0) {
+                return alert("Veuillez sélectionner un vendeur, un produit et une quantité.");
+            }
+
+            if (confirm(`Confirmez-vous que ${vendeur} rend ${quantite} colis de ${produit} au stock ?`)) {
+                try {
+                    // On enregistre le retour comme une récupération NÉGATIVE pour corriger le stock
+                    await db.collection("recuperations").add({
+                        date: document.getElementById('payDate').value,
+                        vendeur: vendeur,
+                        produit: produit,
+                        quantite: -quantite, // Quantité négative = Retour au stock
+                        type: "retour",
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    alert("Le stock a été mis à jour avec succès !");
+                    returnQuantiteInput.value = "";
+                    calculateDebt(); // Rafraîchir l'affichage
+                } catch (e) {
+                    alert("Erreur lors de l'enregistrement.");
+                }
+            }
+        });
+
+        payVendeur.addEventListener('change', calculateDebt);
+
+        // Enregistrer le paiement
+        document.getElementById('btnValiderPaiement').addEventListener('click', async () => {
+            const btn = document.getElementById('btnValiderPaiement');
+            const data = {
+                date: document.getElementById('payDate').value,
+                vendeur: payVendeur.value,
+                montantRecu: parseFloat(document.getElementById('payMontant').value) || 0,
+                mode: document.getElementById('payMode').value,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            if (data.vendeur && data.montantRecu > 0) {
+                btn.disabled = true;
+                try {
+                    await db.collection("encaissements_vendeurs").add(data);
+                    document.getElementById('msgStatus').innerText = "✅ Paiement enregistré !";
+                    document.getElementById('payMontant').value = "";
+                    calculateDebt(); // Rafraîchir la dette
+                } catch (e) {
+                    alert("Erreur");
+                } finally {
+                    btn.disabled = false;
+                }
+            } else {
+                alert("Veuillez remplir les champs");
+            }
+        });
+    </script>
+</body>
+</html>

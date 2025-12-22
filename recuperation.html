@@ -3,63 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Retrait de Stock</title>
+    <title>Retrait de Stock - AMT</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
 </head>
-<body class="login-page"> <div class="login-container">
+<body class="login-page">
+    
+    <div class="login-container">
         <div class="login-form">
-            <h2>📦 Retrait de Marchandise</h2>
-            <input type="date" id="recupDate">
+            <header class="app-header">
+                <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
+                <h1>Retrait de Stock</h1>
+            </header>
             
-            <select id="recupVendeur">
-                <option value="">-- Qui récupère ? --</option>
-                <option value="Abdoul">Abdoul</option>
-                <option value="Ali">Ali</option>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <input type="date" id="recupDate">
+                
+                <select id="recupVendeur">
+                    <option value="">-- Qui récupère ? --</option>
+                    <option value="Abdoul">Abdoul</option>
+                    <option value="Ali">Ali</option>
+                    <option value="Cheick">Cheick</option>
+                    <option value="Demba">Demba</option>
+                    <option value="Idriss">Idriss</option>
+                    <option value="Kady">Kady</option>
+                    <option value="Kaïs">Kaïs</option>
+                    <option value="Kara">Kara</option>
+                    <option value="Mohamed">Mohamed</option>
+                    <option value="Mr Doucoure">Mr Doucoure</option>
+                    <option value="Zoum">Zoum</option>
                 </select>
 
-            <input type="text" id="recupProduit" placeholder="Produit" list="referenceList">
-            <input type="number" id="recupQuantite" placeholder="Quantité récupérée">
-            
-            <button id="btnValiderRecup" class="primary" style="width: 100%; margin-top: 10px;">Valider le retrait</button>
-            <p id="msgStatus" style="text-align:center; margin-top:10px;"></p>
+                <select id="recupProduit">
+                    <option value="">-- Sélectionner le Produit --</option>
+                </select>
+
+                <div id="stockInfo" style="font-size: 11px; text-align: center; color: #1877f2; font-weight: bold; min-height: 15px;"></div>
+
+                <input type="number" id="recupQuantite" placeholder="Nombre de colis">
+                
+                <button id="btnValiderRecup" class="primary" style="width: 100%; padding: 10px;">Confirmer le retrait</button>
+                
+                <p id="msgStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
+                <a href="index.html" style="text-align: center; display: block; font-size: 11px; margin-top: 10px; color: #666;">Retour à l'accueil</a>
+            </div>
         </div>
     </div>
-    <datalist id="referenceList"></datalist>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         const firebaseConfig = {
-        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-        authDomain: "app-ventes-barriques.firebaseapp.com",
-        projectId: "app-ventes-barriques",
-        storageBucket: "app-ventes-barriques.appspot.com",
-        messagingSenderId: "615546459847",
-        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-      };
+            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+            authDomain: "app-ventes-barriques.firebaseapp.com",
+            projectId: "app-ventes-barriques",
+            storageBucket: "app-ventes-barriques.appspot.com",
+            messagingSenderId: "615546459847",
+            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
         
+        const recupProduitSelect = document.getElementById('recupProduit');
+        const stockInfoEl = document.getElementById('stockInfo');
+        const quantiteInput = document.getElementById('recupQuantite');
+        let stockDisponible = {}; // Objet pour stocker les quantités restantes par produit
+
         document.getElementById('recupDate').valueAsDate = new Date();
 
+        // CHARGEMENT DU STOCK ET CALCUL DU RESTE
+        async function loadStockData() {
+            // On récupère tout pour calculer le vrai stock restant
+            const [stocksSnap, ventesSnap, recupSnap] = await Promise.all([
+                db.collection("stocks").get(),
+                db.collection("ventes").get(),
+                db.collection("recuperations").get()
+            ]);
+
+            const totals = {};
+
+            // 1. Total entré en stock
+            stocksSnap.forEach(doc => {
+                const d = doc.data();
+                if (!totals[d.produit]) totals[d.produit] = { in: 0, out: 0 };
+                totals[d.produit].in += (d.quantite || 0);
+            });
+
+            // 2. Total vendu
+            ventesSnap.forEach(doc => {
+                const d = doc.data();
+                if (totals[d.produit]) totals[d.produit].out += (d.quantite || 0);
+            });
+
+            // 3. Total déjà récupéré
+            recupSnap.forEach(doc => {
+                const d = doc.data();
+                if (totals[d.produit]) totals[d.produit].out += (d.quantite || 0);
+            });
+
+            // Remplissage de la liste déroulante
+            recupProduitSelect.innerHTML = '<option value="">-- Sélectionner le Produit --</option>';
+            for (const produit in totals) {
+                const reste = totals[produit].in - totals[produit].out;
+                stockDisponible[produit] = reste;
+
+                if (reste > 0) {
+                    const opt = document.createElement('option');
+                    opt.value = produit;
+                    opt.textContent = `${produit} (${reste} dispos)`;
+                    recupProduitSelect.appendChild(opt);
+                }
+            }
+        }
+
+        loadStockData();
+
+        // AFFICHAGE DU STOCK MAX LORS DE LA SÉLECTION
+        recupProduitSelect.addEventListener('change', () => {
+            const produit = recupProduitSelect.value;
+            if (produit && stockDisponible[produit] !== undefined) {
+                stockInfoEl.innerText = `Maximum possible : ${stockDisponible[produit]} colis`;
+                quantiteInput.max = stockDisponible[produit];
+            } else {
+                stockInfoEl.innerText = "";
+            }
+        });
+
+        // VALIDATION ET ENREGISTREMENT
         document.getElementById('btnValiderRecup').addEventListener('click', async () => {
+            const btn = document.getElementById('btnValiderRecup');
+            const produit = recupProduitSelect.value;
+            const quantite = parseInt(quantiteInput.value) || 0;
+            const maxDispo = stockDisponible[produit] || 0;
+
             const data = {
                 date: document.getElementById('recupDate').value,
                 vendeur: document.getElementById('recupVendeur').value,
-                produit: document.getElementById('recupProduit').value,
-                quantite: parseInt(document.getElementById('recupQuantite').value) || 0,
-                type: "retrait"
+                produit: produit,
+                quantite: quantite,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp()
             };
 
-            if (data.vendeur && data.produit && data.quantite > 0) {
-                try {
-                    await db.collection("recuperations").add(data);
-                    document.getElementById('msgStatus').innerHTML = "✅ Enregistré !";
-                    document.getElementById('recupQuantite').value = "";
-                } catch (e) {
-                    alert("Erreur de connexion");
-                }
-            } else {
-                alert("Veuillez remplir tous les champs");
+            // VÉRIFICATIONS
+            if (!data.vendeur || !data.produit || quantite <= 0) {
+                return alert("Veuillez remplir tous les champs correctement.");
+            }
+
+            if (quantite > maxDispo) {
+                return alert(`Erreur : Vous ne pouvez pas retirer ${quantite} colis. Il n'en reste que ${maxDispo} en stock.`);
+            }
+
+            // ENVOI
+            btn.disabled = true;
+            try {
+                await db.collection("recuperations").add(data);
+                document.getElementById('msgStatus').style.color = "green";
+                document.getElementById('msgStatus').innerText = "✅ Retrait enregistré !";
+                quantiteInput.value = "";
+                // Recharger les données pour mettre à jour les chiffres du menu déroulant
+                loadStockData(); 
+            } catch (e) {
+                alert("Erreur de connexion.");
+            } finally {
+                btn.disabled = false;
             }
         });
     </script>

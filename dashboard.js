@@ -13,6 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     let allSales = [];
     let allStocks = [];
+    let allRecuperations = []; // Stocke les données de la page QR Code
+    let allPayments = []; // Stocke les données de la page Validation
     let salesChart = null; 
     let agentChart = null; 
 
@@ -29,6 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateGrandTotals(filteredSales);
         generateProductSummary(filteredSales, allStocks);
         generateAgentSummary(filteredSales);
+        generateAgentPackageStock(filteredSales, allRecuperations);
+        generateFinancialBalance(filteredSales, allPayments);
         
         const dateDisplay = document.getElementById('reportDate');
         if (dateDisplay) {
@@ -208,6 +212,96 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+    function generateAgentPackageStock(sales, recuperations) {
+        const tableBody = document.getElementById('agentPackageStockTableBody');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+
+        const tracking = {};
+
+        // 1. On compte tout ce que les vendeurs ont RÉCUPÉRÉ (via QR Code)
+        recuperations.forEach(r => {
+            const name = r.vendeur;
+            if (!tracking[name]) tracking[name] = { recup: 0, vendu: 0 };
+            tracking[name].recup += (r.quantite || 0);
+        });
+
+        // 2. On soustrait tout ce qu'ils ont VENDU (via page Saisie)
+        sales.forEach(s => {
+            const name = s.vendeur;
+            if (!tracking[name]) tracking[name] = { recup: 0, vendu: 0 };
+            tracking[name].vendu += (s.quantite || 0);
+        });
+
+        // 3. Affichage du tableau
+        const agents = Object.keys(tracking).sort();
+        
+        if (agents.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4">Aucun mouvement de colis enregistré.</td></tr>';
+            return;
+        }
+
+        agents.forEach(agent => {
+            const data = tracking[agent];
+            const reste = data.recup - data.vendu;
+            
+            // On n'affiche que si le vendeur a eu un mouvement
+            tableBody.innerHTML += `
+                <tr>
+                    <td>${agent}</td>
+                    <td style="text-align:center;">${data.recup}</td>
+                    <td style="text-align:center;">${data.vendu}</td>
+                    <td style="text-align:center; font-weight:bold; color: ${reste > 0 ? '#dc3545' : '#28a745'};">
+                        ${reste} colis
+                    </td>
+                </tr>
+            `;
+        });
+    }
+    function generateFinancialBalance(sales, payments, recuperations, stocks) {
+        const tableBody = document.getElementById('financeBalanceTableBody');
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+
+        const finance = {};
+
+        // 1. On calcule le CA TOTAL déclaré par chaque vendeur (Ventes enregistrées)
+        sales.forEach(s => {
+            const name = s.vendeur || "Inconnu";
+            if (!finance[name]) finance[name] = { declare: 0, reçu: 0 };
+            finance[name].declare += (s.total || 0);
+        });
+
+        // 2. On calcule l'ARGENT RÉELLEMENT REÇU et validé par l'admin
+        payments.forEach(p => {
+            const name = p.vendeur;
+            if (!finance[name]) finance[name] = { declare: 0, reçu: 0 };
+            finance[name].reçu += (p.montantRecu || 0);
+        });
+
+        const agents = Object.keys(finance).sort();
+        
+        if (agents.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="4">Aucune donnée financière.</td></tr>';
+            return;
+        }
+
+        agents.forEach(agent => {
+            const f = finance[agent];
+            const resteAPayer = f.declare - f.reçu;
+
+            tableBody.innerHTML += `
+                <tr>
+                    <td>${agent}</td>
+                    <td>${formatEUR(f.declare)}</td>
+                    <td>${formatEUR(f.reçu)}</td>
+                    <td style="font-weight:bold; color: ${resteAPayer > 0 ? '#dc3545' : '#28a745'};">
+                        ${formatEUR(resteAPayer)}
+                    </td>
+                </tr>
+            `;
+        });
+    }
 
     db.collection("stocks").onSnapshot(snap => {
         allStocks = snap.docs.map(doc => doc.data());
@@ -225,6 +319,14 @@ document.addEventListener('DOMContentLoaded', () => {
         startDateInput.value = ''; endDateInput.value = '';
         updateDashboard();
     });
+    db.collection("recuperations").onSnapshot(snap => {
+        allRecuperations = snap.docs.map(doc => doc.data());
+        updateDashboard(); // Relance les calculs
+    });
+    db.collection("encaissements_vendeurs").onSnapshot(snap => {
+        allPayments = snap.docs.map(doc => doc.data());
+        updateDashboard();
+    }, error => console.error("Erreur Paiements: ", error));
 
     const printBtn = document.getElementById('printReinvestmentBtn');
     if (printBtn) {
