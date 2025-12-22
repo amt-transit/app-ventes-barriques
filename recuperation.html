@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Retrait de Stock</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="login-page"> <div class="login-container">
+        <div class="login-form">
+            <h2>📦 Retrait de Marchandise</h2>
+            <input type="date" id="recupDate">
+            
+            <select id="recupVendeur">
+                <option value="">-- Qui récupère ? --</option>
+                <option value="Abdoul">Abdoul</option>
+                <option value="Ali">Ali</option>
+                </select>
+
+            <input type="text" id="recupProduit" placeholder="Produit" list="referenceList">
+            <input type="number" id="recupQuantite" placeholder="Quantité récupérée">
+            
+            <button id="btnValiderRecup" class="primary" style="width: 100%; margin-top: 10px;">Valider le retrait</button>
+            <p id="msgStatus" style="text-align:center; margin-top:10px;"></p>
+        </div>
+    </div>
+    <datalist id="referenceList"></datalist>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        const firebaseConfig = {
+        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+        authDomain: "app-ventes-barriques.firebaseapp.com",
+        projectId: "app-ventes-barriques",
+        storageBucket: "app-ventes-barriques.appspot.com",
+        messagingSenderId: "615546459847",
+        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+      };
+        const db = firebase.firestore();
+        
+        document.getElementById('recupDate').valueAsDate = new Date();
+
+        document.getElementById('btnValiderRecup').addEventListener('click', async () => {
+            const data = {
+                date: document.getElementById('recupDate').value,
+                vendeur: document.getElementById('recupVendeur').value,
+                produit: document.getElementById('recupProduit').value,
+                quantite: parseInt(document.getElementById('recupQuantite').value) || 0,
+                type: "retrait"
+            };
+
+            if (data.vendeur && data.produit && data.quantite > 0) {
+                try {
+                    await db.collection("recuperations").add(data);
+                    document.getElementById('msgStatus').innerHTML = "✅ Enregistré !";
+                    document.getElementById('recupQuantite').value = "";
+                } catch (e) {
+                    alert("Erreur de connexion");
+                }
+            } else {
+                alert("Veuillez remplir tous les champs");
+            }
+        });
+    </script>
+</body>
+</html>
