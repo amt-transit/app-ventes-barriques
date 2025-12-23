@@ -3,42 +3,124 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1200">
-    <title>Historique des Ventes</title>
+    <title>Historique des Opérations</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        .filter-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 10px;
+            width: fit-content;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .filter-select {
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-family: 'Comfortaa', sans-serif;
+            font-weight: bold;
+        }
+        .tab-navigation {
+            display: flex;
+            gap: 15px;
+            margin: 15px;
+            justify-content: center;
+        }
+        .tab-btn {
+            padding: 10px 25px;
+            cursor: pointer;
+            border: none;
+            background: #e2e8f0;
+            border-radius: 20px;
+            font-family: 'Comfortaa', sans-serif;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .tab-btn.active {
+            background: #1877f2;
+            color: white;
+        }
+        .history-section { display: none; }
+        .history-section.active { display: block; }
+        .caisseTable { width: 95%; margin: 0 auto 30px auto; }
+    </style>
 </head>
 <body class="page-history">
     <header class="app-header">
-        <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
-        <h1>Historique des Ventes</h1>
+        <img src="logo.png" alt="Logo" class="app-logo">
+        <h1>Historique des Opérations</h1>
     </header>
+    
     <nav class="navigation">
         <a href="validation.html">Validation</a>
         <a href="stock.html">Stock</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="history.html" class="active">Historique</a>
-        
+        <a href="utilisateurs.html">Utilisateurs</a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
-    <table id="caisseTable">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Produit</th>
-                <th>Qté</th>
-                <th>P.U.</th>
-                <th>Total</th>
-                <th>Mode Paiement</th>
-                <th>Vendeur</th>
-                <th>Saisi par</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-    </table>
+
+    <div class="filter-container">
+        <label for="filterVendeur" style="font-weight: bold;">Filtrer par Vendeur :</label>
+        <select id="filterVendeur" class="filter-select">
+            <option value="">-- Tous les vendeurs --</option>
+            <option value="Abdoul">Abdoul</option>
+            <option value="Ali">Ali</option>
+            <option value="Cheick">Cheick</option>
+            <option value="Demba">Demba</option>
+            <option value="Zoum">Zoum</option>
+        </select>
+    </div>
+
+    <div class="tab-navigation">
+        <button class="tab-btn active" id="btnVentes" onclick="switchTab('ventes')">📋 Historique des Ventes</button>
+        <button class="tab-btn" id="btnPaiements" onclick="switchTab('paiements')">💰 Suivi des Paiements</button>
+    </div>
+
+    <div id="section-ventes" class="history-section active">
+        <table class="caisseTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Produit</th>
+                    <th>Qté</th>
+                    <th>P.U.</th>
+                    <th>Total</th>
+                    <th>Mode Paiement</th>
+                    <th>Vendeur</th>
+                    <th>Saisi par</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBodyVentes"></tbody>
+        </table>
+    </div>
+
+    <div id="section-paiements" class="history-section">
+        <table class="caisseTable">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Vendeur</th>
+                    <th>Montant Reçu</th>
+                    <th>Remise</th>
+                    <th>Total Crédité</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tableBodyPaiements"></tbody>
+        </table>
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -54,6 +136,19 @@
       };
       firebase.initializeApp(firebaseConfig);
       const db = firebase.firestore();
+
+      function switchTab(type) {
+          document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+          document.querySelectorAll('.history-section').forEach(sec => sec.classList.remove('active'));
+          
+          if(type === 'ventes') {
+              document.getElementById('section-ventes').classList.add('active');
+              document.getElementById('btnVentes').classList.add('active');
+          } else {
+              document.getElementById('section-paiements').classList.add('active');
+              document.getElementById('btnPaiements').classList.add('active');
+          }
+      }
     </script>
     <script src="auth-guard.js"></script>
     <script src="history.js"></script>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1200">
+    <title>Gestion des Utilisateurs - AMT</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <header class="app-header">
+        <img src="logo.png" alt="Logo" class="app-logo">
+        <h1>Gestion des Comptes Vendeurs</h1>
+    </header>
+
+    <nav class="navigation">
+        <a href="validation.html">Validation</a>
+        <a href="stock.html">Stock</a>
+        <a href="dashboard.html">Tableau de Bord</a>
+        <a href="history.html">Historique</a>
+        <a href="utilisateurs.html" class="active">Utilisateurs</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
+    </nav>
+
+    <div class="dashboard-grid-2-col" style="padding: 20px;">
+        <div class="dashboard-container">
+            <h2>👤 Créer un nouveau compte</h2>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <label>Nom du vendeur :</label>
+                <input type="text" id="newUserName" placeholder="Ex: Abdoul">
+                
+                <label>Mot de passe :</label>
+                <input type="password" id="newUserPass" placeholder="8 caractères minimum">
+                
+                <label>Rôle :</label>
+                <select id="newUserRole">
+                    <option value="vendeur">Vendeur (Saisie uniquement)</option>
+                    <option value="admin">Administrateur (Accès total)</option>
+                </select>
+
+                <button id="btnCreateUser" class="primary" style="background: #1877f2; margin-top: 10px;">
+                    Créer le compte
+                </button>
+                <p id="msgUser" style="text-align: center; font-size: 12px;"></p>
+            </div>
+        </div>
+
+        <div class="dashboard-container">
+            <h2>📋 Liste des accès</h2>
+            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th>Utilisateur</th>
+                        <th>Rôle</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="userListBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        // Votre config Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+            authDomain: "app-ventes-barriques.firebaseapp.com",
+            projectId: "app-ventes-barriques",
+            storageBucket: "app-ventes-barriques.appspot.com",
+            messagingSenderId: "615546459847",
+            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+    </script>
+    <script src="utilisateurs.js"></script>
+</body>
+</html>

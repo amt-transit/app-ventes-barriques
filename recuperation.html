@@ -65,6 +65,41 @@
         };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         const db = firebase.firestore();
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (!user) {
+                // Si non connecté, redirection vers login
+                if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = 'login.html';
+                }
+            } else {
+                // Si connecté, on vérifie le rôle dans Firestore
+                const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
+                const userData = userDoc.data();
+
+                if (userData && userData.role === 'vendeur') {
+                    // Masquer les menus interdits aux vendeurs
+                    const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
+                    document.querySelectorAll('.navigation a').forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (forbiddenLinks.includes(href)) {
+                            link.style.display = 'none';
+                        }
+                    });
+                    
+                    // Empêcher l'accès direct par URL
+                    const currentPage = window.location.pathname.split('/').pop();
+                    if (forbiddenLinks.includes(currentPage)) {
+                        window.location.href = 'validation.html';
+                    }
+                }
+            }
+        });
+
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                window.location.href = 'login.html';
+            });
+        }
         
         const recupProduitSelect = document.getElementById('recupProduit');
         const stockInfoEl = document.getElementById('stockInfo');

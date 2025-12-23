@@ -19,85 +19,80 @@
         <a href="stock.html">Stock</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="history.html">Historique</a>
+        <a href="utilisateurs.html">Utilisateurs</a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
     <div class="dashboard-grid-2-col" style="padding: 15px;">
         
-        <div class="dashboard-container" style="padding: 15px;">
-            <h2 style="color: #1877f2;">📝 Valider une Vente</h2>
-            <div style="display: flex; flex-direction: column; gap: 8px;">
+        <div class="dashboard-container" style="padding: 15px; border-left: 5px solid #1877f2;">
+            <h2 style="color: #1877f2;">📝 Validation & Encaissement</h2>
+            
+            <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="date" id="valDate">
                 
-                <select id="valVendeur">
+                <select id="valVendeur" style="font-weight: bold; border: 2px solid #1877f2;">
                     <option value="">-- Sélectionner le Vendeur --</option>
-                    <option value="Abdoul">Abdoul</option>
-                    <option value="Ali">Ali</option>
-                    <option value="Cheick">Cheick</option>
-                    <option value="Demba">Demba</option>
-                    <option value="Zoum">Zoum</option>
-                </select>
+                    </select>
 
-                <select id="valProduit">
-                    <option value="">-- Choisir un produit récupéré --</option>
-                </select>
-
-                <div id="sellerStockInfo" style="font-size: 11px; text-align: center; color: #dc3545; font-weight: bold; min-height: 15px;"></div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <label style="font-size: 10px;">Quantité vendue :</label>
-                        <input type="number" id="valQuantite" placeholder="Qté">
+                <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <p style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 5px;">📦 PARTIE 1 : Ventes réalisées (Sortie de stock)</p>
+                    <select id="valProduit">
+                        <option value="">-- Aucun produit vendu (Paiement seul) --</option>
+                    </select>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
+                        <input type="number" id="valQuantite" placeholder="Qté vendue">
+                        <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background: #edf2f7;">
                     </div>
-                    <div>
-                        <label style="font-size: 10px;">Prix Unitaire (€) :</label>
-                        <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background-color: #f0f0f0; cursor: not-allowed; border: 1px solid #ccc;">
+                    <p id="infoVenteTotal" style="font-size: 12px; text-align: right; margin-top: 5px; font-weight: bold;">
+                        Total Vente : <span id="valTotalSaisie">0,00 €</span>
+                    </p>
+                </div>
+
+                <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
+                    <p style="font-size: 11px; font-weight: bold; color: #166534; margin-bottom: 5px;">💰 PARTIE 2 : Argent reçu (Caisse)</p>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                        <div>
+                            <label style="font-size: 10px;">Argent encaissé (€)</label>
+                            <input type="number" id="valAcompte" placeholder="Montant reçu" style="border: 1px solid #166534;">
+                        </div>
+                        <div>
+                            <label style="font-size: 10px;">Remise accordée (€)</label>
+                            <input type="number" id="valRemise" placeholder="Réduction" value="0">
+                        </div>
                     </div>
                 </div>
 
-                <div id="lineTotalBox" style="background: #eef2ff; padding: 8px; border-radius: 4px; text-align: center; border: 1px solid #c3dafe; margin: 5px 0;">
-                    <span style="font-size: 10px; color: #4338ca;">Montant total de cette vente :</span><br>
-                    <strong id="valTotalSaisie" style="font-size: 16px; color: #1e40af;">0,00 €</strong>
-                </div>
-
-                <hr style="margin: 10px 0; border: none; border-top: 1px solid #eee;">
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div>
-                        <label style="font-size: 10px;">Acompte reçu (€) :</label>
-                        <input type="number" id="valAcompte" placeholder="Argent reçu" value="0">
-                    </div>
-                    <div>
-                        <label style="font-size: 10px;">Remise (€) :</label>
-                        <input type="number" id="valRemise" placeholder="Réduction" value="0">
-                    </div>
-                </div>
-
-                <button id="btnConfirmerVente" class="primary" style="margin-top: 10px;">Valider & Enregistrer la Vente</button>
-                <p id="msgStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
+                <button id="btnConfirmerVente" class="primary" style="background: #1877f2; height: 45px; font-size: 16px;">
+                    Enregistrer l'opération
+                </button>
             </div>
         </div>
 
         <div class="dashboard-container" style="padding: 15px;">
-            <h2>📦 Colis en main & Retours</h2>
-            <table id="sellerInventoryTable" style="font-size: 11px; margin-bottom: 20px;">
+            <h2>📊 État Financier & Stock</h2>
+            
+            <div id="financialSummary" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                <div style="text-align: center;">
+                    <span style="font-size: 10px; color: #64748b;">Total Vendu</span><br>
+                    <strong id="totalDu" style="color: #334155;">0,00 €</strong>
+                </div>
+                <div style="text-align: center;">
+                    <span style="font-size: 10px; color: #64748b;">Total Encaissé</span><br>
+                    <strong id="totalPaye" style="color: #10b981;">0,00 €</strong>
+                </div>
+                <div style="grid-column: span 2; text-align: center; border-top: 1px solid #e2e8f0; padding-top: 5px;">
+                    <span style="font-weight: bold;">Reste à payer :</span>
+                    <strong id="resteAPayer" style="font-size: 18px; color: #ef4444; display: block;">0,00 €</strong>
+                </div>
+            </div>
+
+            <table id="sellerInventoryTable" style="font-size: 11px;">
                 <thead>
-                    <tr style="background: #f1f1f1;">
-                        <th>Produit</th>
-                        <th>En main</th>
-                    </tr>
+                    <tr style="background: #f1f1f1;"><th>Produit</th><th>En main</th></tr>
                 </thead>
                 <tbody id="sellerInventoryBody"></tbody>
             </table>
-
-            <div id="returnSection" style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #feb2b2;">
-                <h3 style="font-size: 12px; color: #c53030; margin-bottom: 5px;">🔄 Retourner des colis au stock</h3>
-                <div style="display: flex; gap: 5px;">
-                    <select id="returnProduit" style="flex: 2;"><option value="">-- Produit --</option></select>
-                    <input type="number" id="returnQty" placeholder="Qté" style="flex: 1;">
-                    <button id="btnReturn" style="background: #c53030; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">OK</button>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -114,148 +109,145 @@
             appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
         };
         firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+            const db = firebase.firestore();
+            firebase.auth().onAuthStateChanged(async (user) => {
+            if (!user) {
+                // Si non connecté, redirection vers login
+                if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = 'login.html';
+                }
+            } else {
+                // Si connecté, on vérifie le rôle dans Firestore
+                const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
+                const userData = userDoc.data();
+
+                if (userData && userData.role === 'vendeur') {
+                    // Masquer les menus interdits aux vendeurs
+                    const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
+                    document.querySelectorAll('.navigation a').forEach(link => {
+                        const href = link.getAttribute('href');
+                        if (forbiddenLinks.includes(href)) {
+                            link.style.display = 'none';
+                        }
+                    });
+                    
+                    // Empêcher l'accès direct par URL
+                    const currentPage = window.location.pathname.split('/').pop();
+                    if (forbiddenLinks.includes(currentPage)) {
+                        window.location.href = 'validation.html';
+                    }
+                }
+            }
+        });
+
+        function logout() {
+            firebase.auth().signOut().then(() => {
+                window.location.href = 'login.html';
+            });
+        }
 
         const valVendeur = document.getElementById('valVendeur');
         const valProduit = document.getElementById('valProduit');
         const valQuantite = document.getElementById('valQuantite');
         const valPrixUnit = document.getElementById('valPrixUnit');
         const valTotalSaisie = document.getElementById('valTotalSaisie');
-        const returnProduit = document.getElementById('returnProduit');
-        const sellerInventoryBody = document.getElementById('sellerInventoryBody');
-        const sellerStockInfo = document.getElementById('sellerStockInfo');
         
         document.getElementById('valDate').valueAsDate = new Date();
         let sellerStock = {}; 
         let globalPrices = {}; 
 
-        function formatEUR(n) {
-            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
-        }
-
-        function updateLineTotal() {
-            const qty = parseFloat(valQuantite.value) || 0;
-            const price = parseFloat(valPrixUnit.value) || 0;
-            const total = qty * price;
-            valTotalSaisie.innerText = formatEUR(total);
-        }
+        function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); }
 
         async function loadPrices() {
-            try {
-                const snap = await db.collection("stocks").get();
-                globalPrices = {}; 
-                snap.forEach(doc => {
-                    const data = doc.data();
-                    // MODIFICATION : Utilisation de 'prixVente' tel qu'affiché dans votre Firebase
-                    if (data.produit && data.prixVente) {
-                        globalPrices[data.produit] = parseFloat(data.prixVente);
-                    }
-                });
-            } catch (error) {
-                console.error("Erreur chargement prix:", error);
-            }
+            const snap = await db.collection("stocks").get();
+            globalPrices = {}; 
+            snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente); });
         }
 
         async function loadSellerData() {
             const name = valVendeur.value;
             if (!name) return;
-
-            const [recupSnap, ventesSnap] = await Promise.all([
+            const [recupSnap, ventesSnap, encaissSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", name).get(),
-                db.collection("ventes").where("vendeur", "==", name).get()
+                db.collection("ventes").where("vendeur", "==", name).get(),
+                db.collection("encaissements_vendeurs").where("vendeur", "==", name).get()
             ]);
-
             sellerStock = {};
-            recupSnap.forEach(doc => {
-                const d = doc.data();
-                sellerStock[d.produit] = (sellerStock[d.produit] || 0) + d.quantite;
+            let totalVentes = 0, totalPaye = 0;
+            recupSnap.forEach(doc => { sellerStock[doc.data().produit] = (sellerStock[doc.data().produit] || 0) + doc.data().quantite; });
+            ventesSnap.forEach(doc => { 
+                sellerStock[doc.data().produit] = (sellerStock[doc.data().produit] || 0) - doc.data().quantite; 
+                totalVentes += doc.data().total || 0;
             });
-            ventesSnap.forEach(doc => {
-                const d = doc.data();
-                sellerStock[d.produit] = (sellerStock[d.produit] || 0) - d.quantite;
-            });
+            encaissSnap.forEach(doc => { totalPaye += (doc.data().montantRecu || 0) + (doc.data().remise || 0); });
 
-            valProduit.innerHTML = '<option value="">-- Choisir un produit récupéré --</option>';
-            returnProduit.innerHTML = '<option value="">-- Produit --</option>';
-            sellerInventoryBody.innerHTML = '';
+            document.getElementById('totalDu').innerText = formatEUR(totalVentes);
+            document.getElementById('totalPaye').innerText = formatEUR(totalPaye);
+            document.getElementById('resteAPayer').innerText = formatEUR(totalVentes - totalPaye);
+            renderUI();
+        }
 
+        function renderUI() {
+            valProduit.innerHTML = '<option value="">-- Choisir un produit (Vente) --</option>';
+            document.getElementById('sellerInventoryBody').innerHTML = '';
             for (const prod in sellerStock) {
-                const qty = sellerStock[prod];
-                if (qty > 0) {
+                if (sellerStock[prod] > 0) {
                     const opt = document.createElement('option');
                     opt.value = prod; opt.textContent = prod;
-                    valProduit.appendChild(opt.cloneNode(true));
-                    returnProduit.appendChild(opt);
-                    sellerInventoryBody.innerHTML += `<tr><td>${prod}</td><td style="font-weight:bold; text-align:center;">${qty}</td></tr>`;
+                    valProduit.appendChild(opt);
+                    document.getElementById('sellerInventoryBody').innerHTML += `<tr><td>${prod}</td><td style="text-align:center;">${sellerStock[prod]}</td></tr>`;
                 }
             }
         }
 
         valVendeur.addEventListener('change', loadSellerData);
-
         valProduit.addEventListener('change', () => {
-            const prod = valProduit.value;
-            // Récupération automatique du prix fixe
-            const prix = globalPrices[prod] || 0;
-            valPrixUnit.value = prix;
-            
-            sellerStockInfo.innerText = prod ? `Reste en main : ${sellerStock[prod] || 0} colis` : "";
-            updateLineTotal();
+            valPrixUnit.value = globalPrices[valProduit.value] || 0;
+            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `Stock : ${sellerStock[valProduit.value]}` : "";
+            updateT();
         });
+        valQuantite.addEventListener('input', updateT);
+        function updateT() { valTotalSaisie.innerText = formatEUR((parseFloat(valQuantite.value)||0)*(parseFloat(valPrixUnit.value)||0)); }
 
-        valQuantite.addEventListener('input', updateLineTotal);
-
+        // --- LOGIQUE DE VALIDATION MODIFIÉE ---
         document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
+            const name = valVendeur.value;
+            const prod = valProduit.value;
             const qty = parseInt(valQuantite.value) || 0;
             const price = parseFloat(valPrixUnit.value) || 0;
             const acompte = parseFloat(document.getElementById('valAcompte').value) || 0;
             const remise = parseFloat(document.getElementById('valRemise').value) || 0;
-            const prod = valProduit.value;
+            const date = document.getElementById('valDate').value;
 
-            if (!valVendeur.value || !prod || qty <= 0) return alert("Données incomplètes.");
-            if (qty > (sellerStock[prod] || 0)) return alert("Le vendeur n'a pas assez de colis en main.");
+            if (!name) return alert("Sélectionnez un vendeur.");
+
+            // Déterminer ce qu'on enregistre
+            const hasVente = prod && qty > 0;
+            const hasPaiement = acompte > 0 || remise > 0;
+
+            if (!hasVente && !hasPaiement) {
+                return alert("Veuillez saisir soit une vente, soit un montant encaissé.");
+            }
 
             try {
-                await db.collection("ventes").add({
-                    date: document.getElementById('valDate').value,
-                    vendeur: valVendeur.value,
-                    produit: prod,
-                    quantite: qty,
-                    prixUnitaire: price,
-                    total: qty * price,
-                    modeDePaiement: acompte > 0 ? "Acompte" : "Validé Admin",
-                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
-                });
-
-                if (acompte > 0 || remise > 0) {
-                    await db.collection("encaissements_vendeurs").add({
-                        date: document.getElementById('valDate').value,
-                        vendeur: valVendeur.value,
-                        montantRecu: acompte,
-                        remise: remise,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                // 1. Si c'est une vente
+                if (hasVente) {
+                    if (qty > (sellerStock[prod] || 0)) return alert("Stock insuffisant pour ce vendeur.");
+                    await db.collection("ventes").add({
+                        date, vendeur: name, produit: prod, quantite: qty, prixUnitaire: price, total: qty * price, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
 
-                alert("Vente validée et enregistrée !");
+                // 2. Si c'est un paiement (Acompte ou Remise)
+                if (hasPaiement) {
+                    await db.collection("encaissements_vendeurs").add({
+                        date, vendeur: name, montantRecu: acompte, remise: remise, timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                }
+
+                alert("Opération enregistrée avec succès !");
                 location.reload();
-            } catch (e) { alert("Erreur d'enregistrement."); }
-        });
-
-        document.getElementById('btnReturn').addEventListener('click', async () => {
-            const qty = parseInt(document.getElementById('returnQty').value) || 0;
-            const prod = returnProduit.value;
-            if (!prod || qty <= 0) return;
-
-            await db.collection("recuperations").add({
-                date: document.getElementById('valDate').value,
-                vendeur: valVendeur.value,
-                produit: prod,
-                quantite: -qty,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            });
-            alert("Retour au stock effectué.");
-            loadSellerData();
+            } catch (e) { alert("Erreur de connexion."); }
         });
 
         loadPrices();

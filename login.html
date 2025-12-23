@@ -2,43 +2,51 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Connexion - Ventes</title>
+    <title>Connexion - AMT Gestion</title>
     <link rel="stylesheet" href="style.css">
-    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        .login-box { max-width: 400px; margin: 100px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
+    </style>
 </head>
-<body class="login-page">
-    <div class="login-container">
-        <header class="app-header">
-            <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
-            <h1>Accès Vendeur</h1>
-        </header>
-        <div class="login-form">
-            <input type="email" id="email" placeholder="Adresse e-mail" required>
-            <input type="password" id="password" placeholder="Mot de passe" required>
-            <p id="error-message" class="error-text"></p>
-            <div class="form-buttons">
-                <button id="loginBtn">Se Connecter</button>
-                <button id="signupBtn" class="primary">Créer un Compte</button>
-            </div>
-        </div>
+<body style="background: #f0f2f5; font-family: 'Comfortaa', sans-serif;">
+    <div class="login-box">
+        <img src="logo.png" alt="Logo" style="width: 80px; margin-bottom: 20px;">
+        <h2 style="color: #1877f2;">AMT Transit</h2>
+        <p style="font-size: 14px; color: #666;">Connectez-vous pour continuer</p>
+        
+        <input type="text" id="username" placeholder="Nom d'utilisateur (ex: Abdoul)">
+        <input type="password" id="password" placeholder="Mot de passe">
+        
+        <button id="btnLogin" class="primary" style="width: 100%; background: #1877f2; border: none; padding: 12px; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 10px;">
+            Se connecter
+        </button>
+        <p id="loginError" style="color: red; font-size: 12px; margin-top: 10px;"></p>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-        authDomain: "app-ventes-barriques.firebaseapp.com",
-        projectId: "app-ventes-barriques",
-        storageBucket: "app-ventes-barriques.appspot.com",
-        messagingSenderId: "615546459847",
-        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
+        // Votre configuration Firebase ici
+        firebase.initializeApp(firebaseConfig);
+
+        document.getElementById('btnLogin').addEventListener('click', () => {
+            const user = document.getElementById('username').value.toLowerCase().trim();
+            const pass = document.getElementById('password').value;
+            const email = user + "@amt.com"; // Transformation auto en email
+
+            firebase.auth().signInWithEmailAndPassword(email, pass)
+                .then((userCredential) => {
+                    // Si on vient d'un QR code, on redirige vers la destination
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const redirect = urlParams.get('redirect') || 'validation.html';
+                    window.location.href = redirect;
+                })
+                .catch((error) => {
+                    document.getElementById('loginError').innerText = "Identifiants incorrects.";
+                });
+        });
     </script>
-    <script src="auth.js"></script>
 </body>
 </html>

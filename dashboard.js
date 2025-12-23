@@ -1,4 +1,40 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+    firebase.auth().onAuthStateChanged(async (user) => {
+        if (!user) {
+            // Si non connecté, redirection vers login
+            if (!window.location.pathname.includes('login.html')) {
+                window.location.href = 'login.html';
+            }
+        } else {
+            // Si connecté, on vérifie le rôle dans Firestore
+            const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
+            const userData = userDoc.data();
+
+            if (userData && userData.role === 'vendeur') {
+                // Masquer les menus interdits aux vendeurs
+                const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
+                document.querySelectorAll('.navigation a').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (forbiddenLinks.includes(href)) {
+                        link.style.display = 'none';
+                    }
+                });
+                
+                // Empêcher l'accès direct par URL
+                const currentPage = window.location.pathname.split('/').pop();
+                if (forbiddenLinks.includes(currentPage)) {
+                    window.location.href = 'validation.html';
+                }
+            }
+        }
+    });
+
+    function logout() {
+        firebase.auth().signOut().then(() => {
+            window.location.href = 'login.html';
+        });
+    }
     // Éléments du DOM
     const grandTotalVentesEl = document.getElementById('grandTotalVentes');
     const grandTotalQuantiteEl = document.getElementById('grandTotalQuantite');
@@ -18,23 +54,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const startDate = startDateInput.value;
         const endDate = endDateInput.value;
 
-        // Filtre pour les ventes (Analyse Produit/Vendeur)
+        // 1. Filtrer les Ventes par date
         const filteredSales = allSales.filter(sale => {
             if (startDate && sale.date < startDate) return false;
             if (endDate && sale.date > endDate) return false;
             return true;
         });
 
-        // Calculs des sections
-        updateGrandTotals(filteredSales);
+        // 2. Filtrer les Paiements par date (Indispensable pour la Caisse)
+        const filteredPayments = allPayments.filter(payment => {
+            if (startDate && payment.date < startDate) return false;
+            if (endDate && payment.date > endDate) return false;
+            return true;
+        });
+
+        // 3. Mise à jour des totaux avec les deux listes filtrées
+        updateGrandTotals(filteredSales, filteredPayments);
+        
+        // 4. Les autres fonctions
         generateProductSummary(filteredSales, allStocks);
         generateAgentSummary(filteredSales);
-        
-        // Suivi Physique (Récupéré vs Vendu)
         generateAgentPackageStock(filteredSales, allRecuperations);
         
-        // NOUVELLE BALANCE FINANCIÈRE (Basée sur Retraits vs Paiements)
-        generateFinancialBalance(allRecuperations, allPayments, allStocks);
+        // On utilise les versions filtrées pour la balance financière
+        generateFinancialBalance(filteredSales, filteredPayments);
         
         // Date du rapport
         const dateDisplay = document.getElementById('reportDate');
@@ -44,51 +87,44 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- LOGIQUE FINANCIÈRE (DETTE SUR RÉCUPÉRATION) ---
-    function generateFinancialBalance(recuperations, payments, stocks) {
+    function generateFinancialBalance(sales, payments) {
         const tableBody = document.getElementById('financeBalanceTableBody');
         if (!tableBody) return;
         tableBody.innerHTML = '';
 
-        // 1. Créer un dictionnaire des prix de vente par produit
-        const prixMap = {};
-        stocks.forEach(s => {
-            prixMap[s.produit] = s.prixVenteRef || 0;
-        });
-
         const finance = {};
 
-        // 2. Calculer la dette AUTOMATIQUE (Quantité récupérée * Prix de vente)
-        recuperations.forEach(r => {
-            const name = r.vendeur || "Inconnu";
-            if (!finance[name]) finance[name] = { detteTheorique: 0, recu: 0 };
-            const prixUnitaire = prixMap[r.produit] || 0;
-            finance[name].detteTheorique += (r.quantite * prixUnitaire);
+        // 1. Dette basée sur les VENTES RÉELLES
+        sales.forEach(s => {
+            const name = s.vendeur || "Inconnu";
+            if (!finance[name]) finance[name] = { totalVendu: 0, totalPaye: 0 };
+            finance[name].totalVendu += (s.total || 0);
         });
 
-        // 3. Calculer l'argent réellement reçu (Validations)
+        // 2. Paiements RÉELS reçus
         payments.forEach(p => {
-            const name = p.vendeur;
-            if (!finance[name]) finance[name] = { detteTheorique: 0, recu: 0 };
-            finance[name].recu += (p.montantRecu || 0);
+            const name = p.vendeur || "Inconnu";
+            if (!finance[name]) finance[name] = { totalVendu: 0, totalPaye: 0 };
+            finance[name].totalPaye += (p.montantRecu || 0) + (p.remise || 0);
         });
 
         const agents = Object.keys(finance).sort();
         if (agents.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4">Aucun mouvement financier.</td></tr>';
+            tableBody.innerHTML = '<tr><td colspan="4">Aucune donnée financière.</td></tr>';
             return;
         }
 
         agents.forEach(agent => {
             const f = finance[agent];
-            const resteADevoir = f.detteTheorique - f.recu;
+            const soldeDû = f.totalVendu - f.totalPaye;
 
             tableBody.innerHTML += `
                 <tr>
                     <td>${agent}</td>
-                    <td>${formatEUR(f.detteTheorique)}</td>
-                    <td>${formatEUR(f.recu)}</td>
-                    <td style="font-weight:bold; color: ${resteADevoir > 0 ? '#dc3545' : '#28a745'};">
-                        ${formatEUR(resteADevoir)}
+                    <td>${formatEUR(f.totalVendu)}</td>
+                    <td style="color: #28a745;">${formatEUR(f.totalPaye)}</td>
+                    <td style="font-weight:bold; color: ${soldeDû > 0 ? '#dc3545' : '#28a745'};">
+                        ${formatEUR(soldeDû)}
                     </td>
                 </tr>`;
         });
@@ -188,11 +224,24 @@ document.addEventListener('DOMContentLoaded', () => {
         return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
     }
 
-    function updateGrandTotals(sales) {
-        const totalCA = sales.reduce((sum, s) => sum + s.total, 0);
-        const totalQty = sales.reduce((sum, s) => sum + s.quantite, 0);
-        grandTotalVentesEl.textContent = formatEUR(totalCA);
-        grandTotalQuantiteEl.textContent = totalQty;
+    function updateGrandTotals(sales = [], payments = []) {
+        // Calcul du Chiffre d'Affaires (Ventes validées)
+        const totalCA = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+        
+        // Calcul de la Caisse (Argent réellement encaissé)
+        const totalCaisse = payments.reduce((sum, p) => sum + (p.montantRecu || 0), 0);
+        
+        // Calcul de la Quantité totale
+        const totalQty = sales.reduce((sum, s) => sum + (s.quantite || 0), 0);
+
+        // Affichage dans le HTML
+        if (grandTotalVentesEl) grandTotalVentesEl.textContent = formatEUR(totalCA);
+        
+        // Assurez-vous d'avoir cet ID dans votre HTML pour voir l'argent réel
+        const grandTotalCaisseEl = document.getElementById('grandTotalCaisse');
+        if (grandTotalCaisseEl) grandTotalCaisseEl.textContent = formatEUR(totalCaisse);
+
+        if (grandTotalQuantiteEl) grandTotalQuantiteEl.textContent = totalQty;
     }
 
     function updateSalesChart(productData) {
