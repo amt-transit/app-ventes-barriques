@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1200">
-    <title>Validation des Paiements - AMT</title>
+    <title>Validation des Ventes (Admin) - AMT</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
@@ -11,82 +11,91 @@
 <body>
     <header class="app-header">
         <img src="logo.png" alt="Logo" class="app-logo">
-        <h1>Validation Financière</h1>
+        <h1>Validation & Encaissent des Ventes</h1>
     </header>
 
     <nav class="navigation">
-        <a href="index.html">Saisie</a>
+        <a href="validation.html" class="active">Validation</a>
         <a href="stock.html">Stock</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="history.html">Historique</a>
-        <a href="validation.html" class="active">Validation</a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
-    <div class="login-page" style="height: auto; padding-top: 20px;">
-        <div class="login-container" style="max-width: 500px;">
-            <div class="login-form">
-                <h2>💰 Encaisser un Vendeur</h2>
+    <div class="dashboard-grid-2-col" style="padding: 15px;">
+        
+        <div class="dashboard-container" style="padding: 15px;">
+            <h2 style="color: #1877f2;">📝 Valider une Vente</h2>
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <input type="date" id="valDate">
                 
-                <div style="display: flex; flex-direction: column; gap: 10px;">
-                    <input type="date" id="payDate">
-                    
-                    <select id="payVendeur">
-                        <option value="">-- Sélectionner le Vendeur --</option>
-                        <option value="Abdoul">Abdoul</option>
-                        <option value="Ali">Ali</option>
-                        <option value="Cheick">Cheick</option>
-                        <option value="Demba">Demba</option>
-                        <option value="Idriss">Idriss</option>
-                        <option value="Kady">Kady</option>
-                        <option value="Kaïs">Kaïs</option>
-                        <option value="Kara">Kara</option>
-                        <option value="Mohamed">Mohamed</option>
-                        <option value="Mr Doucoure">Mr Doucoure</option>
-                        <option value="Zoum">Zoum</option>
-                    </select>
+                <select id="valVendeur">
+                    <option value="">-- Sélectionner le Vendeur --</option>
+                    <option value="Abdoul">Abdoul</option>
+                    <option value="Ali">Ali</option>
+                    <option value="Cheick">Cheick</option>
+                    <option value="Demba">Demba</option>
+                    <option value="Zoum">Zoum</option>
+                </select>
 
-                    <div id="dueAmountBox" style="background: #f8f9fa; padding: 10px; border-radius: 4px; text-align: center; border: 1px dashed #ccc;">
-                        <span style="font-size: 11px; color: #666;">Dette Financière (Ventes déclarées) :</span><br>
-                        <strong id="valeurDue" style="font-size: 18px; color: #dc3545;">0,00 €</strong>
+                <select id="valProduit">
+                    <option value="">-- Choisir un produit récupéré --</option>
+                </select>
+
+                <div id="sellerStockInfo" style="font-size: 11px; text-align: center; color: #dc3545; font-weight: bold; min-height: 15px;"></div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 10px;">Quantité vendue :</label>
+                        <input type="number" id="valQuantite" placeholder="Qté">
                     </div>
-
-                    <div id="physicalStockBox" style="margin-top: 15px; display:none;">
-                        <h3 style="font-size: 12px; text-align: center; margin-bottom: 5px;">📦 Colis encore en main du vendeur :</h3>
-                        <table style="font-size: 11px; width: 100%; border: 1px solid #eee;">
-                            <thead>
-                                <tr style="background: #f1f1f1;">
-                                    <th>Produit</th>
-                                    <th>Récupéré</th>
-                                    <th>Vendu</th>
-                                    <th>Reste</th>
-                                </tr>
-                            </thead>
-                            <tbody id="sellerStockBody"></tbody>
-                        </table>
+                    <div>
+                        <label style="font-size: 10px;">Prix Unitaire (€) :</label>
+                        <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background-color: #f0f0f0; cursor: not-allowed; border: 1px solid #ccc;">
                     </div>
+                </div>
 
-                    <input type="number" id="payMontant" placeholder="Montant remis (€)">
-                    
-                    <select id="payMode">
-                        <option value="Espèces">Espèces</option>
-                        <option value="Virement">Virement</option>
-                        <option value="Chèque">Chèque</option>
-                    </select>
+                <div id="lineTotalBox" style="background: #eef2ff; padding: 8px; border-radius: 4px; text-align: center; border: 1px solid #c3dafe; margin: 5px 0;">
+                    <span style="font-size: 10px; color: #4338ca;">Montant total de cette vente :</span><br>
+                    <strong id="valTotalSaisie" style="font-size: 16px; color: #1e40af;">0,00 €</strong>
+                </div>
 
-                    <button id="btnValiderPaiement" class="primary" style="width: 100%; padding: 10px;">Valider l'Encaissement</button>
-                    
-                    <p id="msgStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
-                    <div id="returnStockBox" style="margin-top: 20px; padding: 15px; border: 1px solid #28a745; border-radius: 8px; background-color: #f0fff4;">
-                        <h3 style="font-size: 14px; margin-bottom: 10px; color: #28a745;">🔄 Retour de Colis Invendus</h3>
-                        <div style="display: flex; flex-direction: column; gap: 8px;">
-                            <select id="returnProduit">
-                                <option value="">-- Quel produit est rendu ? --</option>
-                            </select>
-                            <input type="number" id="returnQuantite" placeholder="Quantité rendue">
-                            <button id="btnValiderRetour" class="primary" style="background-color: #28a745; border-color: #218838; width: 100%;">Confirmer le Retour au Stock</button>
-                        </div>
+                <hr style="margin: 10px 0; border: none; border-top: 1px solid #eee;">
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div>
+                        <label style="font-size: 10px;">Acompte reçu (€) :</label>
+                        <input type="number" id="valAcompte" placeholder="Argent reçu" value="0">
                     </div>
+                    <div>
+                        <label style="font-size: 10px;">Remise (€) :</label>
+                        <input type="number" id="valRemise" placeholder="Réduction" value="0">
+                    </div>
+                </div>
+
+                <button id="btnConfirmerVente" class="primary" style="margin-top: 10px;">Valider & Enregistrer la Vente</button>
+                <p id="msgStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
+            </div>
+        </div>
+
+        <div class="dashboard-container" style="padding: 15px;">
+            <h2>📦 Colis en main & Retours</h2>
+            <table id="sellerInventoryTable" style="font-size: 11px; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #f1f1f1;">
+                        <th>Produit</th>
+                        <th>En main</th>
+                    </tr>
+                </thead>
+                <tbody id="sellerInventoryBody"></tbody>
+            </table>
+
+            <div id="returnSection" style="background: #fff5f5; padding: 10px; border-radius: 4px; border: 1px solid #feb2b2;">
+                <h3 style="font-size: 12px; color: #c53030; margin-bottom: 5px;">🔄 Retourner des colis au stock</h3>
+                <div style="display: flex; gap: 5px;">
+                    <select id="returnProduit" style="flex: 2;"><option value="">-- Produit --</option></select>
+                    <input type="number" id="returnQty" placeholder="Qté" style="flex: 1;">
+                    <button id="btnReturn" style="background: #c53030; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">OK</button>
                 </div>
             </div>
         </div>
@@ -96,7 +105,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-        // Config identique aux autres pages
         const firebaseConfig = {
             apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
             authDomain: "app-ventes-barriques.firebaseapp.com",
@@ -108,128 +116,149 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
 
-        const payVendeur = document.getElementById('payVendeur');
-        const valeurDue = document.getElementById('valeurDue');
-        document.getElementById('payDate').valueAsDate = new Date();
+        const valVendeur = document.getElementById('valVendeur');
+        const valProduit = document.getElementById('valProduit');
+        const valQuantite = document.getElementById('valQuantite');
+        const valPrixUnit = document.getElementById('valPrixUnit');
+        const valTotalSaisie = document.getElementById('valTotalSaisie');
+        const returnProduit = document.getElementById('returnProduit');
+        const sellerInventoryBody = document.getElementById('sellerInventoryBody');
+        const sellerStockInfo = document.getElementById('sellerStockInfo');
+        
+        document.getElementById('valDate').valueAsDate = new Date();
+        let sellerStock = {}; 
+        let globalPrices = {}; 
 
-        // --- MODIFICATION DE LA FONCTION calculateDebt DANS validation.html ---
-        async function calculateDebt() {
-            const vendeur = payVendeur.value;
-            if (!vendeur) {
-                valeurDue.innerText = "0,00 €";
-                return;
+        function formatEUR(n) {
+            return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+        }
+
+        function updateLineTotal() {
+            const qty = parseFloat(valQuantite.value) || 0;
+            const price = parseFloat(valPrixUnit.value) || 0;
+            const total = qty * price;
+            valTotalSaisie.innerText = formatEUR(total);
+        }
+
+        async function loadPrices() {
+            try {
+                const snap = await db.collection("stocks").get();
+                globalPrices = {}; 
+                snap.forEach(doc => {
+                    const data = doc.data();
+                    // MODIFICATION : Utilisation de 'prixVente' tel qu'affiché dans votre Firebase
+                    if (data.produit && data.prixVente) {
+                        globalPrices[data.produit] = parseFloat(data.prixVente);
+                    }
+                });
+            } catch (error) {
+                console.error("Erreur chargement prix:", error);
             }
+        }
 
-            // 1. Récupérer les prix de vente (depuis stocks), les retraits (depuis recuperations) et les paiements
-            const [stocksSnap, recupSnap, paiementsSnap] = await Promise.all([
-                db.collection("stocks").get(),
-                db.collection("recuperations").where("vendeur", "==", vendeur).get(),
-                db.collection("encaissements_vendeurs").where("vendeur", "==", vendeur).get()
+        async function loadSellerData() {
+            const name = valVendeur.value;
+            if (!name) return;
+
+            const [recupSnap, ventesSnap] = await Promise.all([
+                db.collection("recuperations").where("vendeur", "==", name).get(),
+                db.collection("ventes").where("vendeur", "==", name).get()
             ]);
 
-            // 2. Créer un dictionnaire des prix de vente par produit
-            let prixProduits = {};
-            stocksSnap.forEach(doc => {
-                const d = doc.data();
-                prixProduits[d.produit] = d.prixVenteRef || 0; // Utilise le prix de vente référence
-            });
-
-            // 3. Calculer la valeur totale de la marchandise récupérée par le vendeur
-            let totalDuTheorique = 0;
+            sellerStock = {};
             recupSnap.forEach(doc => {
                 const d = doc.data();
-                const prixUnitaire = prixProduits[d.produit] || 0;
-                totalDuTheorique += (d.quantite * prixUnitaire); // Dette = Quantité récupérée x Prix de vente
+                sellerStock[d.produit] = (sellerStock[d.produit] || 0) + d.quantite;
+            });
+            ventesSnap.forEach(doc => {
+                const d = doc.data();
+                sellerStock[d.produit] = (sellerStock[d.produit] || 0) - d.quantite;
             });
 
-            // 4. Calculer le total déjà payé par le vendeur
-            let totalPaye = 0;
-            paiementsSnap.forEach(doc => {
-                totalPaye += doc.data().montantRecu;
-            });
+            valProduit.innerHTML = '<option value="">-- Choisir un produit récupéré --</option>';
+            returnProduit.innerHTML = '<option value="">-- Produit --</option>';
+            sellerInventoryBody.innerHTML = '';
 
-            // 5. Résultat : Dette = Valeur du stock récupéré - Sommes déjà versées
-            const reste = totalDuTheorique - totalPaye;
-            valeurDue.innerText = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(reste);
-            valeurDue.style.color = reste > 0 ? "#dc3545" : "#28a745";
-        }
-        const returnProduitSelect = document.getElementById('returnProduit');
-        const returnQuantiteInput = document.getElementById('returnQuantite');
-
-        // Mise à jour de la liste des produits pour le retour (à appeler dans calculateDebt)
-        function updateReturnProductList(productTracking) {
-            returnProduitSelect.innerHTML = '<option value="">-- Quel produit est rendu ? --</option>';
-            for (const prod in productTracking) {
-                const enMain = productTracking[prod].recup - productTracking[prod].vendu;
-                if (enMain > 0) {
+            for (const prod in sellerStock) {
+                const qty = sellerStock[prod];
+                if (qty > 0) {
                     const opt = document.createElement('option');
-                    opt.value = prod;
-                    opt.textContent = `${prod} (il en a ${enMain})`;
-                    returnProduitSelect.appendChild(opt);
+                    opt.value = prod; opt.textContent = prod;
+                    valProduit.appendChild(opt.cloneNode(true));
+                    returnProduit.appendChild(opt);
+                    sellerInventoryBody.innerHTML += `<tr><td>${prod}</td><td style="font-weight:bold; text-align:center;">${qty}</td></tr>`;
                 }
             }
         }
 
-        // Bouton de validation du retour
-        document.getElementById('btnValiderRetour').addEventListener('click', async () => {
-            const vendeur = payVendeur.value;
-            const produit = returnProduitSelect.value;
-            const quantite = parseInt(returnQuantiteInput.value) || 0;
+        valVendeur.addEventListener('change', loadSellerData);
 
-            if (!vendeur || !produit || quantite <= 0) {
-                return alert("Veuillez sélectionner un vendeur, un produit et une quantité.");
-            }
+        valProduit.addEventListener('change', () => {
+            const prod = valProduit.value;
+            // Récupération automatique du prix fixe
+            const prix = globalPrices[prod] || 0;
+            valPrixUnit.value = prix;
+            
+            sellerStockInfo.innerText = prod ? `Reste en main : ${sellerStock[prod] || 0} colis` : "";
+            updateLineTotal();
+        });
 
-            if (confirm(`Confirmez-vous que ${vendeur} rend ${quantite} colis de ${produit} au stock ?`)) {
-                try {
-                    // On enregistre le retour comme une récupération NÉGATIVE pour corriger le stock
-                    await db.collection("recuperations").add({
-                        date: document.getElementById('payDate').value,
-                        vendeur: vendeur,
-                        produit: produit,
-                        quantite: -quantite, // Quantité négative = Retour au stock
-                        type: "retour",
+        valQuantite.addEventListener('input', updateLineTotal);
+
+        document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
+            const qty = parseInt(valQuantite.value) || 0;
+            const price = parseFloat(valPrixUnit.value) || 0;
+            const acompte = parseFloat(document.getElementById('valAcompte').value) || 0;
+            const remise = parseFloat(document.getElementById('valRemise').value) || 0;
+            const prod = valProduit.value;
+
+            if (!valVendeur.value || !prod || qty <= 0) return alert("Données incomplètes.");
+            if (qty > (sellerStock[prod] || 0)) return alert("Le vendeur n'a pas assez de colis en main.");
+
+            try {
+                await db.collection("ventes").add({
+                    date: document.getElementById('valDate').value,
+                    vendeur: valVendeur.value,
+                    produit: prod,
+                    quantite: qty,
+                    prixUnitaire: price,
+                    total: qty * price,
+                    modeDePaiement: acompte > 0 ? "Acompte" : "Validé Admin",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                if (acompte > 0 || remise > 0) {
+                    await db.collection("encaissements_vendeurs").add({
+                        date: document.getElementById('valDate').value,
+                        vendeur: valVendeur.value,
+                        montantRecu: acompte,
+                        remise: remise,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
-
-                    alert("Le stock a été mis à jour avec succès !");
-                    returnQuantiteInput.value = "";
-                    calculateDebt(); // Rafraîchir l'affichage
-                } catch (e) {
-                    alert("Erreur lors de l'enregistrement.");
                 }
-            }
+
+                alert("Vente validée et enregistrée !");
+                location.reload();
+            } catch (e) { alert("Erreur d'enregistrement."); }
         });
 
-        payVendeur.addEventListener('change', calculateDebt);
+        document.getElementById('btnReturn').addEventListener('click', async () => {
+            const qty = parseInt(document.getElementById('returnQty').value) || 0;
+            const prod = returnProduit.value;
+            if (!prod || qty <= 0) return;
 
-        // Enregistrer le paiement
-        document.getElementById('btnValiderPaiement').addEventListener('click', async () => {
-            const btn = document.getElementById('btnValiderPaiement');
-            const data = {
-                date: document.getElementById('payDate').value,
-                vendeur: payVendeur.value,
-                montantRecu: parseFloat(document.getElementById('payMontant').value) || 0,
-                mode: document.getElementById('payMode').value,
+            await db.collection("recuperations").add({
+                date: document.getElementById('valDate').value,
+                vendeur: valVendeur.value,
+                produit: prod,
+                quantite: -qty,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
-
-            if (data.vendeur && data.montantRecu > 0) {
-                btn.disabled = true;
-                try {
-                    await db.collection("encaissements_vendeurs").add(data);
-                    document.getElementById('msgStatus').innerText = "✅ Paiement enregistré !";
-                    document.getElementById('payMontant').value = "";
-                    calculateDebt(); // Rafraîchir la dette
-                } catch (e) {
-                    alert("Erreur");
-                } finally {
-                    btn.disabled = false;
-                }
-            } else {
-                alert("Veuillez remplir les champs");
-            }
+            });
+            alert("Retour au stock effectué.");
+            loadSellerData();
         });
+
+        loadPrices();
     </script>
 </body>
 </html>
