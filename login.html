@@ -28,23 +28,37 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-        // Votre configuration Firebase ici
+        // Utilisez votre config Firebase ici
         firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
 
         document.getElementById('btnLogin').addEventListener('click', () => {
-            const user = document.getElementById('username').value.toLowerCase().trim();
+            const usernameInput = document.getElementById('username').value.trim();
             const pass = document.getElementById('password').value;
-            const email = user + "@amt.com"; // Transformation auto en email
+            const errorEl = document.getElementById('loginError');
 
-            firebase.auth().signInWithEmailAndPassword(email, pass)
+            if (!usernameInput || !pass) {
+                errorEl.innerText = "Veuillez remplir tous les champs.";
+                return;
+            }
+
+            // NETTOYAGE RIGOUREUX DU NOM POUR L'EMAIL
+            const cleanedUser = usernameInput.toLowerCase()
+                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Enlève accents
+                .replace(/\s+/g, ''); // Enlève tous les espaces
+
+            const email = cleanedUser + "@amt.com";
+
+            auth.signInWithEmailAndPassword(email, pass)
                 .then((userCredential) => {
-                    // Si on vient d'un QR code, on redirige vers la destination
+                    // Redirection intelligente
                     const urlParams = new URLSearchParams(window.location.search);
                     const redirect = urlParams.get('redirect') || 'validation.html';
                     window.location.href = redirect;
                 })
                 .catch((error) => {
-                    document.getElementById('loginError').innerText = "Identifiants incorrects.";
+                    console.error(error);
+                    errorEl.innerText = "Utilisateur ou mot de passe incorrect.";
                 });
         });
     </script>

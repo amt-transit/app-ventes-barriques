@@ -1,30 +1,63 @@
 const auth = firebase.auth();
+const db = firebase.firestore();
 const currentPage = window.location.pathname.split('/').pop();
 
-// Ce gardien est le seul responsable des redirections après le chargement de la page.
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async (user) => {
     if (user) {
-        // --- L'UTILISATEUR EST CONNECTÉ ---
-        if (currentPage === 'login.html') {
-            // S'il est connecté et se retrouve sur la page de login,
-            // on le renvoie à l'accueil.
-            window.location.href = 'index.html';
+        // --- UTILISATEUR CONNECTÉ ---
+        
+        // 1. Récupérer le rôle dans Firestore
+        // On cherche le document dont l'email correspond à l'utilisateur connecté
+        const userSnap = await db.collection("users").where("email", "==", user.email).get();
+        
+        if (!userSnap.empty) {
+            const userData = userSnap.docs[0].data();
+            const role = userData.role; // 'admin' ou 'vendeur'
+            const nomVendeur = userData.nom; // 'Abdoul'
+
+            // 2. Gestion des menus interdits (si vendeur)
+            if (role === 'vendeur') {
+                const pagesInterdites = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
+                
+                // Masquer les liens dans la navigation
+                document.querySelectorAll('.navigation a').forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (pagesInterdites.includes(href)) {
+                        link.style.display = 'none';
+                    }
+                });
+
+                // Bloquer l'accès direct par URL
+                if (pagesInterdites.includes(currentPage)) {
+                    window.location.href = 'validation.html';
+                }
+
+                // 3. Verrouiller le choix du vendeur dans la page Validation
+                const selectVendeur = document.getElementById('valVendeur');
+                if (selectVendeur) {
+                    selectVendeur.value = nomVendeur;
+                    selectVendeur.disabled = true; // Empêche de choisir un autre collègue
+                    // Forcer le chargement des données de ce vendeur
+                    if (typeof loadSellerData === 'function') loadSellerData();
+                }
+            }
         }
+
+        // Si on est sur login.html alors qu'on est déjà connecté
+        if (currentPage === 'login.html') {
+            window.location.href = 'validation.html';
+        }
+
     } else {
-        // --- L'UTILISATEUR N'EST PAS CONNECTÉ ---
+        // --- NON CONNECTÉ ---
         if (currentPage !== 'login.html') {
-            // S'il n'est pas sur la page de login, on l'y renvoie.
             window.location.href = 'login.html';
         }
     }
 });
 
-// Fonction de déconnexion globale
 function logout() {
     auth.signOut().then(() => {
-        // Après la déconnexion, on redirige vers la page de connexion.
         window.location.href = 'login.html';
-    }).catch((error) => {
-        console.error('Erreur de déconnexion', error);
     });
 }
