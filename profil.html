@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Profil - AMT</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <header class="app-header"><h1>Mon Compte</h1></header>
+    <nav class="navigation">
+        <a href="recuperation.html">Retour Récupération</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
+    </nav>
+
+    <div class="dashboard-container" style="max-width: 500px; margin: 50px auto; padding: 20px;">
+        <h2 id="profNom">Chargement...</h2>
+        <p id="profEmail" style="color: gray; margin-bottom: 20px;"></p>
+
+        <hr>
+        <h3>Changer mon mot de passe</h3>
+        <input type="password" id="newPass1" placeholder="Nouveau mot de passe" style="width:100%; padding:10px; margin: 10px 0;">
+        <input type="password" id="newPass2" placeholder="Confirmer le mot de passe" style="width:100%; padding:10px; margin: 10px 0;">
+        <button onclick="updateMyPass()" class="primary" style="width:100%; background: #10b981;">Enregistrer le nouveau mot de passe</button>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script>
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        auth.onAuthStateChanged(async user => {
+            if (user) {
+                document.getElementById('profEmail').innerText = user.email;
+                const snap = await db.collection("users").where("email", "==", user.email).get();
+                if(!snap.empty) document.getElementById('profNom').innerText = "Bonjour, " + snap.docs[0].data().nom;
+            } else { window.location.href = 'login.html'; }
+        });
+
+        async function updateMyPass() {
+            const p1 = document.getElementById('newPass1').value;
+            const p2 = document.getElementById('newPass2').value;
+            if (p1 !== p2 || p1.length < 6) return alert("Les mots de passe ne correspondent pas ou sont trop courts.");
+
+            try {
+                await auth.currentUser.updatePassword(p1);
+                alert("✅ Mot de passe modifié !");
+                location.reload();
+            } catch (e) {
+                alert("❌ Erreur. Pour changer votre mot de passe, vous devez vous être connecté très récemment. Veuillez vous déconnecter et vous reconnecter avant de réessayer.");
+            }
+        }
+    </script>
+</body>
+</html>

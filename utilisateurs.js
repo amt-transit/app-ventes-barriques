@@ -1,50 +1,81 @@
+const userListBody = document.getElementById('userListBody');
+const msgUser = document.getElementById('msgUser');
+
+// --- CHARGEMENT DES UTILISATEURS ---
+function loadUsers() {
+    if (!userListBody) return;
+    db.collection("users").orderBy("nom", "asc").onSnapshot(snap => {
+        userListBody.innerHTML = '';
+        snap.forEach(doc => {
+            const u = doc.data();
+            userListBody.innerHTML += `
+                <tr>
+                    <td>${u.nom}<br><small style="color:gray">${u.email}</small></td>
+                    <td><span class="badge-role">${u.role}</span></td>
+                    <td>
+                        <button onclick="resetPassword('${u.email}')" class="btn-reset">Réinitialiser</button>
+                        <button onclick="deleteUser('${doc.id}')" class="btn-suppr">Suppr.</button>
+                    </td>
+                </tr>`;
+        });
+    });
+}
+
+// --- CRÉATION AVEC VÉRIFICATION ET INSTANCE SECONDAIRE ---
 document.getElementById('btnCreateUser').addEventListener('click', async () => {
-    let nomBrut = document.getElementById('newUserName').value.trim();
+    const nomBrut = document.getElementById('newUserName').value.trim();
     const pass = document.getElementById('newUserPass').value;
     const role = document.getElementById('newUserRole').value;
 
-    if (!nomBrut || pass.length < 6) return alert("Données invalides (Pass: 6 caract. min)");
+    if (!nomBrut || pass.length < 6) return alert("Nom requis et mot de passe de 6 car. min.");
 
-    // --- NETTOYAGE DU NOM POUR L'EMAIL ---
-    // On enlève les accents, les espaces et on met en minuscule
-    const nomNettoye = nomBrut.toLowerCase()
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Enlève les accents
-        .replace(/\s+/g, ''); // Enlève tous les espaces
-
-    const email = nomNettoye + "@amt.com";
+    // Nettoyage pour l'email
+    const cleaned = nomBrut.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '');
+    const email = cleaned + "@amt.com";
 
     try {
-        document.getElementById('msgUser').innerText = "Création de l'accès sécurisé...";
+        msgUser.innerText = "🔍 Vérification...";
+        const check = await db.collection("users").doc(nomBrut).get();
+        if (check.exists) return alert("Ce nom est déjà utilisé.");
 
-        // Initialisation de l'instance secondaire (si elle n'existe pas déjà)
-        let secondaryApp;
-        try {
-            secondaryApp = firebase.initializeApp(firebaseConfig, "Secondary");
-        } catch (e) {
-            secondaryApp = firebase.app("Secondary");
-        }
+        msgUser.innerText = "⏳ Création de l'accès...";
+        
+        let secApp;
+        try { secApp = firebase.initializeApp(firebaseConfig, "Secondary"); } 
+        catch (e) { secApp = firebase.app("Secondary"); }
 
-        // 1. Création dans Firebase Auth
-        const userCredential = await secondaryApp.auth().createUserWithEmailAndPassword(email, pass);
-        const newUid = userCredential.user.uid;
-
-        // 2. Enregistrement dans Firestore (On garde le nom brut avec majuscules pour l'affichage)
+        const userCred = await secApp.auth().createUserWithEmailAndPassword(email, pass);
+        
         await db.collection("users").doc(nomBrut).set({
-            nom: nomBrut,
-            email: email,
-            role: role,
-            uid: newUid,
+            nom: nomBrut, email: email, role: role, uid: userCred.user.uid,
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        await secondaryApp.delete();
-
-        document.getElementById('msgUser').innerText = "✅ Compte créé : " + email;
-        document.getElementById('msgUser').style.color = "green";
-        loadUsers(); // Recharger la liste
-    } catch (error) {
-        console.error(error);
-        document.getElementById('msgUser').innerText = "Erreur : " + error.message;
-        document.getElementById('msgUser').style.color = "red";
+        await secApp.delete();
+        msgUser.innerText = "✅ Succès !";
+        msgUser.style.color = "green";
+        document.getElementById('newUserName').value = '';
+        document.getElementById('newUserPass').value = '';
+        
+    } catch (e) {
+        msgUser.innerText = "❌ Erreur: " + e.message;
+        msgUser.style.color = "red";
     }
 });
+
+// --- ACTIONS ---
+window.resetPassword = (email) => {
+    if (confirm("Envoyer un email de réinitialisation ?")) {
+        firebase.auth().sendPasswordResetEmail(email)
+            .then(() => alert("Email envoyé !"))
+            .catch(e => alert(e.message));
+    }
+};
+
+window.deleteUser = (id) => {
+    if (confirm("Supprimer ce profil ? (L'accès Auth restera actif dans la console)")) {
+        db.collection("users").doc(id).delete();
+    }
+};
+
+loadUsers();

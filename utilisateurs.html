@@ -7,11 +7,19 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        .badge-role { background: #e2e8f0; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+        .btn-suppr { background: #ef4444; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+        .btn-reset { background: #f59e0b; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; margin-right: 5px; }
+        .user-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .user-table th { text-align: left; background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+        .user-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+    </style>
 </head>
 <body>
     <header class="app-header">
         <img src="logo.png" alt="Logo" class="app-logo">
-        <h1>Gestion des Comptes Vendeurs</h1>
+        <h1>Administration des Comptes</h1>
     </header>
 
     <nav class="navigation">
@@ -25,35 +33,27 @@
 
     <div class="dashboard-grid-2-col" style="padding: 20px;">
         <div class="dashboard-container">
-            <h2>👤 Créer un nouveau compte</h2>
+            <h2>👤 Créer un Vendeur</h2>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <label>Nom du vendeur :</label>
-                <input type="text" id="newUserName" placeholder="Ex: Abdoul">
-                
-                <label>Mot de passe :</label>
-                <input type="password" id="newUserPass" placeholder="8 caractères minimum">
-                
-                <label>Rôle :</label>
+                <input type="text" id="newUserName" placeholder="Nom complet (ex: Abdoul Karim)">
+                <input type="password" id="newUserPass" placeholder="Mot de passe (6 car. min)">
                 <select id="newUserRole">
-                    <option value="vendeur">Vendeur (Saisie uniquement)</option>
+                    <option value="vendeur">Vendeur (Accès restreint)</option>
                     <option value="admin">Administrateur (Accès total)</option>
                 </select>
-
-                <button id="btnCreateUser" class="primary" style="background: #1877f2; margin-top: 10px;">
-                    Créer le compte
-                </button>
-                <p id="msgUser" style="text-align: center; font-size: 12px;"></p>
+                <button id="btnCreateUser" class="primary" style="background: #1877f2;">Créer l'accès</button>
+                <p id="msgUser" style="text-align: center; font-size: 12px; font-weight: bold;"></p>
             </div>
         </div>
 
         <div class="dashboard-container">
-            <h2>📋 Liste des accès</h2>
-            <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <h2>📋 Comptes existants</h2>
+            <table class="user-table">
                 <thead>
-                    <tr style="background: #f1f5f9;">
-                        <th>Utilisateur</th>
+                    <tr>
+                        <th>Nom</th>
                         <th>Rôle</th>
-                        <th>Action</th>
+                        <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="userListBody"></tbody>
@@ -65,7 +65,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script>
-        // Votre config Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
             authDomain: "app-ventes-barriques.firebaseapp.com",
@@ -76,8 +75,8 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
-        const auth = firebase.auth();
     </script>
+    <script src="auth-guard.js"></script>
     <script src="utilisateurs.js"></script>
 </body>
 </html>

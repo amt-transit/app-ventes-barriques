@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>Connexion - AMT Gestion</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
     <style>
         .login-box { max-width: 400px; margin: 100px auto; padding: 30px; background: white; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; }
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; }
@@ -25,42 +26,55 @@
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script>
-        // Utilisez votre config Firebase ici
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+
+<script>
+    // 1. Définition de la configuration (L'élément qui manquait)
+    const firebaseConfig = {
+        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+        authDomain: "app-ventes-barriques.firebaseapp.com",
+        projectId: "app-ventes-barriques",
+        storageBucket: "app-ventes-barriques.appspot.com",
+        messagingSenderId: "615546459847",
+        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+    };
+
+    // 2. Initialisation
+    if (!firebase.apps.length) {
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
+    }
+    const auth = firebase.auth();
 
-        document.getElementById('btnLogin').addEventListener('click', () => {
-            const usernameInput = document.getElementById('username').value.trim();
-            const pass = document.getElementById('password').value;
-            const errorEl = document.getElementById('loginError');
+    // 3. Logique de connexion
+    document.getElementById('btnLogin').addEventListener('click', () => {
+        const usernameInput = document.getElementById('username').value.trim();
+        const pass = document.getElementById('password').value;
+        const errorEl = document.getElementById('loginError');
 
-            if (!usernameInput || !pass) {
-                errorEl.innerText = "Veuillez remplir tous les champs.";
-                return;
-            }
+        if (!usernameInput || !pass) {
+            errorEl.innerText = "Veuillez remplir tous les champs.";
+            return;
+        }
 
-            // NETTOYAGE RIGOUREUX DU NOM POUR L'EMAIL
-            const cleanedUser = usernameInput.toLowerCase()
-                .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Enlève accents
-                .replace(/\s+/g, ''); // Enlève tous les espaces
+        // Nettoyage du nom pour l'email
+        const cleanedUser = usernameInput.toLowerCase()
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .replace(/\s+/g, '');
 
-            const email = cleanedUser + "@amt.com";
+        const email = cleanedUser + "@amt.com";
 
-            auth.signInWithEmailAndPassword(email, pass)
-                .then((userCredential) => {
-                    // Redirection intelligente
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const redirect = urlParams.get('redirect') || 'validation.html';
-                    window.location.href = redirect;
-                })
-                .catch((error) => {
-                    console.error(error);
-                    errorEl.innerText = "Utilisateur ou mot de passe incorrect.";
-                });
-        });
-    </script>
+        auth.signInWithEmailAndPassword(email, pass)
+            .then((userCredential) => {
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirect = urlParams.get('redirect') || 'recuperation.html';
+                window.location.href = redirect;
+            })
+            .catch((error) => {
+                console.error(error);
+                errorEl.innerText = "Utilisateur ou mot de passe incorrect.";
+            });
+    });
+</script>
 </body>
 </html>

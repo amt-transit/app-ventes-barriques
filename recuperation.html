@@ -6,32 +6,61 @@
     <title>Retrait de Stock - AMT</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        /* Correction du décalage : On force la navigation en haut et le contenu au centre */
+        body.login-page {
+            display: flex;
+            flex-direction: column; /* Aligne le menu et le formulaire verticalement */
+            justify-content: flex-start; /* Aligne le contenu vers le haut */
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        .navigation {
+            width: 100%; /* Le menu prend toute la largeur */
+            display: flex;
+            justify-content: center;
+            padding: 15px 0;
+            background-color: #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+        .login-container {
+            flex-grow: 1; /* Prend l'espace restant */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+        }
+
+        .history-section { margin-top: 20px; border-top: 2px solid #eee; padding-top: 15px; }
+        .history-table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 10px; }
+        .history-table th, .history-table td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        .history-table th { background: #f8fafc; }
+    </style>
 </head>
 <body class="login-page">
-    
+
+    <nav class="navigation">
+        <a href="recuperation.html" class="active">📦 Récupération</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
+    </nav>
+
     <div class="login-container">
         <div class="login-form">
             <header class="app-header">
-                <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
+                <img src="logo.png" alt="Logo" class="app-logo">
                 <h1>Retrait de Stock</h1>
             </header>
             
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="date" id="recupDate">
                 
-                <select id="recupVendeur">
-                    <option value="">-- Qui récupère ? --</option>
-                    <option value="Abdoul">Abdoul</option>
-                    <option value="Ali">Ali</option>
-                    <option value="Cheick">Cheick</option>
-                    <option value="Demba">Demba</option>
-                    <option value="Idriss">Idriss</option>
-                    <option value="Kady">Kady</option>
-                    <option value="Kaïs">Kaïs</option>
-                    <option value="Kara">Kara</option>
-                    <option value="Mohamed">Mohamed</option>
-                    <option value="Mr Doucoure">Mr Doucoure</option>
-                    <option value="Zoum">Zoum</option>
+                <select id="recupVendeur" disabled>
+                    <option value="">-- Chargement identité --</option>
                 </select>
 
                 <select id="recupProduit">
@@ -41,11 +70,24 @@
                 <div id="stockInfo" style="font-size: 11px; text-align: center; color: #1877f2; font-weight: bold; min-height: 15px;"></div>
 
                 <input type="number" id="recupQuantite" placeholder="Nombre de colis">
-                
                 <button id="btnValiderRecup" class="primary" style="width: 100%; padding: 10px;">Confirmer le retrait</button>
-                
                 <p id="msgStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
-                <a href="index.html" style="text-align: center; display: block; font-size: 11px; margin-top: 10px; color: #666;">Retour à l'accueil</a>
+
+                <div class="history-section">
+                    <h3 style="font-size: 12px; color: #475569;">📋 Mes 5 derniers retraits</h3>
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Produit</th>
+                                <th>Qté</th>
+                            </tr>
+                        </thead>
+                        <tbody id="personalHistoryBody">
+                            <tr><td colspan="3" style="text-align:center;">Chargement...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
@@ -53,7 +95,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         const firebaseConfig = {
             apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
@@ -63,148 +105,120 @@
             messagingSenderId: "615546459847",
             appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
         };
-        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
-        const db = firebase.firestore();
-        firebase.auth().onAuthStateChanged(async (user) => {
-            if (!user) {
-                // Si non connecté, redirection vers login
-                if (!window.location.pathname.includes('login.html')) {
-                    window.location.href = 'login.html';
-                }
-            } else {
-                // Si connecté, on vérifie le rôle dans Firestore
-                const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
-                const userData = userDoc.data();
 
-                if (userData && userData.role === 'vendeur') {
-                    // Masquer les menus interdits aux vendeurs
-                    const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
-                    document.querySelectorAll('.navigation a').forEach(link => {
-                        const href = link.getAttribute('href');
-                        if (forbiddenLinks.includes(href)) {
-                            link.style.display = 'none';
-                        }
-                    });
-                    
-                    // Empêcher l'accès direct par URL
-                    const currentPage = window.location.pathname.split('/').pop();
-                    if (forbiddenLinks.includes(currentPage)) {
-                        window.location.href = 'validation.html';
-                    }
-                }
-            }
-        });
-
-        function logout() {
-            firebase.auth().signOut().then(() => {
-                window.location.href = 'login.html';
-            });
+        if (!firebase.apps.length) { 
+            firebase.initializeApp(firebaseConfig); 
         }
-        
+
+        window.db = firebase.firestore();
+        window.auth = firebase.auth();
+    </script>
+    
+    <script src="auth-guard.js"></script>
+
+    <script>
+        const recupVendeur = document.getElementById('recupVendeur');
         const recupProduitSelect = document.getElementById('recupProduit');
-        const stockInfoEl = document.getElementById('stockInfo');
-        const quantiteInput = document.getElementById('recupQuantite');
-        let stockDisponible = {}; // Objet pour stocker les quantités restantes par produit
+        const personalHistoryBody = document.getElementById('personalHistoryBody');
+        let stockDisponible = {};
 
         document.getElementById('recupDate').valueAsDate = new Date();
 
-        // CHARGEMENT DU STOCK ET CALCUL DU RESTE
-        async function loadStockData() {
-            // On récupère tout pour calculer le vrai stock restant
-            const [stocksSnap, ventesSnap, recupSnap] = await Promise.all([
-                db.collection("stocks").get(),
-                db.collection("ventes").get(),
-                db.collection("recuperations").get()
-            ]);
-
-            const totals = {};
-
-            // 1. Total entré en stock
-            stocksSnap.forEach(doc => {
-                const d = doc.data();
-                if (!totals[d.produit]) totals[d.produit] = { in: 0, out: 0 };
-                totals[d.produit].in += (d.quantite || 0);
-            });
-
-            // 2. Total vendu
-            ventesSnap.forEach(doc => {
-                const d = doc.data();
-                if (totals[d.produit]) totals[d.produit].out += (d.quantite || 0);
-            });
-
-            // 3. Total déjà récupéré
-            recupSnap.forEach(doc => {
-                const d = doc.data();
-                if (totals[d.produit]) totals[d.produit].out += (d.quantite || 0);
-            });
-
-            // Remplissage de la liste déroulante
-            recupProduitSelect.innerHTML = '<option value="">-- Sélectionner le Produit --</option>';
-            for (const produit in totals) {
-                const reste = totals[produit].in - totals[produit].out;
-                stockDisponible[produit] = reste;
-
-                if (reste > 0) {
-                    const opt = document.createElement('option');
-                    opt.value = produit;
-                    opt.textContent = `${produit} (${reste} dispos)`;
-                    recupProduitSelect.appendChild(opt);
+        firebase.auth().onAuthStateChanged(async (user) => {
+            if (user) {
+                const snap = await db.collection("users").where("email", "==", user.email).get();
+                if (!snap.empty) {
+                    const userData = snap.docs[0].data();
+                    recupVendeur.innerHTML = `<option value="${userData.nom}">${userData.nom}</option>`;
+                    loadPersonalHistory(userData.nom);
                 }
-            }
-        }
-
-        loadStockData();
-
-        // AFFICHAGE DU STOCK MAX LORS DE LA SÉLECTION
-        recupProduitSelect.addEventListener('change', () => {
-            const produit = recupProduitSelect.value;
-            if (produit && stockDisponible[produit] !== undefined) {
-                stockInfoEl.innerText = `Maximum possible : ${stockDisponible[produit]} colis`;
-                quantiteInput.max = stockDisponible[produit];
-            } else {
-                stockInfoEl.innerText = "";
             }
         });
 
-        // VALIDATION ET ENREGISTREMENT
+        function loadPersonalHistory(nomVendeur) {
+            db.collection("recuperations")
+                .where("vendeur", "==", nomVendeur)
+                .orderBy("timestamp", "desc")
+                .limit(5)
+                .onSnapshot(snap => {
+                    personalHistoryBody.innerHTML = '';
+                    if (snap.empty) {
+                        personalHistoryBody.innerHTML = '<tr><td colspan="3">Aucun retrait enregistré.</td></tr>';
+                        return;
+                    }
+                    snap.forEach(doc => {
+                        const d = doc.data();
+                        personalHistoryBody.innerHTML += `
+                            <tr>
+                                <td>${d.date}</td>
+                                <td>${d.produit}</td>
+                                <td style="font-weight:bold;">${d.quantite}</td>
+                            </tr>`;
+                    });
+                }, error => {
+                    console.error("Erreur historique:", error);
+                });
+        }
+
+        async function loadStockData() {
+            try {
+                const [stocksSnap, ventesSnap, recupSnap] = await Promise.all([
+                    db.collection("stocks").get(),
+                    db.collection("ventes").get(),
+                    db.collection("recuperations").get()
+                ]);
+                const totals = {};
+                stocksSnap.forEach(doc => {
+                    const d = doc.data();
+                    if (!totals[d.produit]) totals[d.produit] = { in: 0, out: 0 };
+                    totals[d.produit].in += (d.quantite || 0);
+                });
+                [...ventesSnap.docs, ...recupSnap.docs].forEach(doc => {
+                    const d = doc.data();
+                    if (totals[d.produit]) totals[d.produit].out += (d.quantite || 0);
+                });
+                recupProduitSelect.innerHTML = '<option value="">-- Sélectionner le Produit --</option>';
+                for (const p in totals) {
+                    const reste = totals[p].in - totals[p].out;
+                    stockDisponible[p] = reste;
+                    if (reste > 0) {
+                        const opt = document.createElement('option');
+                        opt.value = p; opt.textContent = `${p} (${reste} dispos)`;
+                        recupProduitSelect.appendChild(opt);
+                    }
+                }
+            } catch (e) { console.error("Erreur stock:", e); }
+        }
+
+        recupProduitSelect.addEventListener('change', () => {
+            const p = recupProduitSelect.value;
+            document.getElementById('stockInfo').innerText = p ? `Maximum possible : ${stockDisponible[p]} colis` : "";
+        });
+
         document.getElementById('btnValiderRecup').addEventListener('click', async () => {
             const btn = document.getElementById('btnValiderRecup');
             const produit = recupProduitSelect.value;
-            const quantite = parseInt(quantiteInput.value) || 0;
-            const maxDispo = stockDisponible[produit] || 0;
+            const quantite = parseInt(document.getElementById('recupQuantite').value) || 0;
+            const vendeur = recupVendeur.value;
 
-            const data = {
-                date: document.getElementById('recupDate').value,
-                vendeur: document.getElementById('recupVendeur').value,
-                produit: produit,
-                quantite: quantite,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp()
-            };
+            if (!vendeur || !produit || quantite <= 0) return alert("Saisie invalide.");
+            if (quantite > stockDisponible[produit]) return alert("Stock insuffisant.");
 
-            // VÉRIFICATIONS
-            if (!data.vendeur || !data.produit || quantite <= 0) {
-                return alert("Veuillez remplir tous les champs correctement.");
-            }
-
-            if (quantite > maxDispo) {
-                return alert(`Erreur : Vous ne pouvez pas retirer ${quantite} colis. Il n'en reste que ${maxDispo} en stock.`);
-            }
-
-            // ENVOI
             btn.disabled = true;
             try {
-                await db.collection("recuperations").add(data);
-                document.getElementById('msgStatus').style.color = "green";
-                document.getElementById('msgStatus').innerText = "✅ Retrait enregistré !";
-                quantiteInput.value = "";
-                // Recharger les données pour mettre à jour les chiffres du menu déroulant
-                loadStockData(); 
-            } catch (e) {
-                alert("Erreur de connexion.");
-            } finally {
-                btn.disabled = false;
-            }
+                await db.collection("recuperations").add({
+                    date: document.getElementById('recupDate').value,
+                    vendeur: vendeur, produit: produit, quantite: quantite,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                document.getElementById('msgStatus').innerText = "✅ Succès !";
+                document.getElementById('recupQuantite').value = "";
+                loadStockData();
+            } catch (e) { alert("Erreur."); }
+            finally { btn.disabled = false; }
         });
+
+        loadStockData();
     </script>
 </body>
 </html>

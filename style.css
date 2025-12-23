@@ -252,3 +252,17 @@ canvas {
     body { padding: 0; background-color: white; }
     table { border: 1px solid #333; }
 }
+.btn-reset {
+    background-color: #ffc107;
+    color: #000;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    margin-right: 5px;
+    font-weight: bold;
+}
+.btn-reset:hover {
+    background-color: #e0a800;
+}

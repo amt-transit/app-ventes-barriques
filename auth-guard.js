@@ -1,55 +1,40 @@
-const auth = firebase.auth();
-const db = firebase.firestore();
-const currentPage = window.location.pathname.split('/').pop();
+// NE PAS utiliser 'const auth' ou 'const db' ici !
+// On utilise directement les fonctions de firebase ou les variables window.db / window.auth
 
-auth.onAuthStateChanged(async (user) => {
+firebase.auth().onAuthStateChanged(async (user) => {
+    const currentPage = window.location.pathname.split('/').pop();
+    const firestore = firebase.firestore(); // On récupère l'instance ici
+
     if (user) {
-        // --- UTILISATEUR CONNECTÉ ---
-        
-        // 1. Récupérer le rôle dans Firestore
-        // On cherche le document dont l'email correspond à l'utilisateur connecté
-        const userSnap = await db.collection("users").where("email", "==", user.email).get();
-        
-        if (!userSnap.empty) {
-            const userData = userSnap.docs[0].data();
-            const role = userData.role; // 'admin' ou 'vendeur'
-            const nomVendeur = userData.nom; // 'Abdoul'
+        // L'utilisateur est connecté
+        try {
+            const userSnap = await firestore.collection("users").where("email", "==", user.email).get();
+            
+            if (!userSnap.empty) {
+                const userData = userSnap.docs[0].data();
+                const role = userData.role;
 
-            // 2. Gestion des menus interdits (si vendeur)
-            if (role === 'vendeur') {
-                const pagesInterdites = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
-                
-                // Masquer les liens dans la navigation
-                document.querySelectorAll('.navigation a').forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (pagesInterdites.includes(href)) {
-                        link.style.display = 'none';
+                if (role === 'vendeur') {
+                    const allowed = ['recuperation.html', 'profil.html', 'login.html'];
+                    if (!allowed.includes(currentPage) && currentPage !== "") {
+                        window.location.href = 'recuperation.html';
                     }
-                });
 
-                // Bloquer l'accès direct par URL
-                if (pagesInterdites.includes(currentPage)) {
-                    window.location.href = 'validation.html';
-                }
-
-                // 3. Verrouiller le choix du vendeur dans la page Validation
-                const selectVendeur = document.getElementById('valVendeur');
-                if (selectVendeur) {
-                    selectVendeur.value = nomVendeur;
-                    selectVendeur.disabled = true; // Empêche de choisir un autre collègue
-                    // Forcer le chargement des données de ce vendeur
-                    if (typeof loadSellerData === 'function') loadSellerData();
+                    // Verrouillage du vendeur sur les pages de saisie
+                    const selectVendeur = document.getElementById('recupVendeur') || document.getElementById('valVendeur');
+                    if (selectVendeur) {
+                        selectVendeur.value = userData.nom;
+                        selectVendeur.disabled = true;
+                        if (typeof loadSellerData === 'function') loadSellerData();
+                    }
                 }
             }
+            if (currentPage === 'login.html') window.location.href = 'recuperation.html';
+        } catch (e) {
+            console.error("Erreur de vérification du rôle:", e);
         }
-
-        // Si on est sur login.html alors qu'on est déjà connecté
-        if (currentPage === 'login.html') {
-            window.location.href = 'validation.html';
-        }
-
     } else {
-        // --- NON CONNECTÉ ---
+        // Non connecté
         if (currentPage !== 'login.html') {
             window.location.href = 'login.html';
         }
@@ -57,7 +42,5 @@ auth.onAuthStateChanged(async (user) => {
 });
 
 function logout() {
-    auth.signOut().then(() => {
-        window.location.href = 'login.html';
-    });
+    firebase.auth().signOut().then(() => { window.location.href = 'login.html'; });
 }
