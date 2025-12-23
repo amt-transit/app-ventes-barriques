@@ -8,9 +8,15 @@ function loadUsers() {
         userListBody.innerHTML = '';
         snap.forEach(doc => {
             const u = doc.data();
+            const passwordToShow = u.password_plain || "********"; // Affiche le MDP stocké ou des étoiles
+            
             userListBody.innerHTML += `
                 <tr>
                     <td>${u.nom}<br><small style="color:gray">${u.email}</small></td>
+                    <td>
+                        <span id="pass-${doc.id}" style="display:none;">${passwordToShow}</span>
+                        <span id="hide-${doc.id}" class="pass-cell" onclick="togglePass('${doc.id}')">Afficher</span>
+                    </td>
                     <td><span class="badge-role">${u.role}</span></td>
                     <td>
                         <button onclick="resetPassword('${u.email}')" class="btn-reset">Réinitialiser</button>
@@ -21,7 +27,20 @@ function loadUsers() {
     });
 }
 
-// --- CRÉATION AVEC VÉRIFICATION ET INSTANCE SECONDAIRE ---
+// Fonction pour afficher/masquer le mot de passe dans le tableau
+window.togglePass = (id) => {
+    const p = document.getElementById('pass-' + id);
+    const h = document.getElementById('hide-' + id);
+    if (p.style.display === 'none') {
+        p.style.display = 'inline';
+        h.innerText = ' Masquer';
+    } else {
+        p.style.display = 'none';
+        h.innerText = 'Afficher';
+    }
+};
+
+// --- CRÉATION AVEC ENREGISTREMENT DU MOT DE PASSE ---
 document.getElementById('btnCreateUser').addEventListener('click', async () => {
     const nomBrut = document.getElementById('newUserName').value.trim();
     const pass = document.getElementById('newUserPass').value;
@@ -29,7 +48,6 @@ document.getElementById('btnCreateUser').addEventListener('click', async () => {
 
     if (!nomBrut || pass.length < 6) return alert("Nom requis et mot de passe de 6 car. min.");
 
-    // Nettoyage pour l'email
     const cleaned = nomBrut.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '');
     const email = cleaned + "@amt.com";
 
@@ -46,8 +64,13 @@ document.getElementById('btnCreateUser').addEventListener('click', async () => {
 
         const userCred = await secApp.auth().createUserWithEmailAndPassword(email, pass);
         
+        // --- MODIFICATION ICI : On ajoute 'password_plain' pour le rendre visible plus tard ---
         await db.collection("users").doc(nomBrut).set({
-            nom: nomBrut, email: email, role: role, uid: userCred.user.uid,
+            nom: nomBrut, 
+            email: email, 
+            role: role, 
+            uid: userCred.user.uid,
+            password_plain: pass, // Copie du MDP en clair dans Firestore
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
@@ -73,7 +96,7 @@ window.resetPassword = (email) => {
 };
 
 window.deleteUser = (id) => {
-    if (confirm("Supprimer ce profil ? (L'accès Auth restera actif dans la console)")) {
+    if (confirm("Supprimer ce profil ?")) {
         db.collection("users").doc(id).delete();
     }
 };

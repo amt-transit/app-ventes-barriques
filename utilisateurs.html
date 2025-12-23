@@ -14,6 +14,7 @@
         .user-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
         .user-table th { text-align: left; background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; }
         .user-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .pass-cell { font-family: monospace; cursor: pointer; color: #1877f2; text-decoration: underline; }
     </style>
 </head>
 <body>
@@ -35,8 +36,8 @@
         <div class="dashboard-container">
             <h2>👤 Créer un Vendeur</h2>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" id="newUserName" placeholder="Nom complet (ex: Abdoul Karim)">
-                <input type="password" id="newUserPass" placeholder="Mot de passe (6 car. min)">
+                <input type="text" id="newUserName" placeholder="Nom complet">
+                <input type="text" id="newUserPass" placeholder="Mot de passe (6 car. min)">
                 <select id="newUserRole">
                     <option value="vendeur">Vendeur (Accès restreint)</option>
                     <option value="admin">Administrateur (Accès total)</option>
@@ -51,7 +52,8 @@
             <table class="user-table">
                 <thead>
                     <tr>
-                        <th>Nom</th>
+                        <th>Nom / Email</th>
+                        <th>Mot de passe</th>
                         <th>Rôle</th>
                         <th>Actions</th>
                     </tr>
@@ -73,8 +75,8 @@
             messagingSenderId: "615546459847",
             appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        window.db = firebase.firestore();
     </script>
     <script src="auth-guard.js"></script>
     <script src="utilisateurs.js"></script>

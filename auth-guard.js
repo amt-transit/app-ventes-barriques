@@ -1,12 +1,9 @@
-// NE PAS utiliser 'const auth' ou 'const db' ici !
-// On utilise directement les fonctions de firebase ou les variables window.db / window.auth
-
+// auth-guard.js
 firebase.auth().onAuthStateChanged(async (user) => {
     const currentPage = window.location.pathname.split('/').pop();
-    const firestore = firebase.firestore(); // On récupère l'instance ici
+    const firestore = firebase.firestore();
 
     if (user) {
-        // L'utilisateur est connecté
         try {
             const userSnap = await firestore.collection("users").where("email", "==", user.email).get();
             
@@ -14,30 +11,37 @@ firebase.auth().onAuthStateChanged(async (user) => {
                 const userData = userSnap.docs[0].data();
                 const role = userData.role;
 
+                // --- GESTION DU BOUTON RETOUR ADMIN ---
+                const adminLink = document.getElementById('adminLink');
+                if (adminLink && role === 'admin') {
+                    adminLink.style.display = 'inline-block';
+                }
+
+                // --- REDIRECTIONS PAR RÔLE ---
                 if (role === 'vendeur') {
-                    const allowed = ['recuperation.html', 'profil.html', 'login.html'];
-                    if (!allowed.includes(currentPage) && currentPage !== "") {
+                    const allowedForVendeur = ['recuperation.html', 'profil.html', 'login.html'];
+                    if (!allowedForVendeur.includes(currentPage) && currentPage !== "") {
                         window.location.href = 'recuperation.html';
                     }
+                    if (currentPage === 'login.html') window.location.href = 'recuperation.html';
 
-                    // Verrouillage du vendeur sur les pages de saisie
+                    // Verrouillage auto du nom
                     const selectVendeur = document.getElementById('recupVendeur') || document.getElementById('valVendeur');
                     if (selectVendeur) {
                         selectVendeur.value = userData.nom;
                         selectVendeur.disabled = true;
                         if (typeof loadSellerData === 'function') loadSellerData();
                     }
+                } 
+                else if (role === 'admin') {
+                    if (currentPage === 'login.html') window.location.href = 'validation.html';
                 }
             }
-            if (currentPage === 'login.html') window.location.href = 'recuperation.html';
         } catch (e) {
-            console.error("Erreur de vérification du rôle:", e);
+            console.error("Erreur auth-guard:", e);
         }
     } else {
-        // Non connecté
-        if (currentPage !== 'login.html') {
-            window.location.href = 'login.html';
-        }
+        if (currentPage !== 'login.html') window.location.href = 'login.html';
     }
 });
 
