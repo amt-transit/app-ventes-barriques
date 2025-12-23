@@ -290,6 +290,50 @@ document.addEventListener('DOMContentLoaded', () => {
             options: { responsive: true, plugins: { legend: { display: false } } }
         });
     }
+    async function loadDailyStats() {
+        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+        
+        try {
+            const snap = await db.collection("ventes")
+                .where("date", "==", today)
+                .get();
+
+            let totalColis = 0;
+            let totalVentes = snap.size;
+            let vendeursActivity = {};
+
+            snap.forEach(doc => {
+                const d = doc.data();
+                totalColis += (parseInt(d.quantite) || 0);
+                
+                // Compter l'activité par vendeur
+                if (d.vendeur) {
+                    vendeursActivity[d.vendeur] = (vendeursActivity[d.vendeur] || 0) + 1;
+                }
+            });
+
+            // Trouver le top vendeur
+            let topVendeurName = "-";
+            let maxVentes = 0;
+            for (const v in vendeursActivity) {
+                if (vendeursActivity[v] > maxVentes) {
+                    maxVentes = vendeursActivity[v];
+                    topVendeurName = v;
+                }
+            }
+
+            // Mise à jour de l'affichage
+            document.getElementById('todayColis').innerText = totalColis;
+            document.getElementById('todayVentes').innerText = totalVentes;
+            document.getElementById('topVendeur').innerText = topVendeurName + " (" + maxVentes + ")";
+
+        } catch (e) {
+            console.error("Erreur stats du jour:", e);
+        }
+    }
+
+    // Appeler la fonction au chargement
+    loadDailyStats();
 
     startDateInput.addEventListener('change', updateDashboard);
     endDateInput.addEventListener('change', updateDashboard);

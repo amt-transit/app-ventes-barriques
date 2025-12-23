@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1200">
-    <title>Historique des Opérations</title>
+    <title>Historique des Opérations - AMT</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
@@ -53,6 +53,7 @@
         .history-section { display: none; }
         .history-section.active { display: block; }
         .caisseTable { width: 95%; margin: 0 auto 30px auto; }
+        .deleteBtn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 10px; }
     </style>
 </head>
 <body class="page-history">
@@ -71,14 +72,9 @@
     </nav>
 
     <div class="filter-container">
-        <label for="filterVendeur" style="font-weight: bold;">Filtrer par Vendeur :</label>
+        <label for="filterVendeur" style="font-weight: bold;">Filtrer par Compte :</label>
         <select id="filterVendeur" class="filter-select">
-            <option value="">-- Tous les vendeurs --</option>
-            <option value="Abdoul">Abdoul</option>
-            <option value="Ali">Ali</option>
-            <option value="Cheick">Cheick</option>
-            <option value="Demba">Demba</option>
-            <option value="Zoum">Zoum</option>
+            <option value="">-- Tous les comptes --</option>
         </select>
     </div>
 
@@ -125,6 +121,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
     <script>
       const firebaseConfig = {
         apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
@@ -134,8 +131,13 @@
         messagingSenderId: "615546459847",
         appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
       };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
+
+      if (!firebase.apps.length) { 
+          firebase.initializeApp(firebaseConfig); 
+      }
+      
+      window.db = firebase.firestore();
+      window.auth = firebase.auth();
 
       function switchTab(type) {
           document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -150,6 +152,7 @@
           }
       }
     </script>
+    
     <script src="auth-guard.js"></script>
     <script src="history.js"></script>
 </body>

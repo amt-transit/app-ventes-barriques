@@ -1,70 +1,62 @@
 document.addEventListener('DOMContentLoaded', () => {
-    if (typeof firebase === 'undefined' || typeof db === 'undefined') {
-        return alert("Erreur: La connexion à la base de données a échoué.");
-    }
-    firebase.auth().onAuthStateChanged(async (user) => {
-        if (!user) {
-            // Si non connecté, redirection vers login
-            if (!window.location.pathname.includes('login.html')) {
-                window.location.href = 'login.html';
-            }
-        } else {
-            // Si connecté, on vérifie le rôle dans Firestore
-            const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
-            const userData = userDoc.data();
-
-            if (userData && userData.role === 'vendeur') {
-                // Masquer les menus interdits aux vendeurs
-                const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
-                document.querySelectorAll('.navigation a').forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (forbiddenLinks.includes(href)) {
-                        link.style.display = 'none';
-                    }
-                });
-                
-                // Empêcher l'accès direct par URL
-                const currentPage = window.location.pathname.split('/').pop();
-                if (forbiddenLinks.includes(currentPage)) {
-                    window.location.href = 'validation.html';
-                }
-            }
-        }
-    });
-
-    function logout() {
-        firebase.auth().signOut().then(() => {
-            window.location.href = 'login.html';
-        });
-    }
-
+    const filterVendeur = document.getElementById('filterVendeur');
     const tableBodyVentes = document.getElementById('tableBodyVentes');
     const tableBodyPaiements = document.getElementById('tableBodyPaiements');
 
-    // --- ÉCOUTEUR HISTORIQUE DES VENTES ---
-    db.collection("ventes").orderBy("date", "desc").onSnapshot(snapshot => {
-        const sales = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderVentes(sales);
-    }, error => {
-        console.error("Erreur Ventes: ", error);
-        tableBodyVentes.innerHTML = '<tr><td colspan="9">Erreur de chargement des ventes.</td></tr>';
+    let unsubscribeVentes = null;
+    let unsubscribePaiements = null;
+
+    // 1. Charger dynamiquement les comptes dans le filtre
+    async function loadFilterAccounts() {
+        const snap = await db.collection("users").orderBy("nom", "asc").get();
+        snap.forEach(doc => {
+            const u = doc.data();
+            const opt = document.createElement('option');
+            opt.value = u.nom;
+            opt.textContent = u.nom;
+            filterVendeur.appendChild(opt);
+        });
+    }
+
+    // 2. Écouter les changements sur le filtre
+    filterVendeur.addEventListener('change', () => {
+        const selectedUser = filterVendeur.value;
+        startListeners(selectedUser);
     });
 
-    // --- ÉCOUTEUR HISTORIQUE DES PAIEMENTS ---
-    db.collection("encaissements_vendeurs").orderBy("date", "desc").onSnapshot(snapshot => {
-        const payments = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        renderPaiements(payments);
-    }, error => {
-        console.error("Erreur Paiements: ", error);
-        tableBodyPaiements.innerHTML = '<tr><td colspan="6">Erreur de chargement des paiements.</td></tr>';
-    });
+    // 3. Fonction principale pour charger les données (avec ou sans filtre)
+    function startListeners(vendeurNom = "") {
+        // Arrêter les anciens écouteurs s'ils existent
+        if (unsubscribeVentes) unsubscribeVentes();
+        if (unsubscribePaiements) unsubscribePaiements();
+
+        // Requête Ventes
+        let queryVentes = db.collection("ventes").orderBy("date", "desc");
+        if (vendeurNom !== "") {
+            queryVentes = queryVentes.where("vendeur", "==", vendeurNom);
+        }
+
+        unsubscribeVentes = queryVentes.onSnapshot(snapshot => {
+            renderVentes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+
+        // Requête Paiements
+        let queryPaiements = db.collection("encaissements_vendeurs").orderBy("date", "desc");
+        if (vendeurNom !== "") {
+            queryPaiements = queryPaiements.where("vendeur", "==", vendeurNom);
+        }
+
+        unsubscribePaiements = queryPaiements.onSnapshot(snapshot => {
+            renderPaiements(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        });
+    }
 
     // --- FONCTIONS DE RENDU ---
 
     function renderVentes(sales) {
         tableBodyVentes.innerHTML = '';
         if (sales.length === 0) {
-            tableBodyVentes.innerHTML = '<tr><td colspan="9">Aucune vente trouvée.</td></tr>';
+            tableBodyVentes.innerHTML = '<tr><td colspan="9" style="text-align:center;">Aucune vente.</td></tr>';
             return;
         }
 
@@ -77,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${formatEUR(data.prixUnitaire)}</td>
                 <td style="font-weight:bold;">${formatEUR(data.total)}</td>
                 <td>${data.modeDePaiement || 'Validé Admin'}</td>
-                <td>${data.vendeur || 'N/A'}</td>
+                <td style="color:#1877f2; font-weight:bold;">${data.vendeur || 'N/A'}</td>
                 <td>${data.enregistrePar || 'Admin'}</td>
                 <td><button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button></td>
             `;
@@ -88,7 +80,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPaiements(payments) {
         tableBodyPaiements.innerHTML = '';
         if (payments.length === 0) {
-            tableBodyPaiements.innerHTML = '<tr><td colspan="6">Aucun paiement trouvé.</td></tr>';
+            tableBodyPaiements.innerHTML = '<tr><td colspan="6" style="text-align:center;">Aucun paiement.</td></tr>';
             return;
         }
 
@@ -97,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const totalCredite = (data.montantRecu || 0) + (data.remise || 0);
             row.innerHTML = `
                 <td>${data.date}</td>
-                <td style="font-weight:bold;">${data.vendeur}</td>
+                <td style="font-weight:bold; color:#1877f2;">${data.vendeur}</td>
                 <td style="color: #10b981;">+ ${formatEUR(data.montantRecu)}</td>
                 <td style="color: #3b82f6;">${formatEUR(data.remise)}</td>
                 <td style="font-weight:bold; background: #f8fafc;">${formatEUR(totalCredite)}</td>
@@ -107,21 +99,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- UTILITAIRES ---
-
     function formatEUR(number) {
-        if (number === undefined || number === null) return '0,00 €';
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number);
+        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(number || 0);
     }
 
-    // Rendre la fonction accessible globalement pour les boutons Suppr.
     window.deleteDocument = async (collection, docId) => {
-        if (confirm("Confirmer la suppression définitive de cette ligne ? (Cela modifiera le solde du vendeur)")) {
+        if (confirm("Supprimer définitivement cette ligne ?")) {
             try {
                 await db.collection(collection).doc(docId).delete();
             } catch (error) {
-                alert("Erreur lors de la suppression.");
+                alert("Erreur de suppression.");
             }
         }
     };
+
+    // Lancer le chargement initial
+    loadFilterAccounts();
+    startListeners();
 });

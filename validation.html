@@ -11,7 +11,7 @@
 <body>
     <header class="app-header">
         <img src="logo.png" alt="Logo" class="app-logo">
-        <h1>Validation & Encaissent des Ventes</h1>
+        <h1>Validation & Encaissement des Ventes</h1>
     </header>
 
     <nav class="navigation">
@@ -31,15 +31,18 @@
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="date" id="valDate">
                 
-                <select id="valVendeur" style="font-weight: bold; border: 2px solid #1877f2;">
-                    <option value="">-- Sélectionner le Vendeur --</option>
-                    </select>
+                <label for="valVendeur">Compte à valider (Tous les rôles) :</label>
+                <select id="valVendeur">
+                    <option value="">-- Chargement des comptes... --</option>
+                </select>
 
                 <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <p style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 5px;">📦 PARTIE 1 : Ventes réalisées (Sortie de stock)</p>
                     <select id="valProduit">
-                        <option value="">-- Aucun produit vendu (Paiement seul) --</option>
+                        <option value="">-- Choisir un produit (Vente) --</option>
                     </select>
+                    <div id="sellerStockInfo" style="font-size: 10px; color: #1877f2; margin-top: 2px; font-weight: bold;"></div>
+                    
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
                         <input type="number" id="valQuantite" placeholder="Qté vendue">
                         <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background: #edf2f7;">
@@ -87,9 +90,12 @@
                 </div>
             </div>
 
-            <table id="sellerInventoryTable" style="font-size: 11px;">
+            <table id="sellerInventoryTable" style="font-size: 11px; width: 100%; border-collapse: collapse;">
                 <thead>
-                    <tr style="background: #f1f1f1;"><th>Produit</th><th>En main</th></tr>
+                    <tr style="background: #f1f1f1;">
+                        <th style="padding: 8px; border: 1px solid #ddd;">Produit</th>
+                        <th style="padding: 8px; border: 1px solid #ddd;">En main (Stock)</th>
+                    </tr>
                 </thead>
                 <tbody id="sellerInventoryBody"></tbody>
             </table>
@@ -108,44 +114,13 @@
             messagingSenderId: "615546459847",
             appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
         };
-        firebase.initializeApp(firebaseConfig);
-            const db = firebase.firestore();
-            firebase.auth().onAuthStateChanged(async (user) => {
-            if (!user) {
-                // Si non connecté, redirection vers login
-                if (!window.location.pathname.includes('login.html')) {
-                    window.location.href = 'login.html';
-                }
-            } else {
-                // Si connecté, on vérifie le rôle dans Firestore
-                const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
-                const userData = userDoc.data();
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        window.db = firebase.firestore();
+    </script>
+    
+    <script src="auth-guard.js"></script>
 
-                if (userData && userData.role === 'vendeur') {
-                    // Masquer les menus interdits aux vendeurs
-                    const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
-                    document.querySelectorAll('.navigation a').forEach(link => {
-                        const href = link.getAttribute('href');
-                        if (forbiddenLinks.includes(href)) {
-                            link.style.display = 'none';
-                        }
-                    });
-                    
-                    // Empêcher l'accès direct par URL
-                    const currentPage = window.location.pathname.split('/').pop();
-                    if (forbiddenLinks.includes(currentPage)) {
-                        window.location.href = 'validation.html';
-                    }
-                }
-            }
-        });
-
-        function logout() {
-            firebase.auth().signOut().then(() => {
-                window.location.href = 'login.html';
-            });
-        }
-
+    <script>
         const valVendeur = document.getElementById('valVendeur');
         const valProduit = document.getElementById('valProduit');
         const valQuantite = document.getElementById('valQuantite');
@@ -158,32 +133,64 @@
 
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); }
 
+        // 1. Charger tous les comptes (Admin et Vendeurs)
+        async function loadDynamicUsers() {
+            try {
+                const snap = await db.collection("users").orderBy("nom", "asc").get();
+                valVendeur.innerHTML = '<option value="">-- Sélectionner un compte --</option>';
+                snap.forEach(doc => {
+                    const u = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = u.nom;
+                    opt.textContent = `${u.nom} (${u.role})`;
+                    valVendeur.appendChild(opt);
+                });
+            } catch (e) { console.error(e); }
+        }
+
+        // 2. Charger les prix de vente depuis le stock global
         async function loadPrices() {
             const snap = await db.collection("stocks").get();
             globalPrices = {}; 
             snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente); });
         }
 
+        // 3. Calculer l'état financier et le stock d'un utilisateur spécifique
         async function loadSellerData() {
             const name = valVendeur.value;
             if (!name) return;
+
             const [recupSnap, ventesSnap, encaissSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", name).get(),
                 db.collection("ventes").where("vendeur", "==", name).get(),
                 db.collection("encaissements_vendeurs").where("vendeur", "==", name).get()
             ]);
+
             sellerStock = {};
             let totalVentes = 0, totalPaye = 0;
-            recupSnap.forEach(doc => { sellerStock[doc.data().produit] = (sellerStock[doc.data().produit] || 0) + doc.data().quantite; });
-            ventesSnap.forEach(doc => { 
-                sellerStock[doc.data().produit] = (sellerStock[doc.data().produit] || 0) - doc.data().quantite; 
-                totalVentes += doc.data().total || 0;
+
+            // Calcul Stock : Entrées (récupérations)
+            recupSnap.forEach(doc => { 
+                const d = doc.data();
+                sellerStock[d.produit] = (sellerStock[d.produit] || 0) + d.quantite; 
             });
-            encaissSnap.forEach(doc => { totalPaye += (doc.data().montantRecu || 0) + (doc.data().remise || 0); });
+
+            // Calcul Stock : Sorties (ventes) + Calcul Financier : Total dû
+            ventesSnap.forEach(doc => { 
+                const d = doc.data();
+                sellerStock[d.produit] = (sellerStock[d.produit] || 0) - d.quantite; 
+                totalVentes += d.total || 0;
+            });
+
+            // Calcul Financier : Total encaissé
+            encaissSnap.forEach(doc => { 
+                totalPaye += (doc.data().montantRecu || 0) + (doc.data().remise || 0); 
+            });
 
             document.getElementById('totalDu').innerText = formatEUR(totalVentes);
             document.getElementById('totalPaye').innerText = formatEUR(totalPaye);
             document.getElementById('resteAPayer').innerText = formatEUR(totalVentes - totalPaye);
+            
             renderUI();
         }
 
@@ -195,22 +202,27 @@
                     const opt = document.createElement('option');
                     opt.value = prod; opt.textContent = prod;
                     valProduit.appendChild(opt);
-                    document.getElementById('sellerInventoryBody').innerHTML += `<tr><td>${prod}</td><td style="text-align:center;">${sellerStock[prod]}</td></tr>`;
+                    document.getElementById('sellerInventoryBody').innerHTML += `<tr><td style="padding:8px; border:1px solid #ddd;">${prod}</td><td style="text-align:center; padding:8px; border:1px solid #ddd;">${sellerStock[prod]}</td></tr>`;
                 }
             }
         }
 
+        // --- EVENEMENTS ---
         valVendeur.addEventListener('change', loadSellerData);
+        
         valProduit.addEventListener('change', () => {
             valPrixUnit.value = globalPrices[valProduit.value] || 0;
-            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `Stock : ${sellerStock[valProduit.value]}` : "";
+            const stockActual = sellerStock[valProduit.value] || 0;
+            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `Stock disponible chez lui : ${stockActual}` : "";
             updateT();
         });
+
         valQuantite.addEventListener('input', updateT);
         function updateT() { valTotalSaisie.innerText = formatEUR((parseFloat(valQuantite.value)||0)*(parseFloat(valPrixUnit.value)||0)); }
 
-        // --- LOGIQUE DE VALIDATION MODIFIÉE ---
+        // --- ENREGISTREMENT ---
         document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
+            const btn = document.getElementById('btnConfirmerVente');
             const name = valVendeur.value;
             const prod = valProduit.value;
             const qty = parseInt(valQuantite.value) || 0;
@@ -219,37 +231,45 @@
             const remise = parseFloat(document.getElementById('valRemise').value) || 0;
             const date = document.getElementById('valDate').value;
 
-            if (!name) return alert("Sélectionnez un vendeur.");
+            if (!name) return alert("Sélectionnez un compte utilisateur.");
 
-            // Déterminer ce qu'on enregistre
             const hasVente = prod && qty > 0;
             const hasPaiement = acompte > 0 || remise > 0;
 
-            if (!hasVente && !hasPaiement) {
-                return alert("Veuillez saisir soit une vente, soit un montant encaissé.");
-            }
+            if (!hasVente && !hasPaiement) return alert("Saisissez une vente ou un encaissement.");
 
+            btn.disabled = true;
             try {
-                // 1. Si c'est une vente
+                // 1. Enregistrement Vente
                 if (hasVente) {
-                    if (qty > (sellerStock[prod] || 0)) return alert("Stock insuffisant pour ce vendeur.");
+                    if (qty > (sellerStock[prod] || 0)) {
+                        btn.disabled = false;
+                        return alert("Stock insuffisant pour cet utilisateur.");
+                    }
                     await db.collection("ventes").add({
                         date, vendeur: name, produit: prod, quantite: qty, prixUnitaire: price, total: qty * price, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
 
-                // 2. Si c'est un paiement (Acompte ou Remise)
+                // 2. Enregistrement Encaissement
                 if (hasPaiement) {
                     await db.collection("encaissements_vendeurs").add({
                         date, vendeur: name, montantRecu: acompte, remise: remise, timestamp: firebase.firestore.FieldValue.serverTimestamp()
                     });
                 }
 
-                alert("Opération enregistrée avec succès !");
-                location.reload();
+                alert("Opération enregistrée !");
+                // Reset partiel
+                valQuantite.value = "";
+                document.getElementById('valAcompte').value = "";
+                document.getElementById('valRemise').value = "0";
+                loadSellerData(); 
             } catch (e) { alert("Erreur de connexion."); }
+            finally { btn.disabled = false; }
         });
 
+        // Démarrage
+        loadDynamicUsers();
         loadPrices();
     </script>
 </body>
