@@ -62,7 +62,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         let vAchat = 0, vVente = 0, vVol = 0, vBenefice = 0;
         const filter = stockSearch.value.toLowerCase();
 
-        // Groupement par produit pour le tableau principal
+        // 1. Calcul de la Valeur d'Achat Totale (basée sur tous les arrivages)
+        allStocksRaw.forEach(stock => {
+            vAchat += (stock.prixAchat * stock.quantite);
+        });
+
+        // Groupement par produit pour le tableau
         const grouped = allStocksRaw.reduce((acc, curr) => {
             if (!acc[curr.produit]) {
                 acc[curr.produit] = { 
@@ -80,15 +85,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         Object.keys(grouped).filter(p => p.toLowerCase().includes(filter)).forEach(p => {
             const item = grouped[p];
             const totalVendu = allSalesRaw.filter(sale => sale.produit === p)
-                                         .reduce((sum, sale) => sum + sale.quantite, 0);
+                                        .reduce((sum, sale) => sum + sale.quantite, 0);
             const reste = item.totalEntré - totalVendu;
 
-            // Calcul bénéfice estimé sur le reste (basé sur le dernier prix d'achat connu pour simplifier ou moyenne)
+            // Calcul bénéfice estimé sur le reste
             const dernierPrixAchat = item.lots[item.lots.length - 1].prixAchat;
             const beneficeEst = (item.prixVente - dernierPrixAchat) * reste;
 
             vVol += item.totalEntré;
             vBenefice += beneficeEst;
+            
+            // 2. Calcul de la Valeur de Vente Totale (basée sur ce qu'il reste en stock)
+            vVente += (item.prixVente * reste);
 
             const row = `<tr>
                 <td>${item.derniereDate}</td>
@@ -104,8 +112,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             stockTableBody.innerHTML += row;
         });
 
+        // 3. Mise à jour des éléments HTML
+        document.getElementById('valeurAchatTotal').textContent = vAchat.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €";
+        document.getElementById('valeurVenteTotal').textContent = vVente.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €";
         document.getElementById('volumeTotal').textContent = vVol;
-        document.getElementById('beneficeTotalStock').textContent = vBenefice.toFixed(2) + " €";
+        document.getElementById('beneficeTotalStock').textContent = vBenefice.toLocaleString('fr-FR', { minimumFractionDigits: 2 }) + " €";
     }
 
     // Afficher l'historique dans la modal
