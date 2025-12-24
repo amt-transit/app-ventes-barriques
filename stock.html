@@ -3,17 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1200">
-    <title>Gestion du Stock</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Gestion du Stock - AMT</title>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <style>
+        .card-stock { border-radius: 12px; padding: 10px; text-align: center; color: white; }
+        .bg-blue { background: #1877f2; }    
+        .bg-orange { background: #f59e0b; }  
+        .bg-green { background: #10b981; }   
+        .bg-purple { background: #8b5cf6; }  
+        .bg-dark { background: #1e293b; }    
+        .stock-label { font-size: 10px; text-transform: uppercase; font-weight: bold; }
+        .stock-number { font-size: 18px; font-weight: bold; display: block; }
+        .form-section { background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0; margin-bottom: 20px; }
+        #stockTable { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; }
+        #stockTable th, #stockTable td { padding: 12px; border: 1px solid #e2e8f0; text-align: left; }
+        #stockTableBody tr { cursor: pointer; transition: background 0.2s; }
+        #stockTableBody tr:hover { background-color: #f8fafc !important; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
+        .modal-content { background-color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 25px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; width: 90%; max-width: 800px; }
+        .modal-small { max-width: 400px !important; }
+        .close-modal { float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #64748b; }
+        .btn-action-modal { padding: 10px 15px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-bottom: 10px; }
+        .btn-loss-main { background: #ef4444; color: white; width: 100%; display: block; }
+        .btn-edit { background: #f59e0b; color: white; padding: 5px 10px; border-radius: 4px; border: none; cursor: pointer; font-size: 11px; }
+        .modal-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
+        .modal-table th { background: #f1f5f9; padding: 10px; text-align: left; border-bottom: 2px solid #e2e8f0; }
+        .modal-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        
+        /* Cacher le bouton pendant l'impression PDF */
+        .no-print { display: block; margin-top: 20px; text-align: center; }
+    </style>
 </head>
 <body>
     <header class="app-header">
         <img src="logo.png" alt="Logo" class="app-logo">
-        <h1>Gestion des Stocks</h1>
+        <h1>📦 Gestion du Dépôt & Bénéfices</h1>
     </header>
 
     <nav class="navigation">
@@ -25,73 +54,85 @@
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
-    <div id="caisseForm">
-        <div class="form-grid-huit-colonnes" style="grid-template-columns: repeat(6, 1fr);">
-            <input type="date" id="stockDate">
-            <input type="text" id="stockProduit" placeholder="Produit" list="referenceList">
-            <input type="number" id="prixAchat" placeholder="Prix Achat Unit.">
-            <input type="number" id="prixVenteRef" placeholder="Prix Vente Unit.">
-            <input type="number" id="quantiteInitiale" placeholder="Qté Achetée">
-            <button id="addStockBtn" class="primary" style="padding: 5px;">Ajouter au Stock</button>
+    <div style="padding: 20px;">
+        <div class="form-section">
+            <h2 style="margin-top: 0; color: #1877f2; font-size: 15px;">🚛 Arrivage (Achat fournisseur)</h2>
+            <div class="form-grid-huit-colonnes" style="grid-template-columns: repeat(6, 1fr); gap: 10px;">
+                <input type="date" id="stockDate">
+                <input type="text" id="stockProduit" placeholder="Produit" list="referenceList">
+                <input type="number" id="quantiteInitiale" placeholder="Qté">
+                <input type="number" id="prixAchat" placeholder="Prix Achat (€)">
+                <input type="number" id="prixVenteRef" placeholder="Prix Vente (€)">
+                <button id="addStockBtn" class="primary" style="background: #1877f2;">Enregistrer</button>
+            </div>
+            <datalist id="referenceList"></datalist>
         </div>
-        <datalist id="referenceList"></datalist>
-    </div>
 
-    <div class="stock-summary-bar">
-        <div class="total-card">
-            <h3>Valeur Achat</h3>
-            <p id="valeurAchatTotal">0,00 €</p>
-        </div>
-        <div class="total-card">
-            <h3>Valeur Vente</h3>
-            <p id="valeurVenteTotal">0,00 €</p>
-        </div>
-        <div class="total-card">
-            <h3>Volume</h3>
-            <p id="volumeTotal">0</p>
-        </div>
-        <div class="total-card">
-            <h3>Bénéfice Estimé</h3>
-            <p id="beneficeTotalStock" style="color: #28a745;">0,00 €</p>
-        </div>
-        <div class="search-container">
-            <input type="text" id="stockSearch" placeholder="Rechercher un produit...">
-        </div>
-    </div>
+        <div id="printableStockArea" style="background: white; padding: 15px; border-radius: 10px;">
+            <h2 style="text-align: center; color: #1e293b; margin-bottom: 20px;">État des Stocks - AMT</h2>
 
-    <table id="stockTable" style="margin-top: 10px;">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Produit</th>
-                <th>Achat (U)</th>
-                <th>Vente (U)</th>
-                <th>Total</th>
-                <th>Vendu</th>
-                <th>Reste</th>
-                <th>Bénéfice Est.</th>
-                <th>Action</th>
-            </tr>
-        </thead>
-        <tbody id="stockTableBody"></tbody>
-    </table>
+            <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 20px;">
+                <div class="card-stock bg-blue">
+                    <span class="stock-label">Reçu (Total)</span>
+                    <span id="volumeTotal" class="stock-number">0</span>
+                </div>
+                <div class="card-stock bg-orange">
+                    <span class="stock-label">Donné Vendeurs</span>
+                    <span id="totalSorti" class="stock-number">0</span>
+                </div>
+                <div class="card-stock bg-dark">
+                    <span class="stock-label">En Dépôt</span>
+                    <span id="totalEnMagasin" class="stock-number">0</span>
+                </div>
+                <div class="card-stock bg-green">
+                    <span class="stock-label">Bénéfice RÉEL</span>
+                    <span id="beneficeReel" class="stock-number">0,00 €</span>
+                </div>
+                <div class="card-stock bg-purple">
+                    <span class="stock-label">Bénéfice POTENTIEL</span>
+                    <span id="beneficeTotalStock" class="stock-number">0,00 €</span>
+                </div>
+            </div>
 
-    <div id="historyModal" class="modal">
-        <div class="modal-content" style="width: 50%; margin: 5% auto;">
-            <span class="close-modal">&times;</span>
-            <h2 id="modalTitle" style="font-size: 16px; margin-bottom: 10px;">Historique du produit</h2>
-            <table id="modalTable" class="compact-table">
+            <table id="stockTable">
                 <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Qté</th>
-                        <th>Achat (U)</th>
-                        <th>Vente (U)</th>
-                        <th>Action</th>
+                    <tr style="background: #f1f5f9;">
+                        <th>Produit</th>
+                        <th>Reçu</th>
+                        <th>Donné</th>
+                        <th>En Dépôt</th>
+                        <th>Bénéf. Réel</th>
+                        <th>Bénéf. Est.</th>
                     </tr>
                 </thead>
-                <tbody id="modalTableBody"></tbody>
+                <tbody id="stockTableBody"></tbody>
             </table>
+        </div>
+
+        <div class="no-print">
+            <button onclick="downloadStockPDF()" style="width: 100%; padding: 15px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                📄 Télécharger l'inventaire complet (PDF)
+            </button>
+        </div>
+    </div>
+
+    <div id="lossModal" class="modal">
+        <div class="modal-content modal-small" style="text-align: center;">
+            <h3 style="color: #ef4444;">⚠️ DÉCLARER UNE PERTE</h3>
+            <p id="lossProductName" style="font-weight: bold; font-size: 18px;"></p>
+            <input type="number" id="lossQuantity" placeholder="Quantité perdue" style="width: 80%; padding: 10px; margin: 15px 0;">
+            <button onclick="confirmLoss()" class="primary" style="background: #ef4444; width: 100%;">Valider</button>
+            <button onclick="document.getElementById('lossModal').style.display='none'" style="margin-top: 10px; background:none; border:none; cursor:pointer;">Annuler</button>
+        </div>
+    </div>
+
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="document.getElementById('historyModal').style.display='none'">&times;</span>
+            <h2 id="modalTitle">Détails</h2>
+            <p id="modalStockStatus"></p>
+            <button id="btnLossFromModal" class="btn-action-modal btn-loss-main">⚡ Signaler une Perte</button>
+            <div id="modalTableBody"></div>
         </div>
     </div>
 
@@ -99,16 +140,16 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-      const firebaseConfig = {
-        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-        authDomain: "app-ventes-barriques.firebaseapp.com",
-        projectId: "app-ventes-barriques",
-        storageBucket: "app-ventes-barriques.appspot.com",
-        messagingSenderId: "615546459847",
-        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-      };
-      firebase.initializeApp(firebaseConfig);
-      const db = firebase.firestore();
+        const firebaseConfig = {
+            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+            authDomain: "app-ventes-barriques.firebaseapp.com",
+            projectId: "app-ventes-barriques",
+            storageBucket: "app-ventes-barriques.appspot.com",
+            messagingSenderId: "615546459847",
+            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+        };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        window.db = firebase.firestore();
     </script>
     <script src="auth-guard.js"></script>
     <script src="stock.js"></script>

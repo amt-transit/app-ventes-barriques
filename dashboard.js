@@ -1,340 +1,247 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    // --- GESTION AUTHENTIFICATION ---
     firebase.auth().onAuthStateChanged(async (user) => {
         if (!user) {
-            // Si non connecté, redirection vers login
             if (!window.location.pathname.includes('login.html')) {
                 window.location.href = 'login.html';
             }
         } else {
-            // Si connecté, on vérifie le rôle dans Firestore
             const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
             const userData = userDoc.data();
-
             if (userData && userData.role === 'vendeur') {
-                // Masquer les menus interdits aux vendeurs
                 const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
                 document.querySelectorAll('.navigation a').forEach(link => {
-                    const href = link.getAttribute('href');
-                    if (forbiddenLinks.includes(href)) {
-                        link.style.display = 'none';
-                    }
+                    if (forbiddenLinks.includes(link.getAttribute('href'))) link.style.display = 'none';
                 });
-                
-                // Empêcher l'accès direct par URL
-                const currentPage = window.location.pathname.split('/').pop();
-                if (forbiddenLinks.includes(currentPage)) {
+                if (forbiddenLinks.includes(window.location.pathname.split('/').pop())) {
                     window.location.href = 'validation.html';
                 }
             }
         }
     });
 
-    function logout() {
-        firebase.auth().signOut().then(() => {
-            window.location.href = 'login.html';
-        });
-    }
-    // Éléments du DOM
-    const grandTotalVentesEl = document.getElementById('grandTotalVentes');
-    const grandTotalQuantiteEl = document.getElementById('grandTotalQuantite');
+    // --- VARIABLES ET ELEMENTS ---
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
+    let allSales = [], allStocks = [], allPayments = [], allRecuperations = [];
+    let salesChart = null, agentChart = null;
 
-    // Variables globales
-    let allSales = [];
-    let allStocks = [];
-    let allRecuperations = [];
-    let allPayments = [];
-    let salesChart = null;
-    let agentChart = null;
-
-    // --- MISE À JOUR PRINCIPALE ---
+    // --- FONCTION PRINCIPALE DE MISE À JOUR ---
     function updateDashboard() {
-        const startDate = startDateInput.value;
-        const endDate = endDateInput.value;
+        const start = startDateInput.value;
+        const end = endDateInput.value;
 
-        // 1. Filtrer les Ventes par date
-        const filteredSales = allSales.filter(sale => {
-            if (startDate && sale.date < startDate) return false;
-            if (endDate && sale.date > endDate) return false;
-            return true;
-        });
+        // Filtrage par date
+        const filteredSales = allSales.filter(s => (!start || s.date >= start) && (!end || s.date <= end));
+        const filteredPayments = allPayments.filter(p => (!start || p.date >= start) && (!end || p.date <= end));
 
-        // 2. Filtrer les Paiements par date (Indispensable pour la Caisse)
-        const filteredPayments = allPayments.filter(payment => {
-            if (startDate && payment.date < startDate) return false;
-            if (endDate && payment.date > endDate) return false;
-            return true;
-        });
+        // Appel des fonctions de rendu (Noms synchronisés)
+        calculateKPIs(filteredSales, filteredPayments);
+        renderProductAnalysis(filteredSales);
+        renderSellerAnalysis(filteredSales, filteredPayments);
+        renderAgentPackageStock(filteredSales, allRecuperations); // Correction du nom ici
+        renderReinvestment(filteredSales);
+        updateDailyFlashStats(allSales);
 
-        // 3. Mise à jour des totaux avec les deux listes filtrées
-        updateGrandTotals(filteredSales, filteredPayments);
-        
-        // 4. Les autres fonctions
-        generateProductSummary(filteredSales, allStocks);
-        generateAgentSummary(filteredSales);
-        generateAgentPackageStock(filteredSales, allRecuperations);
-        
-        // On utilise les versions filtrées pour la balance financière
-        generateFinancialBalance(filteredSales, filteredPayments);
-        
-        // Date du rapport
         const dateDisplay = document.getElementById('reportDate');
-        if (dateDisplay) {
-            dateDisplay.textContent = "Établi le : " + new Date().toLocaleDateString('fr-FR');
-        }
+        if (dateDisplay) dateDisplay.textContent = "Établi le : " + new Date().toLocaleDateString('fr-FR');
     }
 
-    // --- LOGIQUE FINANCIÈRE (DETTE SUR RÉCUPÉRATION) ---
-    function generateFinancialBalance(sales, payments) {
-        const tableBody = document.getElementById('financeBalanceTableBody');
-        if (!tableBody) return;
-        tableBody.innerHTML = '';
+    // 1. KPI (Les 4 Grandes Cartes)
+    function calculateKPIs(sales, payments) {
+        const totalCA = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+        const totalCaisse = payments.reduce((sum, p) => sum + (p.montantRecu || 0), 0);
+        const totalRemises = payments.reduce((sum, p) => sum + (p.remise || 0), 0);
+        const totalQty = sales.reduce((sum, s) => sum + (s.quantite || 0), 0);
+        
+        const totalDû = totalCA - (totalCaisse + totalRemises);
 
-        const finance = {};
+        if(document.getElementById('grandTotalVentes')) document.getElementById('grandTotalVentes').textContent = formatEUR(totalCA);
+        if(document.getElementById('grandTotalCaisse')) document.getElementById('grandTotalCaisse').textContent = formatEUR(totalCaisse);
+        if(document.getElementById('totalDues')) document.getElementById('totalDues').textContent = formatEUR(totalDû);
+        if(document.getElementById('grandTotalQuantite')) document.getElementById('grandTotalQuantite').textContent = totalQty;
+    }
 
-        // 1. Dette basée sur les VENTES RÉELLES
+    // 2. ANALYSE PRODUITS
+    function renderProductAnalysis(sales) {
+        const productData = {};
+        let totalProfitGlobal = 0;
+
         sales.forEach(s => {
-            const name = s.vendeur || "Inconnu";
-            if (!finance[name]) finance[name] = { totalVendu: 0, totalPaye: 0 };
-            finance[name].totalVendu += (s.total || 0);
+            if (!productData[s.produit]) productData[s.produit] = { qte: 0, ca: 0 };
+            productData[s.produit].qte += s.quantite;
+            productData[s.produit].ca += s.total;
         });
 
-        // 2. Paiements RÉELS reçus
-        payments.forEach(p => {
-            const name = p.vendeur || "Inconnu";
-            if (!finance[name]) finance[name] = { totalVendu: 0, totalPaye: 0 };
-            finance[name].totalPaye += (p.montantRecu || 0) + (p.remise || 0);
-        });
+        const tbody = document.getElementById('productSummaryTableBody');
+        if(tbody) {
+            tbody.innerHTML = '';
+            for (const p in productData) {
+                const data = productData[p];
+                const stockInfo = allStocks.find(st => st.produit === p);
+                const pAchat = stockInfo ? stockInfo.prixAchat : 0;
+                const profit = data.ca - (data.qte * pAchat);
+                totalProfitGlobal += profit;
 
-        const agents = Object.keys(finance).sort();
-        if (agents.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="4">Aucune donnée financière.</td></tr>';
-            return;
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${p}</b></td>
+                        <td style="text-align:center;">${data.qte}</td>
+                        <td>${formatEUR(data.ca)}</td>
+                        <td style="color:#10b981; font-weight:bold;">${formatEUR(profit)}</td>
+                    </tr>`;
+            }
         }
-
-        agents.forEach(agent => {
-            const f = finance[agent];
-            const soldeDû = f.totalVendu - f.totalPaye;
-
-            tableBody.innerHTML += `
-                <tr>
-                    <td>${agent}</td>
-                    <td>${formatEUR(f.totalVendu)}</td>
-                    <td style="color: #28a745;">${formatEUR(f.totalPaye)}</td>
-                    <td style="font-weight:bold; color: ${soldeDû > 0 ? '#dc3545' : '#28a745'};">
-                        ${formatEUR(soldeDû)}
-                    </td>
-                </tr>`;
-        });
+        if(document.getElementById('beneficeTotalDisplay')) {
+            document.getElementById('beneficeTotalDisplay').innerHTML = `Bénéfice : <span style="color:#10b981;">${formatEUR(totalProfitGlobal)}</span>`;
+        }
+        updatePieChart(productData);
     }
 
-    // --- SUIVI PHYSIQUE (COLIS) ---
-    function generateAgentPackageStock(sales, recuperations) {
+    // 3. ANALYSE VENDEURS
+    function renderSellerAnalysis(sales, payments) {
+        const sellers = {};
+        sales.forEach(s => {
+            if(!sellers[s.vendeur]) sellers[s.vendeur] = { qte: 0, ca: 0, recu: 0 };
+            sellers[s.vendeur].qte += s.quantite;
+            sellers[s.vendeur].ca += s.total;
+        });
+        payments.forEach(p => {
+            if(!sellers[p.vendeur]) sellers[p.vendeur] = { qte: 0, ca: 0, recu: 0 };
+            sellers[p.vendeur].recu += (p.montantRecu || 0) + (p.remise || 0);
+        });
+
+        const tbody = document.getElementById('agentSummaryTableBody');
+        if(tbody) {
+            tbody.innerHTML = '';
+            for (const name in sellers) {
+                const s = sellers[name];
+                const dette = s.ca - s.recu;
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${name}</td>
+                        <td style="text-align:center;">${s.qte}</td>
+                        <td>${formatEUR(s.ca)}</td>
+                        <td style="color:${dette > 0 ? '#ef4444' : '#10b981'}; font-weight:bold;">${formatEUR(dette)}</td>
+                    </tr>`;
+            }
+        }
+        updateBarChart(sellers);
+    }
+
+    // 4. SUIVI DES COLIS (STOCK VENDEUR)
+    function renderAgentPackageStock(sales, recuperations) {
         const tableBody = document.getElementById('agentPackageStockTableBody');
         if (!tableBody) return;
         tableBody.innerHTML = '';
-
         const tracking = {};
+
         recuperations.forEach(r => {
-            const name = r.vendeur;
-            if (!tracking[name]) tracking[name] = { recup: 0, vendu: 0 };
-            tracking[name].recup += (r.quantite || 0);
+            if (!tracking[r.vendeur]) tracking[r.vendeur] = { recup: 0, vendu: 0 };
+            tracking[r.vendeur].recup += (r.quantite || 0);
         });
-
         sales.forEach(s => {
-            const name = s.vendeur;
-            if (!tracking[name]) tracking[name] = { recup: 0, vendu: 0 };
-            tracking[name].vendu += (s.quantite || 0);
+            if (!tracking[s.vendeur]) tracking[s.vendeur] = { recup: 0, vendu: 0 };
+            tracking[s.vendeur].vendu += (s.quantite || 0);
         });
 
-        Object.keys(tracking).sort().forEach(agent => {
-            const data = tracking[agent];
-            const reste = data.recup - data.vendu;
+        for (const agent in tracking) {
+            const reste = tracking[agent].recup - tracking[agent].vendu;
             tableBody.innerHTML += `
                 <tr>
                     <td>${agent}</td>
-                    <td style="text-align:center;">${data.recup}</td>
-                    <td style="text-align:center;">${data.vendu}</td>
-                    <td style="text-align:center; font-weight:bold; color: ${reste > 0 ? '#dc3545' : '#28a745'};">
-                        ${reste} colis
-                    </td>
+                    <td style="text-align:center;">${tracking[agent].recup}</td>
+                    <td style="text-align:center;">${tracking[agent].vendu}</td>
+                    <td style="text-align:center; font-weight:bold; color:${reste > 0 ? '#f59e0b' : '#10b981'}">${reste} colis</td>
                 </tr>`;
-        });
+        }
     }
 
-    // --- ANALYSE PRODUITS ET GRAPHIQUES ---
-    function generateProductSummary(sales, stocks) {
-        if (!productSummaryTableBody) return;
-        const productData = {};
-        let beneficeTotalGlobal = 0;
-
-        sales.forEach(s => {
-            if (!productData[s.produit]) productData[s.produit] = { quantite: 0, total: 0 };
-            productData[s.produit].quantite += s.quantite;
-            productData[s.produit].total += s.total;
-        });
-
-        updateSalesChart(productData);
-
-        const tbody = document.getElementById('productSummaryTableBody');
+    // 5. RÉINVESTISSEMENT
+    function renderReinvestment(sales) {
+        const tbody = document.getElementById('reinvestmentTableBody');
+        if (!tbody) return;
         tbody.innerHTML = '';
-        Object.keys(productData).forEach(product => {
-            const data = productData[product];
-            const stockInfo = stocks.find(st => st.produit === product);
-            const prixAchat = stockInfo ? stockInfo.prixAchat : 0;
-            const benefice = data.total - (prixAchat * data.quantite);
-            beneficeTotalGlobal += benefice;
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>${product}</td>
-                    <td style="text-align:center;">${data.quantite}</td>
-                    <td>${formatEUR(data.total)}</td>
-                    <td style="color:#28a745; font-weight:bold;">${formatEUR(benefice)}</td>
-                </tr>`;
+        const productsSold = {};
+        sales.forEach(s => {
+            if(!productsSold[s.produit]) productsSold[s.produit] = { qte: 0, ca: 0 };
+            productsSold[s.produit].qte += s.quantite;
+            productsSold[s.produit].ca += s.total;
         });
-        document.getElementById('beneficeTotalDisplay').innerHTML = `Bénéfice Global Estimé : <span style="color:#28a745;">${formatEUR(beneficeTotalGlobal)}</span>`;
+
+        for (const p in productsSold) {
+            const stock = allStocks.find(st => st.produit === p);
+            const pAchat = stock ? stock.prixAchat : 0;
+            const profit = productsSold[p].ca - (productsSold[p].qte * pAchat);
+            
+            if (profit > 0 && pAchat > 0) {
+                const qtePossible = Math.floor(profit / pAchat);
+                if (qtePossible > 0) {
+                    tbody.innerHTML += `<tr><td>${p}</td><td>${formatEUR(pAchat)}</td><td style="font-weight:bold; color:#1877f2;">+ ${qtePossible} unités</td></tr>`;
+                }
+            }
+        }
     }
 
-    // --- ÉCOUTEURS FIREBASE (TEMPS RÉEL) ---
-    db.collection("stocks").onSnapshot(snap => {
-        allStocks = snap.docs.map(doc => doc.data());
-        updateDashboard();
-    });
-
-    db.collection("ventes").onSnapshot(snap => {
-        allSales = snap.docs.map(doc => doc.data());
-        updateDashboard();
-    });
-
-    db.collection("recuperations").onSnapshot(snap => {
-        allRecuperations = snap.docs.map(doc => doc.data());
-        updateDashboard();
-    });
-
-    db.collection("encaissements_vendeurs").onSnapshot(snap => {
-        allPayments = snap.docs.map(doc => doc.data());
-        updateDashboard();
-    });
-
-    // --- FONCTIONS UTILITAIRES ---
-    function formatEUR(n) {
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
-    }
-
-    function updateGrandTotals(sales = [], payments = []) {
-        // Calcul du Chiffre d'Affaires (Ventes validées)
-        const totalCA = sales.reduce((sum, s) => sum + (s.total || 0), 0);
-        
-        // Calcul de la Caisse (Argent réellement encaissé)
-        const totalCaisse = payments.reduce((sum, p) => sum + (p.montantRecu || 0), 0);
-        
-        // Calcul de la Quantité totale
-        const totalQty = sales.reduce((sum, s) => sum + (s.quantite || 0), 0);
-
-        // Affichage dans le HTML
-        if (grandTotalVentesEl) grandTotalVentesEl.textContent = formatEUR(totalCA);
-        
-        // Assurez-vous d'avoir cet ID dans votre HTML pour voir l'argent réel
-        const grandTotalCaisseEl = document.getElementById('grandTotalCaisse');
-        if (grandTotalCaisseEl) grandTotalCaisseEl.textContent = formatEUR(totalCaisse);
-
-        if (grandTotalQuantiteEl) grandTotalQuantiteEl.textContent = totalQty;
-    }
-
-    function updateSalesChart(productData) {
+    // --- GRAPHIQUES ---
+    function updatePieChart(data) {
         const ctx = document.getElementById('salesPieChart');
         if (!ctx) return;
         if (salesChart) salesChart.destroy();
         salesChart = new Chart(ctx.getContext('2d'), {
-            type: 'pie',
+            type: 'doughnut',
             data: {
-                labels: Object.keys(productData),
-                datasets: [{
-                    data: Object.values(productData).map(d => d.total),
-                    backgroundColor: ['#1877f2', '#28a745', '#ffc107', '#dc3545', '#6610f2']
-                }]
+                labels: Object.keys(data),
+                datasets: [{ data: Object.values(data).map(d => d.ca), backgroundColor: ['#1877f2', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'] }]
             },
-            options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 10 } } } }
+            options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
         });
     }
 
-    function generateAgentSummary(sales) {
-        const agentData = {};
-        sales.forEach(s => {
-            const name = s.vendeur || "Inconnu";
-            if (!agentData[name]) agentData[name] = { count: 0, total: 0 };
-            agentData[name].count++;
-            agentData[name].total += s.total;
-        });
-        updateAgentChart(agentData);
-        const tbody = document.getElementById('agentSummaryTableBody');
-        tbody.innerHTML = '';
-        Object.keys(agentData).sort((a,b) => agentData[b].total - agentData[a].total).forEach(agent => {
-            tbody.innerHTML += `<tr><td>${agent}</td><td style="text-align:center;">${agentData[agent].count}</td><td>${formatEUR(agentData[agent].total)}</td></tr>`;
-        });
-    }
-
-    function updateAgentChart(agentData) {
+    function updateBarChart(data) {
         const ctx = document.getElementById('agentBarChart');
         if (!ctx) return;
         if (agentChart) agentChart.destroy();
         agentChart = new Chart(ctx.getContext('2d'), {
             type: 'bar',
             data: {
-                labels: Object.keys(agentData),
-                datasets: [{ label: 'CA', data: Object.values(agentData).map(d => d.total), backgroundColor: '#1877f2' }]
+                labels: Object.keys(data),
+                datasets: [{ label: 'Chiffre d\'Affaires', data: Object.values(data).map(d => d.ca), backgroundColor: '#1877f2' }]
             },
-            options: { responsive: true, plugins: { legend: { display: false } } }
+            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
         });
     }
-    async function loadDailyStats() {
-        const today = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+    // --- STATS FLASH DU JOUR ---
+    function updateDailyFlashStats(sales) {
+        const today = new Date().toISOString().split('T')[0];
+        const todaySales = sales.filter(s => s.date === today);
+        let totalColis = 0;
+        let vendeurs = {};
+
+        todaySales.forEach(s => {
+            totalColis += s.quantite;
+            vendeurs[s.vendeur] = (vendeurs[s.vendeur] || 0) + s.total;
+        });
+
+        if(document.getElementById('todayColis')) document.getElementById('todayColis').textContent = totalColis;
+        if(document.getElementById('todayVentes')) document.getElementById('todayVentes').textContent = formatEUR(todaySales.reduce((a,b) => a + b.total, 0));
         
-        try {
-            const snap = await db.collection("ventes")
-                .where("date", "==", today)
-                .get();
-
-            let totalColis = 0;
-            let totalVentes = snap.size;
-            let vendeursActivity = {};
-
-            snap.forEach(doc => {
-                const d = doc.data();
-                totalColis += (parseInt(d.quantite) || 0);
-                
-                // Compter l'activité par vendeur
-                if (d.vendeur) {
-                    vendeursActivity[d.vendeur] = (vendeursActivity[d.vendeur] || 0) + 1;
-                }
-            });
-
-            // Trouver le top vendeur
-            let topVendeurName = "-";
-            let maxVentes = 0;
-            for (const v in vendeursActivity) {
-                if (vendeursActivity[v] > maxVentes) {
-                    maxVentes = vendeursActivity[v];
-                    topVendeurName = v;
-                }
-            }
-
-            // Mise à jour de l'affichage
-            document.getElementById('todayColis').innerText = totalColis;
-            document.getElementById('todayVentes').innerText = totalVentes;
-            document.getElementById('topVendeur').innerText = topVendeurName + " (" + maxVentes + ")";
-
-        } catch (e) {
-            console.error("Erreur stats du jour:", e);
-        }
+        let topV = "-"; let max = 0;
+        for(let v in vendeurs) { if(vendeurs[v] > max) { max = vendeurs[v]; topV = v; } }
+        if(document.getElementById('topVendeur')) document.getElementById('topVendeur').textContent = topV;
     }
 
-    // Appeler la fonction au chargement
-    loadDailyStats();
+    // --- UTILITAIRES ET ÉCOUTEURS ---
+    function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); }
 
-    startDateInput.addEventListener('change', updateDashboard);
-    endDateInput.addEventListener('change', updateDashboard);
+    db.collection("stocks").onSnapshot(snap => { allStocks = snap.docs.map(doc => doc.data()); updateDashboard(); });
+    db.collection("ventes").onSnapshot(snap => { allSales = snap.docs.map(doc => doc.data()); updateDashboard(); });
+    db.collection("recuperations").onSnapshot(snap => { allRecuperations = snap.docs.map(doc => doc.data()); updateDashboard(); });
+    db.collection("encaissements_vendeurs").onSnapshot(snap => { allPayments = snap.docs.map(doc => doc.data()); updateDashboard(); });
+
+    if(startDateInput) startDateInput.addEventListener('change', updateDashboard);
+    if(endDateInput) endDateInput.addEventListener('change', updateDashboard);
 });

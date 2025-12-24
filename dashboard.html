@@ -3,16 +3,30 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=1200">
-    <title>Tableau de Bord - Ventes</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Tableau de Bord - AMT</title>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
+        .kpi-card { padding: 20px; border-radius: 15px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .kpi-card h3 { margin: 0; font-size: 12px; text-transform: uppercase; opacity: 0.8; }
+        .kpi-card p { margin: 5px 0 0; font-size: 24px; font-weight: bold; }
+        
+        .bg-blue { background: #1877f2; }    /* CA */
+        .bg-green { background: #10b981; }   /* Caisse / Profit */
+        .bg-orange { background: #f59e0b; }  /* Quantité */
+        .bg-red { background: #ef4444; }     /* Dettes */
+
+        .chart-container { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
+        h2 { font-size: 16px; color: #1e293b; border-left: 4px solid #1877f2; padding-left: 10px; margin-bottom: 15px; }
+        
+        .alert-box { background: #fff7ed; border: 1px solid #fdba74; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; }
+    </style>
 </head>
 <body>
     <header class="app-header">
-        <img src="logo.png" alt="Logo de l'entreprise" class="app-logo">
+        <img src="logo.png" alt="Logo" class="app-logo">
         <h1>Tableau de Bord</h1>
     </header>
 
@@ -25,124 +39,92 @@
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
-    <div class="dashboard-container">
-        <div class="dashboard-header">
-            <div class="total-card">
-                <h3>Chiffre d'Affaires</h3>
+    <div style="padding: 20px;">
+        
+        <div class="filter-container" style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+            <div style="display: flex; gap: 15px; align-items: center;">
+                <label>Période du :</label>
+                <input type="date" id="startDate">
+                <label>au</label>
+                <input type="date" id="endDate">
+            </div>
+            <button id="clearFilterBtn" style="padding: 8px 15px;">Réinitialiser</button>
+        </div>
+
+        <div class="kpi-grid">
+            <div class="kpi-card bg-blue">
+                <h3>Ventes (CA)</h3>
                 <p id="grandTotalVentes">0,00 €</p>
             </div>
-            <div class="total-card">
-                <h3>Quantité Totale</h3>
+            <div class="kpi-card bg-green">
+                <h3>Caisse (Reçu)</h3>
+                <p id="grandTotalCaisse">0,00 €</p>
+            </div>
+            <div class="kpi-card bg-red">
+                <h3>Dû (Crédit)</h3>
+                <p id="totalDues">0,00 €</p>
+            </div>
+            <div class="kpi-card bg-orange">
+                <h3>Colis Sortis</h3>
                 <p id="grandTotalQuantite">0</p>
-            </div>
-            <div class="filter-container">
-                <div class="filter-fields">
-                    <div><label for="startDate">Du :</label><input type="date" id="startDate"></div>
-                    <div><label for="endDate">Au :</label><input type="date" id="endDate"></div>
-                    <button id="clearFilterBtn">Initialiser</button>
-                </div>
-            </div>
-        </div>
-        <div class="dashboard-grid-3-col" style="margin-bottom: 20px;">
-            <div class="dashboard-card" style="background: #1877f2; color: white;">
-                <h3>📦 Colis du jour</h3>
-                <p id="todayColis" style="font-size: 24px; font-weight: bold;">0</p>
-            </div>
-            <div class="dashboard-card" style="background: #10b981; color: white;">
-                <h3>💰 Ventes du jour</h3>
-                <p id="todayVentes" style="font-size: 15px; font-weight: bold;">0</p>
-            </div>
-            <div class="dashboard-card" style="background: #f59e0b; color: white;">
-                <h3>🏆 Top Vendeur</h3>
-                <p id="topVendeur" style="font-size: 18px; font-weight: bold;">-</p>
             </div>
         </div>
 
-        <div class="dashboard-grid-2-col">
+        <div style="display: flex; gap: 15px; margin-bottom: 25px;">
+            <div style="flex: 1; background: #f1f5f9; padding: 15px; border-radius: 10px; text-align: center;">
+                <span style="font-size: 11px; font-weight: bold;">COLIS DU JOUR</span><br>
+                <strong id="todayColis" style="font-size: 20px; color: #1877f2;">0</strong>
+            </div>
+            <div style="flex: 1; background: #f1f5f9; padding: 15px; border-radius: 10px; text-align: center;">
+                <span style="font-size: 11px; font-weight: bold;">TOP VENDEUR</span><br>
+                <strong id="topVendeur" style="font-size: 16px; color: #f59e0b;">-</strong>
+            </div>
+            <div style="flex: 1; background: #10b981; color: white; padding: 15px; border-radius: 10px; text-align: center;">
+                <span style="font-size: 11px; font-weight: bold;">BÉNÉFICE RÉEL</span><br>
+                <strong id="beneficeTotalDisplay" style="font-size: 20px;">0,00 €</strong>
+            </div>
+        </div>
+
+        <div class="dashboard-grid-2-col" style="gap: 20px;">
             
-            <div class="dashboard-container" style="padding: 10px;">
+            <div class="chart-container">
                 <h2>Analyse par Produit</h2>
-                <div style="width: 100%; max-width: 200px; margin: 0 auto 10px auto;">
+                <div style="height: 250px; display: flex; justify-content: center;">
                     <canvas id="salesPieChart"></canvas>
                 </div>
-                <table id="productSummaryTable">
+                <table id="productSummaryTable" style="margin-top: 15px;">
                     <thead>
-                        <tr>
-                            <th>Produit</th>
-                            <th>Qté</th>
-                            <th>CA</th>
-                            <th>Bénéfice</th>
-                        </tr>
+                        <tr><th>Produit</th><th>Qté</th><th>CA</th><th>Bénéfice</th></tr>
                     </thead>
                     <tbody id="productSummaryTableBody"></tbody>
                 </table>
             </div>
 
-            <div class="dashboard-container" style="padding: 10px;">
-                <h2>Analyse par Vendeur</h2>
-                <div style="width: 100%; max-width: 400px; margin: 0 auto 15px auto;">
+            <div class="chart-container">
+                <h2>Analyse Vendeurs</h2>
+                <div style="height: 250px;">
                     <canvas id="agentBarChart"></canvas>
                 </div>
-                <table id="agentSummaryTable">
+                <table id="agentSummaryTable" style="margin-top: 15px;">
                     <thead>
-                        <tr>
-                            <th>Vendeur</th>
-                            <th>Ventes</th>
-                            <th>CA Total</th>
-                        </tr>
+                        <tr><th>Vendeur</th><th>Ventes</th><th>CA Total</th><th>Dette</th></tr>
                     </thead>
                     <tbody id="agentSummaryTableBody"></tbody>
                 </table>
             </div>
 
-            <div class="dashboard-container" style="padding: 10px;">
-                <h2 style="margin-top: 0;">Suivi des Colis (Stock en main)</h2>
-                <table id="agentPackageStockTable">
-                    <thead>
-                        <tr>
-                            <th>Vendeur</th>
-                            <th>Récupérés</th>
-                            <th>Vendus</th>
-                            <th style="color: #dc3545;">Reste</th>
-                        </tr>
-                    </thead>
-                    <tbody id="agentPackageStockTableBody"></tbody>
-                </table>
-            </div>
+        </div>
 
-            <div class="dashboard-container" style="padding: 10px;">
-                <h2 style="margin-top: 0;">Balance Financière</h2>
-                <table id="financeBalanceTable">
-                    <thead>
-                        <tr>
-                            <th>Vendeur</th>
-                            <th>CA Déclaré</th>
-                            <th>Reçu</th>
-                            <th style="color: #dc3545;">Dû</th>
-                        </tr>
-                    </thead>
-                    <tbody id="financeBalanceTableBody"></tbody>
-                </table>
+        <div class="chart-container" style="margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h2>🛒 Liste d'achats suggérée (Réinvestissement)</h2>
+                <button id="printReinvestmentBtn" class="primary">🖨️ Imprimer la liste</button>
             </div>
-
-        </div> <div class="dashboard-container" style="margin-top: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                <div>
-                    <div id="beneficeTotalDisplay" style="font-size: 1.1em; font-weight: bold;"></div>
-                    <div id="reportDate" style="font-size: 0.8em; color: #666;"></div>
-                </div>
-                <button id="printReinvestmentBtn" class="primary" style="padding: 5px 15px; font-size: 12px;">
-                    🖨️ Imprimer Liste d'Achats
-                </button>
-            </div>
-            <div id="printArea"> 
+            <p style="font-size: 12px; color: #64748b;">Basé sur le bénéfice réel pour racheter du stock.</p>
+            <div id="printArea">
                 <table id="reinvestmentTable">
                     <thead>
-                        <tr>
-                            <th>Produit à racheter</th>
-                            <th>Prix Achat (U)</th>
-                            <th>Quantité possible</th>
-                        </tr>
+                        <tr><th>Produit à racheter</th><th>Prix Achat (U)</th><th>Quantité possible</th></tr>
                     </thead>
                     <tbody id="reinvestmentTableBody"></tbody>
                 </table>
@@ -156,14 +138,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
       const firebaseConfig = {
-        apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-        authDomain: "app-ventes-barriques.firebaseapp.com",
-        projectId: "app-ventes-barriques",
-        storageBucket: "app-ventes-barriques.appspot.com",
-        messagingSenderId: "615546459847",
-        appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-      };
-      firebase.initializeApp(firebaseConfig);
+            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
+            authDomain: "app-ventes-barriques.firebaseapp.com",
+            projectId: "app-ventes-barriques",
+            storageBucket: "app-ventes-barriques.appspot.com",
+            messagingSenderId: "615546459847",
+            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
+        };
+      if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
       const db = firebase.firestore();
     </script>
     <script src="auth-guard.js"></script>
