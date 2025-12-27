@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1200">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validation des Ventes (Admin) - AMT</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
@@ -21,7 +21,20 @@
             .print-header { display: block !important; text-align: center; margin-bottom: 20px; }
         }
         .print-header { display: none; }
-        .filter-section { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: flex-end; gap: 10px; }
+        .filter-section { background: #f1f5f9; padding: 10px; border-radius: 8px; margin-bottom: 15px; display: flex; align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+        
+        /* DESIGN RESPONSIVE */
+        .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+        @media (max-width: 850px) {
+            .dashboard-grid-2-col { grid-template-columns: 1fr; }
+            .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+            .navigation a { font-size: 11px; padding: 8px 12px; }
+            h1 { font-size: 18px; text-align: center; }
+            .app-header { padding: 10px; }
+        }
     </style>
 </head>
 <body>
@@ -52,23 +65,23 @@
             <h2 style="color: #1877f2;">📝 Validation & Encaissement</h2>
             
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="date" id="valDate">
+                <input type="date" id="valDate" style="width: 100%; box-sizing: border-box; padding: 10px;">
                 
                 <label for="valVendeur">Compte à valider :</label>
-                <select id="valVendeur">
+                <select id="valVendeur" style="width: 100%; padding: 10px;">
                     <option value="">-- Chargement des comptes... --</option>
                 </select>
 
                 <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
                     <p style="font-size: 11px; font-weight: bold; color: #475569; margin-bottom: 5px;">📦 PARTIE 1 : Ventes (Sortie)</p>
-                    <select id="valProduit">
+                    <select id="valProduit" style="width: 100%; padding: 10px; margin-bottom: 5px;">
                         <option value="">-- Choisir un produit --</option>
                     </select>
                     <div id="sellerStockInfo" style="font-size: 10px; color: #1877f2; margin-top: 2px; font-weight: bold;"></div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 5px;">
-                        <input type="number" id="valQuantite" placeholder="Qté">
-                        <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background: #edf2f7;">
+                        <input type="number" id="valQuantite" placeholder="Qté" style="padding: 10px;">
+                        <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background: #edf2f7; padding: 10px;">
                     </div>
                     <p id="infoVenteTotal" style="font-size: 12px; text-align: right; margin-top: 5px; font-weight: bold;">
                         Total : <span id="valTotalSaisie">0,00 €</span>
@@ -80,11 +93,11 @@
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <div>
                             <label style="font-size: 10px;">Encaissé (€)</label>
-                            <input type="number" id="valAcompte" placeholder="Montant">
+                            <input type="number" id="valAcompte" placeholder="Montant" style="width: 100%; padding: 10px; box-sizing: border-box;">
                         </div>
                         <div>
                             <label style="font-size: 10px;">Remise (€)</label>
-                            <input type="number" id="valRemise" value="0">
+                            <input type="number" id="valRemise" value="0" style="width: 100%; padding: 10px; box-sizing: border-box;">
                         </div>
                     </div>
                 </div>
@@ -98,30 +111,30 @@
                     
                     <div id="boxClientRef" style="margin-top: 10px; display: none;">
                         <label style="font-size: 10px; color: #701a75; font-weight: bold;">Nom ou Référence du client :</label>
-                        <input type="text" id="valClientRef" placeholder="Ex: Client Bakary / Boutique X" style="width: 100%; padding: 8px; border-radius: 5px; border: 1px solid #f5d0fe; font-family: 'Comfortaa';">
+                        <input type="text" id="valClientRef" placeholder="Ex: Client Bakary / Boutique X" style="width: 100%; padding: 10px; border-radius: 5px; border: 1px solid #f5d0fe; font-family: 'Comfortaa'; box-sizing: border-box;">
                     </div>
                 </div>
 
-                <button id="btnConfirmerVente" class="primary" style="background: #1877f2; height: 45px; font-size: 16px; margin-top: 10px;">Enregistrer</button>
+                <button id="btnConfirmerVente" class="primary" style="background: #1877f2; height: 45px; font-size: 16px; margin-top: 10px; width: 100%; cursor: pointer;">Enregistrer</button>
             </div>
         </div>
 
         <div class="dashboard-container" style="padding: 15px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;">
                 <h2 style="margin: 0;">📊 État Financier & Stock</h2>
                 <button onclick="preparerImpression()" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 12px; font-weight: bold;">🖨️ Imprimer</button>
             </div>
 
             <div class="filter-section">
-                <div style="flex: 1;">
+                <div style="flex: 1; min-width: 100px;">
                     <label style="font-size: 10px; font-weight: bold;">Du :</label>
-                    <input type="date" id="filterStart">
+                    <input type="date" id="filterStart" style="width: 100%; padding: 5px;">
                 </div>
-                <div style="flex: 1;">
+                <div style="flex: 1; min-width: 100px;">
                     <label style="font-size: 10px; font-weight: bold;">Au :</label>
-                    <input type="date" id="filterEnd">
+                    <input type="date" id="filterEnd" style="width: 100%; padding: 5px;">
                 </div>
-                <button onclick="loadSellerData()" style="background: #334155; color: white; border: none; padding: 8px 12px; border-radius: 4px; cursor: pointer; font-size: 11px;">Filtrer</button>
+                <button onclick="loadSellerData()" style="background: #334155; color: white; border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-size: 11px;">Filtrer</button>
             </div>
             
             <div id="financialSummary" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
@@ -139,17 +152,19 @@
                 </div>
             </div>
 
-            <table id="sellerInventoryTable" style="font-size: 11px; width: 100%; border-collapse: collapse;">
-                <thead>
-                    <tr style="background: #f1f1f1;">
-                        <th style="padding: 8px; border: 1px solid #ddd;">Produit</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; background: #e0f2fe;">Pris</th>
-                        <th style="padding: 8px; border: 1px solid #ddd; background: #fef2f2;">Vendu</th>
-                        <th style="padding: 8px; border: 1px solid #ddd;">En main</th>
-                    </tr>
-                </thead>
-                <tbody id="sellerInventoryBody"></tbody>
-            </table>
+            <div class="table-responsive">
+                <table id="sellerInventoryTable" style="font-size: 11px; width: 100%; border-collapse: collapse; min-width: 400px;">
+                    <thead>
+                        <tr style="background: #f1f1f1;">
+                            <th style="padding: 8px; border: 1px solid #ddd;">Produit</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; background: #e0f2fe;">Pris</th>
+                            <th style="padding: 8px; border: 1px solid #ddd; background: #fef2f2;">Vendu</th>
+                            <th style="padding: 8px; border: 1px solid #ddd;">En main</th>
+                        </tr>
+                    </thead>
+                    <tbody id="sellerInventoryBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 

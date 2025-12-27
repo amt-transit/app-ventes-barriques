@@ -2,46 +2,46 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1200">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestion du Stock - AMT</title>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        /* Grille adaptative pour les 7 indicateurs */
         .kpi-stock-grid { 
             display: grid; 
-            grid-template-columns: repeat(4, 1fr); 
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
             gap: 10px; 
             margin-bottom: 20px; 
         }
         .card-stock { border-radius: 12px; padding: 12px; text-align: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .bg-blue { background: #1877f2; }    /* Reçu */
-        .bg-orange { background: #f59e0b; }  /* Sorti */
-        .bg-dark { background: #1e293b; }    /* Pertes / Dépôt */
-        .bg-purple { background: #701a75; }  /* Abidjan */
-        .bg-green { background: #10b981; }   /* Bénéfice Réel */
-        .bg-violet { background: #8b5cf6; }  /* Bénéfice Potentiel */
+        .bg-blue { background: #1877f2; }
+        .bg-orange { background: #f59e0b; }
+        .bg-dark { background: #1e293b; }
+        .bg-purple { background: #701a75; }
+        .bg-green { background: #10b981; }
+        .bg-violet { background: #8b5cf6; }
         
         .stock-label { font-size: 9px; text-transform: uppercase; font-weight: bold; opacity: 0.9; }
-        .stock-number { font-size: 18px; font-weight: bold; display: block; margin-top: 5px; }
+        .stock-number { font-size: 16px; font-weight: bold; display: block; margin-top: 5px; }
         
         .form-section { background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0; margin-bottom: 20px; }
-        #stockTable { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 13px; }
-        #stockTable th, #stockTable td { padding: 12px; border: 1px solid #e2e8f0; text-align: left; }
-        #stockTableBody tr { cursor: pointer; transition: background 0.2s; }
-        #stockTableBody tr:hover { background-color: #f8fafc !important; }
+        .form-grid-responsive { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+        
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        #stockTable { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 600px; }
+        #stockTable th, #stockTable td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
 
-        /* Modals */
+        @media (max-width: 600px) {
+            .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
+            .navigation a { font-size: 11px; padding: 8px; }
+            h1 { font-size: 18px; text-align: center; }
+            .kpi-stock-grid { grid-template-columns: repeat(2, 1fr); }
+        }
+
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
-        .modal-content { background-color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 25px; border-radius: 15px; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; }
-        .modal-small { max-width: 400px !important; }
-        .close-modal { float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #64748b; }
-        .btn-loss-main { background: #ef4444; color: white; width: 100%; padding: 12px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
-        .modal-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        .modal-table th { background: #f1f5f9; padding: 10px; text-align: left; }
-        .modal-table td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
+        .modal-content { background-color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 15px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
         .no-print { margin-top: 20px; text-align: center; }
     </style>
 </head>
@@ -61,22 +61,22 @@
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
-    <div style="padding: 20px;">
+    <div style="padding: 15px;">
         <div class="form-section no-print">
             <h2 style="margin-top: 0; color: #1877f2; font-size: 15px;">🚛 Nouvel Arrivage</h2>
-            <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px;">
-                <input type="date" id="stockDate">
-                <input type="text" id="stockProduit" placeholder="Produit" list="referenceList">
-                <input type="number" id="quantiteInitiale" placeholder="Qté">
-                <input type="number" id="prixAchat" placeholder="Prix Achat (€)">
-                <input type="number" id="prixVenteRef" placeholder="Prix Vente (€)">
-                <button id="addStockBtn" class="primary" style="background: #1877f2;">Enregistrer</button>
+            <div class="form-grid-responsive">
+                <input type="date" id="stockDate" style="padding: 10px;">
+                <input type="text" id="stockProduit" placeholder="Produit" list="referenceList" style="padding: 10px;">
+                <input type="number" id="quantiteInitiale" placeholder="Qté" style="padding: 10px;">
+                <input type="number" id="prixAchat" placeholder="Prix Achat (€)" style="padding: 10px;">
+                <input type="number" id="prixVenteRef" placeholder="Prix Vente (€)" style="padding: 10px;">
+                <button id="addStockBtn" class="primary" style="background: #1877f2; padding: 10px; border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Enregistrer</button>
             </div>
             <datalist id="referenceList"></datalist>
         </div>
 
         <div id="printableStockArea" style="background: white; padding: 15px; border-radius: 10px;">
-            <h2 style="text-align: center; color: #1e293b; margin-bottom: 20px;">État des Stocks & Analyse AMT</h2>
+            <h2 style="text-align: center; color: #1e293b; margin-bottom: 20px; font-size: 16px;">État des Stocks & Analyse AMT</h2>
 
             <div class="kpi-stock-grid">
                 <div class="card-stock bg-blue">
@@ -109,20 +109,22 @@
                 </div>
             </div>
 
-            <table id="stockTable">
-                <thead>
-                    <tr style="background: #f1f5f9;">
-                        <th>Produit</th>
-                        <th>Reçu</th>
-                        <th>Vendu Agence</th>
-                        <th style="color: #701a75;">📍 Abidjan</th>
-                        <th style="color: #ef4444;">⚠️ Pertes</th>
-                        <th>En Dépôt</th>
-                        <th>Bénéf. Réel</th>
-                    </tr>
-                </thead>
-                <tbody id="stockTableBody"></tbody>
-            </table>
+            <div class="table-responsive">
+                <table id="stockTable">
+                    <thead>
+                        <tr style="background: #f1f5f9;">
+                            <th>Produit</th>
+                            <th>Reçu</th>
+                            <th>Vendu Agence</th>
+                            <th style="color: #701a75;">📍 Abidjan</th>
+                            <th style="color: #ef4444;">⚠️ Pertes</th>
+                            <th>En Dépôt</th>
+                            <th>Bénéf. Réel</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stockTableBody"></tbody>
+                </table>
+            </div>
         </div>
 
         <div class="no-print">
