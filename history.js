@@ -100,17 +100,28 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderVentes(sales) {
         tableBodyVentes.innerHTML = '';
         sales.forEach(data => {
+            // Détection du paiement Abidjan
+            const tagAbidjan = data.payeAbidjan 
+                ? `<br><span class="badge-role" style="background:#701a75; color:white; font-size:9px;">📍 ABIDJAN</span>` 
+                : '';
+            const clientInfo = data.clientRef ? `<br><small style="color:#701a75">Ref: ${data.clientRef}</small>` : '';
+
             const actions = (window.userRole === 'superadmin') 
-                ? `<button class="btn-reset" onclick="editDocument('ventes', '${data.id}')" style="padding:4px 8px;">Modif.</button>
-                   <button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')" style="padding:4px 8px;">Suppr.</button>`
+                ? `<button class="btn-reset" onclick="editDocument('ventes', '${data.id}')">Modif.</button>
+                  <button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button>`
                 : `<span style="font-size:10px; color:gray;">Lecture seule</span>`;
 
             tableBodyVentes.innerHTML += `
                 <tr>
-                    <td>${data.date}</td><td>${data.produit}</td><td>${data.quantite}</td>
-                    <td>${formatEUR(data.prixUnitaire)}</td><td style="font-weight:bold;">${formatEUR(data.total)}</td>
-                    <td>${data.modeDePaiement || 'Validé'}</td><td style="color:#1877f2; font-weight:bold;">${data.vendeur}</td>
-                    <td>${data.enregistrePar || 'Admin'}</td><td>${actions}</td>
+                    <td>${data.date}</td>
+                    <td>${data.produit}${clientInfo}</td>
+                    <td>${data.quantite}</td>
+                    <td>${formatEUR(data.prixUnitaire)}</td>
+                    <td style="font-weight:bold;">${formatEUR(data.total)}${tagAbidjan}</td>
+                    <td>${data.modeDePaiement || 'Validé'}</td>
+                    <td style="color:#1877f2; font-weight:bold;">${data.vendeur}</td>
+                    <td>${data.enregistrePar || 'Admin'}</td>
+                    <td>${actions}</td>
                 </tr>`;
         });
     }

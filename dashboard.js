@@ -7,15 +7,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = 'login.html';
             }
         } else {
-            const userDoc = await db.collection("users").doc(user.displayName || user.email.split('@')[0]).get();
-            const userData = userDoc.data();
-            if (userData && userData.role === 'vendeur') {
-                const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
-                document.querySelectorAll('.navigation a').forEach(link => {
-                    if (forbiddenLinks.includes(link.getAttribute('href'))) link.style.display = 'none';
-                });
-                if (forbiddenLinks.includes(window.location.pathname.split('/').pop())) {
-                    window.location.href = 'validation.html';
+            const userSnap = await db.collection("users").where("email", "==", user.email).get();
+            if (!userSnap.empty) {
+                const userData = userSnap.docs[0].data();
+                window.userRole = userData.role;
+                window.userName = userData.nom;
+
+                if (userData.role === 'vendeur') {
+                    const forbiddenLinks = ['stock.html', 'dashboard.html', 'utilisateurs.html', 'history.html'];
+                    document.querySelectorAll('.navigation a').forEach(link => {
+                        if (forbiddenLinks.includes(link.getAttribute('href'))) link.style.display = 'none';
+                    });
+                    if (forbiddenLinks.includes(window.location.pathname.split('/').pop())) {
+                        window.location.href = 'validation.html';
+                    }
                 }
             }
         }
@@ -24,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- VARIABLES ET ELEMENTS ---
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
-    let allSales = [], allStocks = [], allPayments = [], allRecuperations = [];
+    let allSales = [], allStocks = [], allPayments = [], allRecuperations = [], allLosses = [];
     let salesChart = null, agentChart = null;
 
     // --- FONCTION PRINCIPALE DE MISE À JOUR ---
@@ -32,15 +37,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const start = startDateInput.value;
         const end = endDateInput.value;
 
-        // Filtrage par date
+        // Filtrage par date des différentes collections
         const filteredSales = allSales.filter(s => (!start || s.date >= start) && (!end || s.date <= end));
         const filteredPayments = allPayments.filter(p => (!start || p.date >= start) && (!end || p.date <= end));
+        const filteredLosses = allLosses.filter(l => (!start || l.date >= start) && (!end || l.date <= end));
 
-        // Appel des fonctions de rendu (Noms synchronisés)
-        calculateKPIs(filteredSales, filteredPayments);
+        // Appel des fonctions de rendu avec injection des pertes
+        calculateKPIs(filteredSales, filteredPayments, filteredLosses);
         renderProductAnalysis(filteredSales);
         renderSellerAnalysis(filteredSales, filteredPayments);
-        renderAgentPackageStock(filteredSales, allRecuperations); // Correction du nom ici
+        renderAgentPackageStock(filteredSales, allRecuperations, allLosses);
         renderReinvestment(filteredSales);
         updateDailyFlashStats(allSales);
 
@@ -48,19 +54,29 @@ document.addEventListener('DOMContentLoaded', () => {
         if (dateDisplay) dateDisplay.textContent = "Établi le : " + new Date().toLocaleDateString('fr-FR');
     }
 
-    // 1. KPI (Les 4 Grandes Cartes)
-    function calculateKPIs(sales, payments) {
-        const totalCA = sales.reduce((sum, s) => sum + (s.total || 0), 0);
+    // 1. KPI (Calcul avec distinction Abidjan et Pertes)
+    function calculateKPIs(sales, payments, losses) {
+        // Ventes Agence vs Abidjan
+        const totalCA_Agence = sales.filter(s => s.payeAbidjan !== true).reduce((sum, s) => sum + (s.total || 0), 0);
+        const totalCA_Abidjan = sales.filter(s => s.payeAbidjan === true).reduce((sum, s) => sum + (s.total || 0), 0);
+        
         const totalCaisse = payments.reduce((sum, p) => sum + (p.montantRecu || 0), 0);
         const totalRemises = payments.reduce((sum, p) => sum + (p.remise || 0), 0);
         const totalQty = sales.reduce((sum, s) => sum + (s.quantite || 0), 0);
         
-        const totalDû = totalCA - (totalCaisse + totalRemises);
+        // Calcul du volume total des pertes sur la période
+        const totalLossQty = losses.reduce((sum, l) => sum + (l.quantite || 0), 0);
+        
+        // La dette ne concerne que les ventes Agence
+        const totalDû = totalCA_Agence - (totalCaisse + totalRemises);
 
-        if(document.getElementById('grandTotalVentes')) document.getElementById('grandTotalVentes').textContent = formatEUR(totalCA);
+        // Mise à jour des éléments HTML
+        if(document.getElementById('grandTotalVentes')) document.getElementById('grandTotalVentes').textContent = formatEUR(totalCA_Agence + totalCA_Abidjan);
+        if(document.getElementById('totalVenduAbidjan')) document.getElementById('totalVenduAbidjan').textContent = formatEUR(totalCA_Abidjan);
         if(document.getElementById('grandTotalCaisse')) document.getElementById('grandTotalCaisse').textContent = formatEUR(totalCaisse);
         if(document.getElementById('totalDues')) document.getElementById('totalDues').textContent = formatEUR(totalDû);
         if(document.getElementById('grandTotalQuantite')) document.getElementById('grandTotalQuantite').textContent = totalQty;
+        if(document.getElementById('totalPertes')) document.getElementById('totalPertes').textContent = totalLossQty;
     }
 
     // 2. ANALYSE PRODUITS
@@ -94,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         }
         if(document.getElementById('beneficeTotalDisplay')) {
-            document.getElementById('beneficeTotalDisplay').innerHTML = `Bénéfice : <span style="color:#10b981;">${formatEUR(totalProfitGlobal)}</span>`;
+            document.getElementById('beneficeTotalDisplay').textContent = formatEUR(totalProfitGlobal);
         }
         updatePieChart(productData);
     }
@@ -103,12 +119,14 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderSellerAnalysis(sales, payments) {
         const sellers = {};
         sales.forEach(s => {
-            if(!sellers[s.vendeur]) sellers[s.vendeur] = { qte: 0, ca: 0, recu: 0 };
+            if(!sellers[s.vendeur]) sellers[s.vendeur] = { qte: 0, ca_agence: 0, ca_abidjan: 0, recu: 0 };
             sellers[s.vendeur].qte += s.quantite;
-            sellers[s.vendeur].ca += s.total;
+            if (s.payeAbidjan === true) sellers[s.vendeur].ca_abidjan += s.total;
+            else sellers[s.vendeur].ca_agence += s.total;
         });
+        
         payments.forEach(p => {
-            if(!sellers[p.vendeur]) sellers[p.vendeur] = { qte: 0, ca: 0, recu: 0 };
+            if(!sellers[p.vendeur]) sellers[p.vendeur] = { qte: 0, ca_agence: 0, ca_abidjan: 0, recu: 0 };
             sellers[p.vendeur].recu += (p.montantRecu || 0) + (p.remise || 0);
         });
 
@@ -117,12 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
             tbody.innerHTML = '';
             for (const name in sellers) {
                 const s = sellers[name];
-                const dette = s.ca - s.recu;
+                const dette = s.ca_agence - s.recu;
                 tbody.innerHTML += `
                     <tr>
                         <td>${name}</td>
                         <td style="text-align:center;">${s.qte}</td>
-                        <td>${formatEUR(s.ca)}</td>
+                        <td>${formatEUR(s.ca_agence + s.ca_abidjan)}</td>
                         <td style="color:${dette > 0 ? '#ef4444' : '#10b981'}; font-weight:bold;">${formatEUR(dette)}</td>
                     </tr>`;
             }
@@ -130,24 +148,30 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBarChart(sellers);
     }
 
-    // 4. SUIVI DES COLIS (STOCK VENDEUR)
-    function renderAgentPackageStock(sales, recuperations) {
+    // 4. SUIVI DES COLIS (Intégration des pertes dans le calcul du reste)
+    function renderAgentPackageStock(sales, recuperations, losses) {
         const tableBody = document.getElementById('agentPackageStockTableBody');
         if (!tableBody) return;
         tableBody.innerHTML = '';
         const tracking = {};
 
         recuperations.forEach(r => {
-            if (!tracking[r.vendeur]) tracking[r.vendeur] = { recup: 0, vendu: 0 };
+            if (!tracking[r.vendeur]) tracking[r.vendeur] = { recup: 0, vendu: 0, perte: 0 };
             tracking[r.vendeur].recup += (r.quantite || 0);
         });
         sales.forEach(s => {
-            if (!tracking[s.vendeur]) tracking[s.vendeur] = { recup: 0, vendu: 0 };
+            if (!tracking[s.vendeur]) tracking[s.vendeur] = { recup: 0, vendu: 0, perte: 0 };
             tracking[s.vendeur].vendu += (s.quantite || 0);
+        });
+        // Intégration des pertes par vendeur pour le stock en main
+        losses.forEach(l => {
+            if (!tracking[l.vendeur]) tracking[l.vendeur] = { recup: 0, vendu: 0, perte: 0 };
+            tracking[l.vendeur].perte += (l.quantite || 0);
         });
 
         for (const agent in tracking) {
-            const reste = tracking[agent].recup - tracking[agent].vendu;
+            // Le stock réel = Récupéré - Vendu - Perte
+            const reste = tracking[agent].recup - tracking[agent].vendu - tracking[agent].perte;
             tableBody.innerHTML += `
                 <tr>
                     <td>${agent}</td>
@@ -208,7 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
             type: 'bar',
             data: {
                 labels: Object.keys(data),
-                datasets: [{ label: 'Chiffre d\'Affaires', data: Object.values(data).map(d => d.ca), backgroundColor: '#1877f2' }]
+                datasets: [{ label: 'Ventes Agence', data: Object.values(data).map(d => d.ca_agence), backgroundColor: '#1877f2' }]
             },
             options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
         });
@@ -237,10 +261,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- UTILITAIRES ET ÉCOUTEURS ---
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); }
 
+    // Écouteurs Firestore
     db.collection("stocks").onSnapshot(snap => { allStocks = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("ventes").onSnapshot(snap => { allSales = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("recuperations").onSnapshot(snap => { allRecuperations = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("encaissements_vendeurs").onSnapshot(snap => { allPayments = snap.docs.map(doc => doc.data()); updateDashboard(); });
+    db.collection("pertes").onSnapshot(snap => { allLosses = snap.docs.map(doc => doc.data()); updateDashboard(); });
 
     if(startDateInput) startDateInput.addEventListener('change', updateDashboard);
     if(endDateInput) endDateInput.addEventListener('change', updateDashboard);

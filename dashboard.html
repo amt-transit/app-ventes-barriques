@@ -8,26 +8,45 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 25px; }
-        .kpi-card { padding: 20px; border-radius: 15px; color: white; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .kpi-card h3 { margin: 0; font-size: 12px; text-transform: uppercase; opacity: 0.8; }
-        .kpi-card p { margin: 5px 0 0; font-size: 24px; font-weight: bold; }
+        /* Grille principale des KPI : 3 colonnes sur 2 lignes pour la clarté */
+        .kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            gap: 15px; 
+            margin-bottom: 25px; 
+        }
+        .kpi-card { 
+            padding: 20px; 
+            border-radius: 15px; 
+            color: white; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .kpi-card h3 { margin: 0; font-size: 11px; text-transform: uppercase; opacity: 0.9; letter-spacing: 0.5px; }
+        .kpi-card p { margin: 8px 0 0; font-size: 22px; font-weight: bold; }
         
-        .bg-blue { background: #1877f2; }    /* CA */
-        .bg-green { background: #10b981; }   /* Caisse / Profit */
-        .bg-orange { background: #f59e0b; }  /* Quantité */
-        .bg-red { background: #ef4444; }     /* Dettes */
+        /* Couleurs Thématiques */
+        .bg-blue { background: #1877f2; }    /* CA Global */
+        .bg-purple { background: #701a75; }  /* Abidjan */
+        .bg-green { background: #10b981; }   /* Caisse Agence */
+        .bg-red { background: #be123c; }     /* Dette Réelle */
+        .bg-orange { background: #f59e0b; }  /* Colis Sortis */
+        .bg-dark { background: #1e293b; }    /* Pertes */
 
         .chart-container { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        h2 { font-size: 16px; color: #1e293b; border-left: 4px solid #1877f2; padding-left: 10px; margin-bottom: 15px; }
+        h2 { font-size: 15px; color: #1e293b; border-left: 4px solid #1877f2; padding-left: 10px; margin-bottom: 15px; font-weight: bold; }
         
-        .alert-box { background: #fff7ed; border: 1px solid #fdba74; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th { text-align: left; padding: 10px; background: #f8fafc; color: #64748b; }
+        td { padding: 10px; border-bottom: 1px solid #f1f5f9; }
     </style>
 </head>
 <body>
     <header class="app-header">
         <img src="logo.png" alt="Logo" class="app-logo">
-        <h1>Tableau de Bord</h1>
+        <h1>Tableau de Bord Stratégique</h1>
     </header>
 
     <nav class="navigation">
@@ -42,68 +61,77 @@
 
     <div style="padding: 20px;">
         
-        <div class="filter-container" style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between;">
+        <div class="filter-container" style="background: white; padding: 15px; border-radius: 10px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0;">
             <div style="display: flex; gap: 15px; align-items: center;">
-                <label>Période du :</label>
-                <input type="date" id="startDate">
-                <label>au</label>
-                <input type="date" id="endDate">
+                <label style="font-weight: bold; font-size: 13px;">Analyse du :</label>
+                <input type="date" id="startDate" style="padding: 5px; border-radius: 5px; border: 1px solid #cbd5e1;">
+                <label style="font-weight: bold; font-size: 13px;">au</label>
+                <input type="date" id="endDate" style="padding: 5px; border-radius: 5px; border: 1px solid #cbd5e1;">
             </div>
-            <button id="clearFilterBtn" style="padding: 8px 15px;">Réinitialiser</button>
+            <p id="reportDate" style="font-size: 11px; color: #64748b; margin: 0;"></p>
         </div>
 
         <div class="kpi-grid">
             <div class="kpi-card bg-blue">
-                <h3>Ventes (CA)</h3>
+                <h3>Chiffre d'Affaires Global</h3>
                 <p id="grandTotalVentes">0,00 €</p>
             </div>
+            <div class="kpi-card bg-purple">
+                <h3>📍 Encaissé à Abidjan</h3>
+                <p id="totalVenduAbidjan">0,00 €</p>
+            </div>
             <div class="kpi-card bg-green">
-                <h3>Caisse (Reçu)</h3>
+                <h3>Caisse Réelle (Agence)</h3>
                 <p id="grandTotalCaisse">0,00 €</p>
             </div>
+
             <div class="kpi-card bg-red">
-                <h3>Dû (Crédit)</h3>
+                <h3>Dette Réelle Vendeurs</h3>
                 <p id="totalDues">0,00 €</p>
             </div>
             <div class="kpi-card bg-orange">
-                <h3>Colis Sortis</h3>
+                <h3>Volume Colis Sortis</h3>
                 <p id="grandTotalQuantite">0</p>
+            </div>
+            <div class="kpi-card bg-dark">
+                <h3>⚠️ Pertes Produits</h3>
+                <p id="totalPertes">0</p>
             </div>
         </div>
 
         <div style="display: flex; gap: 15px; margin-bottom: 25px;">
-            <div style="flex: 1; background: #f1f5f9; padding: 15px; border-radius: 10px; text-align: center;">
-                <span style="font-size: 11px; font-weight: bold;">COLIS DU JOUR</span><br>
-                <strong id="todayColis" style="font-size: 20px; color: #1877f2;">0</strong>
+            <div style="flex: 1; background: #f8fafc; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0;">
+                <span style="font-size: 10px; font-weight: bold; color: #64748b;">COLIS DU JOUR</span><br>
+                <strong id="todayColis" style="font-size: 18px; color: #1877f2;">0</strong>
             </div>
-            <div style="flex: 1; background: #f1f5f9; padding: 15px; border-radius: 10px; text-align: center;">
-                <span style="font-size: 11px; font-weight: bold;">TOP VENDEUR</span><br>
+            <div style="flex: 1; background: #f8fafc; padding: 12px; border-radius: 10px; text-align: center; border: 1px solid #e2e8f0;">
+                <span style="font-size: 10px; font-weight: bold; color: #64748b;">TOP VENDEUR</span><br>
                 <strong id="topVendeur" style="font-size: 16px; color: #f59e0b;">-</strong>
             </div>
-            <div style="flex: 1; background: #10b981; color: white; padding: 15px; border-radius: 10px; text-align: center;">
-                <span style="font-size: 11px; font-weight: bold;">BÉNÉFICE RÉEL</span><br>
-                <strong id="beneficeTotalDisplay" style="font-size: 20px;">0,00 €</strong>
+            <div style="flex: 1; background: #10b981; color: white; padding: 12px; border-radius: 10px; text-align: center;">
+                <span style="font-size: 10px; font-weight: bold;">MARGE BÉNÉFICIAIRE</span><br>
+                <strong id="beneficeTotalDisplay" style="font-size: 18px;">0,00 €</strong>
             </div>
         </div>
 
-        <div class="dashboard-grid-2-col" style="gap: 20px;">
+        <div class="dashboard-grid-2-col" style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             
             <div class="chart-container">
-                <h2>Analyse par Produit</h2>
-                <div style="height: 250px; display: flex; justify-content: center;">
+                <h2>Performance par Produit</h2>
+                <div style="height: 220px; display: flex; justify-content: center;">
                     <canvas id="salesPieChart"></canvas>
                 </div>
                 <table id="productSummaryTable" style="margin-top: 15px;">
                     <thead>
-                        <tr><th>Produit</th><th>Qté</th><th>CA</th><th>Bénéfice</th></tr>
+                        <tr><th>Produit</th><th>Qté</th><th>CA</th><th>Profit</th></tr>
                     </thead>
                     <tbody id="productSummaryTableBody"></tbody>
                 </table>
             </div>
 
             <div class="chart-container">
-                <h2>Analyse Vendeurs</h2>
-                <div style="height: 250px;">
+                <h2>Suivi des Comptes Vendeurs</h2>
+                <div style="height: 220px;">
                     <canvas id="agentBarChart"></canvas>
                 </div>
                 <table id="agentSummaryTable" style="margin-top: 15px;">
@@ -113,23 +141,24 @@
                     <tbody id="agentSummaryTableBody"></tbody>
                 </table>
             </div>
-
         </div>
 
         <div class="chart-container" style="margin-top: 20px;">
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <h2>🛒 Liste d'achats suggérée (Réinvestissement)</h2>
-                <button id="printReinvestmentBtn" class="primary">🖨️ Imprimer la liste</button>
+                <h2>🛒 Suggestions de Réapprovisionnement</h2>
+                <button onclick="window.print()" class="primary" style="background: #1e293b; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold;">🖨️ Imprimer Liste</button>
             </div>
-            <p style="font-size: 12px; color: #64748b;">Basé sur le bénéfice réel pour racheter du stock.</p>
-            <div id="printArea">
-                <table id="reinvestmentTable">
-                    <thead>
-                        <tr><th>Produit à racheter</th><th>Prix Achat (U)</th><th>Quantité possible</th></tr>
-                    </thead>
-                    <tbody id="reinvestmentTableBody"></tbody>
-                </table>
-            </div>
+            <p style="font-size: 11px; color: #64748b; margin-bottom: 15px;">Calculé selon les bénéfices pour maximiser le rachat de stock.</p>
+            <table id="reinvestmentTable">
+                <thead>
+                    <tr style="background: #f8fafc;">
+                        <th>Produit recommandé</th>
+                        <th>Prix Achat Estimé</th>
+                        <th>Quantité rachetable</th>
+                    </tr>
+                </thead>
+                <tbody id="reinvestmentTableBody"></tbody>
+            </table>
         </div>
     </div>
 
