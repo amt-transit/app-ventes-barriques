@@ -2,32 +2,47 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=1200">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Historique & Audit - AMT</title>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        .tab-navigation { display: flex; gap: 15px; margin: 20px; justify-content: center; }
+        .tab-navigation { display: flex; gap: 10px; margin: 20px; justify-content: center; flex-wrap: wrap; }
         .tab-btn { 
-            padding: 12px 25px; cursor: pointer; border: none; background: #e2e8f0; 
-            border-radius: 25px; font-family: 'Comfortaa', sans-serif; font-weight: bold; transition: 0.3s; 
+            padding: 10px 20px; cursor: pointer; border: none; background: #e2e8f0; 
+            border-radius: 20px; font-family: 'Comfortaa', sans-serif; font-weight: bold; transition: 0.3s; 
         }
         .tab-btn.active { background: #1877f2; color: white; }
         .history-section { display: none; padding: 0 20px; }
         .history-section.active { display: block; }
         
-        /* Badge de notification pour les logs */
         #auditCount {
             background: #ef4444; color: white; border-radius: 10px;
             padding: 2px 8px; font-size: 10px; margin-left: 8px; display: none;
         }
 
-        .filter-grid { 
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; 
+        .filter-bar { 
+            background: white; margin: 0 20px 20px; padding: 15px; border-radius: 12px; 
+            border: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 15px; 
+            align-items: center; justify-content: center;
+        }
+
+        .month-nav-btn {
+            background: #f1f5f9; border: 1px solid #cbd5e1; padding: 5px 15px;
+            border-radius: 8px; cursor: pointer; font-weight: bold; transition: 0.2s;
+        }
+        .month-nav-btn:hover { background: #e2e8f0; }
+
+        .filter-grid-audit { 
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; 
             background: #f8fafc; padding: 15px; border-radius: 10px; margin-bottom: 20px; border: 1px solid #e2e8f0;
         }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f1f5f9; }
+        th { background: #f8fafc; color: #64748b; font-size: 13px; }
     </style>
 </head>
 <body>
@@ -53,12 +68,28 @@
         </button>
     </div>
 
-    <div id="section-ventes" class="history-section active">
-        <div style="text-align:center; margin-bottom:15px;">
-            <label>Filtrer par vendeur :</label>
-            <select id="filterVendeur" style="padding:8px; border-radius:5px;"><option value="">Tous</option></select>
+    <div id="global-filters" class="filter-bar">
+        <div style="display: flex; gap: 5px; align-items: center;">
+            <button class="month-nav-btn" onclick="changeMonth(-1)">◀ Mois</button>
+            <div style="display: flex; gap: 5px; align-items: center; background: #f8fafc; padding: 5px 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                <input type="date" id="mainFilterDateStart" style="border:none; background:none; font-size:12px;">
+                <span style="font-weight:bold;">au</span>
+                <input type="date" id="mainFilterDateEnd" style="border:none; background:none; font-size:12px;">
+            </div>
+            <button class="month-nav-btn" onclick="changeMonth(1)">Mois ▶</button>
         </div>
-        <table class="caisseTable">
+
+        <div style="height: 30px; width: 1px; background: #e2e8f0;"></div>
+
+        <div>
+            <select id="filterVendeur" style="padding: 8px; border-radius: 8px; border: 1px solid #cbd5e1; font-family: 'Comfortaa';">
+                <option value="">Tous les vendeurs</option>
+            </select>
+        </div>
+    </div>
+
+    <div id="section-ventes" class="history-section active">
+        <table>
             <thead>
                 <tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th><th>Vendeur</th><th>Action</th></tr>
             </thead>
@@ -67,7 +98,7 @@
     </div>
 
     <div id="section-paiements" class="history-section">
-        <table class="caisseTable">
+        <table>
             <thead>
                 <tr><th>Date</th><th>Vendeur</th><th>Reçu</th><th>Remise</th><th>Total</th><th>Action</th></tr>
             </thead>
@@ -79,24 +110,24 @@
         <div id="printableAuditArea" style="background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h2>Journal des Actions Sensibles</h2>
-                <button onclick="downloadAuditLogPDF()" class="btn-export">📄 Exporter PDF</button>
+                <button onclick="downloadAuditLogPDF()" style="background:#1e293b; color:white; border:none; padding:10px 15px; border-radius:8px; cursor:pointer;">📄 Exporter PDF</button>
             </div>
 
-            <div class="filter-grid no-print">
-                <div><label>Date :</label><input type="date" id="logFilterDate" style="width:100%"></div>
-                <div><label>Auteur :</label><select id="logFilterAuteur" style="width:100%"><option value="">Tous</option></select></div>
-                <div><label>Module :</label>
-                    <select id="logFilterModule" style="width:100%">
+            <div class="filter-grid-audit no-print">
+                <div><label style="font-size:11px; font-weight:bold;">Date exacte :</label><input type="date" id="logFilterDate" style="width:100%; padding:5px;"></div>
+                <div><label style="font-size:11px; font-weight:bold;">Auteur :</label><select id="logFilterAuteur" style="width:100%; padding:5px;"><option value="">Tous</option></select></div>
+                <div><label style="font-size:11px; font-weight:bold;">Module :</label>
+                    <select id="logFilterModule" style="width:100%; padding:5px;">
                         <option value="">Tous</option>
                         <option value="STOCK">STOCK</option>
                         <option value="VENTES">VENTES</option>
                         <option value="COMPTES">COMPTES</option>
                     </select>
                 </div>
-                <div><label>Recherche :</label><input type="text" id="logFilterSearch" placeholder="Détail..." style="width:100%"></div>
+                <div><label style="font-size:11px; font-weight:bold;">Recherche :</label><input type="text" id="logFilterSearch" placeholder="Mot-clé..." style="width:100%; padding:5px;"></div>
             </div>
 
-            <table class="user-table" style="width:100%">
+            <table>
                 <thead>
                     <tr style="background:#f1f5f9;"><th>Date/Heure</th><th>Auteur</th><th>Module</th><th>Action</th><th>Détails</th></tr>
                 </thead>
@@ -117,7 +148,7 @@
             messagingSenderId: "615546459847",
             appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
         };
-        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         window.db = firebase.firestore();
     </script>
     <script src="auth-guard.js"></script>

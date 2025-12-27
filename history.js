@@ -1,18 +1,19 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- SÉLECTEURS DOM ---
+    // --- SÉLECTEURS ---
     const tableBodyVentes = document.getElementById('tableBodyVentes');
     const tableBodyPaiements = document.getElementById('tableBodyPaiements');
     const auditLogBody = document.getElementById('auditLogBody');
     const auditBadge = document.getElementById('auditCount');
     const filterVendeur = document.getElementById('filterVendeur');
+    const dateStartInput = document.getElementById('mainFilterDateStart');
+    const dateEndInput = document.getElementById('mainFilterDateEnd');
 
-    // Filtres Audit
     const logFilterDate = document.getElementById('logFilterDate');
     const logFilterAuteur = document.getElementById('logFilterAuteur');
     const logFilterModule = document.getElementById('logFilterModule');
     const logFilterSearch = document.getElementById('logFilterSearch');
 
-    // --- VARIABLES D'ÉTAT ---
+    // --- ÉTAT ---
     let allLogs = [];
     let unsubscribeVentes = null;
     let unsubscribePaiements = null;
@@ -20,11 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 1. INITIALISATION ---
     async function init() {
+        setDefaultDates(); // Mois en cours
         await loadUsersIntoFilters();
         
-        firebase.auth().onAuthStateChanged(async (user) => {
+        firebase.auth().onAuthStateChanged(user => {
             if (user) {
-                // On laisse un court délai pour que auth-guard récupère les rôles
                 setTimeout(() => {
                     startDataListeners();
                     loadAuditLogs();
@@ -33,7 +34,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Chargement dynamique des noms d'utilisateurs dans les menus de filtrage
+    // Définit le mois actuel (du 1er au dernier jour)
+    function setDefaultDates() {
+        const now = new Date();
+        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        dateStartInput.value = firstDay.toISOString().split('T')[0];
+        dateEndInput.value = lastDay.toISOString().split('T')[0];
+    }
+
+    // Fonction de navigation mois par mois
+    window.changeMonth = (offset) => {
+        let currentStart = new Date(dateStartInput.value);
+        currentStart.setMonth(currentStart.getMonth() + offset);
+        
+        const firstDay = new Date(currentStart.getFullYear(), currentStart.getMonth(), 1);
+        const lastDay = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0);
+        
+        dateStartInput.value = firstDay.toISOString().split('T')[0];
+        dateEndInput.value = lastDay.toISOString().split('T')[0];
+        
+        startDataListeners(); // Recharger les données
+    };
+
     async function loadUsersIntoFilters() {
         const snap = await db.collection("users").orderBy("nom", "asc").get();
         snap.forEach(doc => {
@@ -44,83 +67,73 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 2. GESTION DES ONGLETS & COMPTEUR ---
+    // --- 2. NAVIGATION ---
     window.switchTab = (type) => {
-        // Mise à jour visuelle des boutons et sections
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.history-section').forEach(s => s.classList.remove('active'));
-        
         document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}`).classList.add('active');
         document.getElementById(`section-${type}`).classList.add('active');
-
-        // Réinitialisation du compteur si on ouvre l'onglet Audit
-        if (type === 'audit') {
-            resetAuditCounter();
-        }
+        
+        // Cacher les filtres temporels globaux dans l'onglet Audit
+        document.getElementById('global-filters').style.display = (type === 'audit') ? 'none' : 'flex';
+        if (type === 'audit') resetAuditCounter();
     };
 
     function resetAuditCounter() {
         if (allLogs.length > 0 && allLogs[0].timestamp) {
-            // On mémorise le timestamp du log le plus récent comme étant "vu"
             lastViewedTimestamp = allLogs[0].timestamp.toMillis();
             localStorage.setItem('lastAuditLogView', lastViewedTimestamp);
         }
-        if (auditBadge) {
-            auditBadge.style.display = 'none';
-            auditBadge.innerText = '0';
-        }
+        if (auditBadge) { auditBadge.style.display = 'none'; auditBadge.innerText = '0'; }
     }
 
-    // --- 3. ÉCOUTEURS VENTES ET PAIEMENTS ---
-    function startDataListeners(vendeurNom = "") {
+    // --- 3. ÉCOUTEURS VENTES & PAIEMENTS ---
+    function startDataListeners() {
         if (unsubscribeVentes) unsubscribeVentes();
         if (unsubscribePaiements) unsubscribePaiements();
 
-        let qVentes = db.collection("ventes").orderBy("date", "desc");
-        let qPaiements = db.collection("encaissements_vendeurs").orderBy("date", "desc");
+        const start = dateStartInput.value;
+        const end = dateEndInput.value;
+        const selectedVendeur = filterVendeur.value;
 
-        if (vendeurNom !== "") {
-            qVentes = qVentes.where("vendeur", "==", vendeurNom);
-            qPaiements = qPaiements.where("vendeur", "==", vendeurNom);
-        }
+        // Requêtes Firestore
+        let qVentes = db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc");
+        let qPaiements = db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc");
 
         unsubscribeVentes = qVentes.onSnapshot(snap => {
-            renderVentes(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (selectedVendeur) data = data.filter(d => d.vendeur === selectedVendeur);
+            renderVentes(data);
         });
 
         unsubscribePaiements = qPaiements.onSnapshot(snap => {
-            renderPaiements(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+            let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            if (selectedVendeur) data = data.filter(d => d.vendeur === selectedVendeur);
+            renderPaiements(data);
         });
     }
 
-    if (filterVendeur) {
-        filterVendeur.addEventListener('change', () => startDataListeners(filterVendeur.value));
-    }
+    [dateStartInput, dateEndInput, filterVendeur].forEach(el => el.addEventListener('change', startDataListeners));
 
     function renderVentes(sales) {
         tableBodyVentes.innerHTML = '';
+        if (sales.length === 0) { tableBodyVentes.innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Aucune vente.</td></tr>'; return; }
+        
         sales.forEach(data => {
-            // Détection du paiement Abidjan
-            const tagAbidjan = data.payeAbidjan 
-                ? `<br><span class="badge-role" style="background:#701a75; color:white; font-size:9px;">📍 ABIDJAN</span>` 
-                : '';
+            const tagAbidjan = data.payeAbidjan ? `<br><span class="badge-role" style="background:#701a75; color:white; font-size:9px;">📍 ABIDJAN</span>` : '';
             const clientInfo = data.clientRef ? `<br><small style="color:#701a75">Ref: ${data.clientRef}</small>` : '';
-
             const actions = (window.userRole === 'superadmin') 
                 ? `<button class="btn-reset" onclick="editDocument('ventes', '${data.id}')">Modif.</button>
-                  <button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button>`
+                   <button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button>`
                 : `<span style="font-size:10px; color:gray;">Lecture seule</span>`;
 
             tableBodyVentes.innerHTML += `
                 <tr>
                     <td>${data.date}</td>
-                    <td>${data.produit}${clientInfo}</td>
+                    <td><b>${data.produit}</b>${clientInfo}</td>
                     <td>${data.quantite}</td>
-                    <td>${formatEUR(data.prixUnitaire)}</td>
                     <td style="font-weight:bold;">${formatEUR(data.total)}${tagAbidjan}</td>
-                    <td>${data.modeDePaiement || 'Validé'}</td>
                     <td style="color:#1877f2; font-weight:bold;">${data.vendeur}</td>
-                    <td>${data.enregistrePar || 'Admin'}</td>
                     <td>${actions}</td>
                 </tr>`;
         });
@@ -128,6 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderPaiements(payments) {
         tableBodyPaiements.innerHTML = '';
+        if (payments.length === 0) { tableBodyPaiements.innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Aucun paiement.</td></tr>'; return; }
+
         payments.forEach(data => {
             const total = (data.montantRecu || 0) + (data.remise || 0);
             const actions = (window.userRole === 'superadmin')
@@ -139,132 +154,83 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${data.date}</td><td style="font-weight:bold; color:#1877f2;">${data.vendeur}</td>
                     <td style="color: #10b981;">+ ${formatEUR(data.montantRecu)}</td>
                     <td style="color: #3b82f6;">${formatEUR(data.remise)}</td>
-                    <td style="font-weight:bold;">${formatEUR(total)}</td><td>${actions}</td>
+                    <td style="font-weight:bold;">${formatEUR(total)}</td>
+                    <td>${actions}</td>
                 </tr>`;
         });
     }
 
-    // --- 4. JOURNAL D'AUDIT (LOGS) ---
+    // --- 4. AUDIT ---
     function loadAuditLogs() {
-        // Récupération des 150 dernières actions sensibles
         db.collection("audit_logs").orderBy("timestamp", "desc").limit(150).onSnapshot(snap => {
             allLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Calcul du badge de notification (si on n'est pas sur l'onglet audit)
             const isTabAudit = document.getElementById('btnAudit').classList.contains('active');
             if (!isTabAudit && auditBadge) {
-                const newItems = allLogs.filter(log => {
-                    const ts = log.timestamp ? log.timestamp.toMillis() : 0;
-                    return ts > lastViewedTimestamp;
-                }).length;
-
-                if (newItems > 0) {
-                    auditBadge.innerText = newItems;
-                    auditBadge.style.display = 'inline-block';
-                }
+                const newItems = allLogs.filter(log => (log.timestamp?.toMillis() || 0) > lastViewedTimestamp).length;
+                if (newItems > 0) { auditBadge.innerText = newItems; auditBadge.style.display = 'inline-block'; }
             }
             applyLogFilters();
         });
     }
 
     function applyLogFilters() {
-        if (!auditLogBody) return;
-
         const fDate = logFilterDate.value;
         const fAuteur = logFilterAuteur.value;
         const fModule = logFilterModule.value;
         const fSearch = logFilterSearch.value.toLowerCase();
 
         const filtered = allLogs.filter(log => {
-            // Filtre par date
-            if (fDate) {
-                const formattedDate = fDate.split('-').reverse().join('/');
-                if (!log.dateAction.includes(formattedDate)) return false;
-            }
-            // Filtres utilisateur et module
+            if (fDate && !log.dateAction.includes(fDate.split('-').reverse().join('/'))) return false;
             if (fAuteur && log.auteur !== fAuteur) return false;
             if (fModule && log.module !== fModule) return false;
-            // Recherche textuelle dans les détails
             if (fSearch && !log.details.toLowerCase().includes(fSearch)) return false;
-            
             return true;
         });
 
-        renderAuditTable(filtered);
-    }
-
-    function renderAuditTable(logs) {
         auditLogBody.innerHTML = '';
-        if (logs.length === 0) {
-            auditLogBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray; padding:20px;">Aucune correspondance trouvée.</td></tr>';
-            return;
-        }
-
-        logs.forEach(log => {
+        filtered.forEach(log => {
             const mColor = log.module === 'STOCK' ? '#1877f2' : log.module === 'COMPTES' ? '#8b5cf6' : '#f59e0b';
             auditLogBody.innerHTML += `
                 <tr>
                     <td><small>${log.dateAction}</small></td>
                     <td><b>${log.auteur}</b></td>
-                    <td><span class="badge-role" style="background:${mColor}; color:white; padding:2px 6px; font-size:10px;">${log.module}</span></td>
+                    <td><span class="badge-role" style="background:${mColor}; color:white;">${log.module}</span></td>
                     <td style="color:${log.type === 'SUPPRESSION' ? 'red' : 'orange'}; font-weight:bold;">${log.type}</td>
                     <td style="font-size:11px;">${log.details} [${log.produit || 'N/A'}]</td>
                 </tr>`;
         });
     }
 
-    // Écouteurs pour les changements de filtres audit
-    [logFilterDate, logFilterAuteur, logFilterModule, logFilterSearch].forEach(el => {
-        if (el) el.addEventListener('input', applyLogFilters);
-    });
+    [logFilterDate, logFilterAuteur, logFilterModule, logFilterSearch].forEach(el => el.addEventListener('input', applyLogFilters));
 
-    // --- 5. ACTIONS SUPER ADMIN ---
+    // --- 5. ACTIONS ADMIN ---
     window.deleteDocument = async (coll, docId) => {
-        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
-        if (confirm("Supprimer définitivement cette donnée ? L'action sera logguée.")) {
+        if (window.userRole !== 'superadmin') return alert("Super Admin requis.");
+        if (confirm("Confirmer la suppression ? (Sera enregistré dans l'Audit)")) {
             const snap = await db.collection(coll).doc(docId).get();
             const old = snap.data();
-            const moduleName = coll === 'ventes' ? 'VENTES' : 'PAIEMENTS';
-            
             await db.collection(coll).doc(docId).delete();
-            // Enregistrement automatique dans l'audit centralisé
-            window.logAction(moduleName, "SUPPRESSION", `Valeur: ${old.total || old.montantRecu}€ pour ${old.vendeur}`, old.produit || "N/A");
+            window.logAction(coll.toUpperCase(), "SUPPRESSION", `Action par Admin. Valeur: ${old.total || old.montantRecu}€`, old.produit || "N/A");
         }
     };
 
     window.editDocument = async (coll, docId) => {
-        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
+        if (window.userRole !== 'superadmin') return alert("Super Admin requis.");
         const snap = await db.collection(coll).doc(docId).get();
         const old = snap.data();
-        const newQty = prompt("Nouvelle quantité :", old.quantite);
-
-        if (newQty && newQty != old.quantite) {
-            const newTotal = parseInt(newQty) * old.prixUnitaire;
-            await db.collection(coll).doc(docId).update({ quantite: parseInt(newQty), total: newTotal });
-            
-            window.logAction("VENTES", "MODIFICATION", `Qté: ${old.quantite} -> ${newQty}. Nouveau total: ${newTotal}€`, old.produit);
+        const nQ = prompt("Nouvelle quantité :", old.quantite);
+        if (nQ && nQ != old.quantite) {
+            const nT = parseInt(nQ) * old.prixUnitaire;
+            await db.collection(coll).doc(docId).update({ quantite: parseInt(nQ), total: nT });
+            window.logAction("VENTES", "MODIFICATION", `Qté corrigée: ${old.quantite} -> ${nQ}`, old.produit);
         }
     };
 
-    // --- 6. EXPORT PDF ---
     window.downloadAuditLogPDF = function() {
         const element = document.getElementById('printableAuditArea');
-        const dateStr = new Date().toLocaleDateString('fr-FR').replace(/\//g, '-');
-        
-        const opt = {
-            margin: 10,
-            filename: `Audit_AMT_Global_${dateStr}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { scale: 2, useCORS: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } // Paysage pour la lisibilité
-        };
-
-        html2pdf().set(opt).from(element).save();
+        html2pdf().set({ margin: 10, filename: 'Audit_Global.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } }).from(element).save();
     };
 
-    function formatEUR(n) { 
-        return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); 
-    }
-    
+    function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
     init();
 });
