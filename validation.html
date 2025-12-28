@@ -8,7 +8,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        /* Inspiré du style Stock */
+        /* STYLE BASÉ SUR L'ONGLET STOCK */
         .kpi-stock-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
@@ -30,6 +30,7 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 400px; }
         th, td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
 
+        /* AJUSTEMENTS MOBILE */
         @media (max-width: 850px) {
             .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
             .navigation a { font-size: 11px; padding: 8px; }
@@ -62,65 +63,76 @@
     </nav>
 
     <div class="dashboard-grid-2-col" style="padding: 15px;">
+        
         <div class="form-section">
-            <h2 style="color: #1877f2; font-size: 15px; margin-top:0;">📝 Validation & Encaissement</h2>
+            <h2 style="color: #1877f2; font-size: 15px; margin-top:0;">📝 Saisie des données</h2>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="date" id="valDate" style="padding:10px; width:100%; box-sizing:border-box;">
-                <select id="valVendeur" style="padding:10px;"><option value="">-- Compte à valider --</option></select>
+                <select id="valVendeur" style="padding:10px; width:100%;"></select>
 
-                <div style="background: #fff; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <p style="font-size: 10px; font-weight: bold; color: #475569; margin: 0 0 5px 0;">📦 VENTES</p>
-                    <select id="valProduit" style="padding:10px; margin-bottom:5px;"></select>
+                <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                    <p style="font-size: 10px; font-weight: bold; color: #475569; margin: 0 0 5px 0;">📦 PARTIE 1 : VENTES</p>
+                    <select id="valProduit" style="padding:10px; width:100%; margin-bottom:5px;"></select>
                     <div id="sellerStockInfo" style="font-size: 10px; color: #1877f2; font-weight: bold; margin-bottom:5px;"></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" id="valQuantite" placeholder="Qté">
-                        <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background:#f1f5f9;">
+                        <input type="number" id="valQuantite" placeholder="Qté" style="padding:10px;">
+                        <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background:#f1f5f9; padding:10px;">
                     </div>
+                    <p style="font-size: 11px; text-align: right; margin-top: 5px; font-weight: bold;">
+                        Total : <span id="valTotalSaisie">0,00 €</span>
+                    </p>
                 </div>
 
                 <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
-                    <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 ARGENT REÇU</p>
+                    <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 PARTIE 2 : ARGENT REÇU</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" id="valAcompte" placeholder="Montant">
-                        <input type="number" id="valRemise" value="0">
+                        <input type="number" id="valAcompte" placeholder="Montant (€)" style="padding:10px;">
+                        <input type="number" id="valRemise" value="0" style="padding:10px;">
                     </div>
                 </div>
 
                 <div style="background: #fdf4ff; padding: 10px; border-radius: 8px; border: 1px solid #f5d0fe;">
-                    <p style="font-size: 10px; font-weight: bold; color: #701a75; margin: 0 0 5px 0;">📍 OPTION ABIDJAN</p>
+                    <p style="font-size: 10px; font-weight: bold; color: #701a75; margin: 0 0 5px 0;">📍 PARTIE 3 : OPTION ABIDJAN</p>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <input type="checkbox" id="valPayAbidjan" style="width: 18px; height: 18px;">
-                        <label style="font-size: 12px;">Payer à Abidjan</label>
+                        <input type="checkbox" id="valPayAbidjan" style="width: 18px; height: 18px; cursor: pointer;">
+                        <label style="font-size: 12px; font-weight:bold; cursor:pointer;">Payé à Abidjan</label>
                     </div>
-                    <input type="text" id="valClientRef" placeholder="Nom/Réf client" style="display:none; margin-top:8px;">
+                    <div id="boxClientRef" style="display:none; margin-top:10px;">
+                        <input type="text" id="valClientRef" placeholder="Nom/Référence Client" style="width:100%; padding:10px; border-radius:5px; border:1px solid #f5d0fe; box-sizing:border-box;">
+                    </div>
                 </div>
 
-                <button id="btnConfirmerVente" class="primary" style="background:#1877f2; height:45px;">Enregistrer</button>
+                <button id="btnConfirmerVente" class="primary" style="background:#1877f2; height:45px; border:none; border-radius:8px; color:white; font-weight:bold; cursor:pointer;">ENREGISTRER</button>
             </div>
         </div>
 
         <div>
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="margin: 0; font-size: 16px;">📊 État Financier</h2>
+                <h2 style="margin: 0; font-size: 16px;">📊 État du Vendeur</h2>
                 <button onclick="preparerImpression()" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 11px;">🖨️ Imprimer</button>
             </div>
 
             <div class="kpi-stock-grid">
                 <div class="card-stock bg-blue"><span class="stock-label">Vendu (Période)</span><span id="totalDu" class="stock-number">0€</span></div>
-                <div class="card-stock bg-green"><span class="stock-label">Reçu (Période)</span><span id="totalPaye" class="stock-number">0€</span></div>
-                <div class="card-stock bg-red" style="grid-column: span 2;"><span class="stock-label">Dette Historique</span><span id="resteAPayer" class="stock-number">0€</span></div>
+                <div class="card-stock bg-green"><span class="stock-label">Encaissé (Période)</span><span id="totalPaye" class="stock-number">0€</span></div>
+                <div class="card-stock bg-red" style="grid-column: span 2;"><span class="stock-label">Dette Réelle Totale</span><span id="resteAPayer" class="stock-number">0€</span></div>
             </div>
 
-            <div class="form-section no-print" style="display: flex; gap: 5px; align-items: flex-end;">
-                <div style="flex:1;"><input type="date" id="filterStart" style="font-size:11px;"></div>
-                <div style="flex:1;"><input type="date" id="filterEnd" style="font-size:11px;"></div>
-                <button onclick="loadSellerData()" style="background:#334155; color:white; border:none; padding:10px; border-radius:5px;">🔍</button>
+            <div class="form-section no-print" style="display: flex; gap: 5px; align-items: center;">
+                <input type="date" id="filterStart" style="flex:1; padding:8px;">
+                <input type="date" id="filterEnd" style="flex:1; padding:8px;">
+                <button onclick="loadSellerData()" style="background:#334155; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">🔍</button>
             </div>
 
             <div class="table-responsive">
                 <table id="sellerInventoryTable">
                     <thead>
-                        <tr style="background: #f1f5f9;"><th>Produit</th><th>Pris</th><th>Vendu</th><th>Main</th></tr>
+                        <tr style="background: #f1f5f9;">
+                            <th>Produit</th>
+                            <th>Pris</th>
+                            <th>Vendu</th>
+                            <th>En main</th>
+                        </tr>
                     </thead>
                     <tbody id="sellerInventoryBody"></tbody>
                 </table>
@@ -147,13 +159,12 @@
     <script src="auth-guard.js"></script>
 
     <script>
+        // --- LOGIQUE JS SÉCURISÉE ---
         const valVendeur = document.getElementById('valVendeur');
         const valProduit = document.getElementById('valProduit');
         const valQuantite = document.getElementById('valQuantite');
         const valPrixUnit = document.getElementById('valPrixUnit');
         const valTotalSaisie = document.getElementById('valTotalSaisie');
-        
-        // Eléments Partie 3
         const valPayAbidjan = document.getElementById('valPayAbidjan');
         const boxClientRef = document.getElementById('boxClientRef');
         const valClientRef = document.getElementById('valClientRef');
@@ -163,41 +174,35 @@
         document.getElementById('filterStart').value = today;
         document.getElementById('filterEnd').value = today;
 
-        let inventoryData = {}; 
-        let globalPrices = {}; 
+        let inventoryData = {}; let globalPrices = {};
 
-        function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n); }
+        function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
-        // Logique affichage Partie 3
-        valPayAbidjan.addEventListener('change', (e) => {
-            boxClientRef.style.display = e.target.checked ? 'block' : 'none';
-            if(!e.target.checked) valClientRef.value = "";
-        });
+        // Correction de l'erreur style.display
+        if (valPayAbidjan) {
+            valPayAbidjan.addEventListener('change', (e) => {
+                if (boxClientRef) boxClientRef.style.display = e.target.checked ? 'block' : 'none';
+                if (!e.target.checked && valClientRef) valClientRef.value = "";
+            });
+        }
 
         async function loadDynamicUsers() {
-            try {
-                const snap = await db.collection("users").orderBy("nom", "asc").get();
-                valVendeur.innerHTML = '<option value="">-- Sélectionner un compte --</option>';
-                snap.forEach(doc => {
-                    const u = doc.data();
-                    const opt = document.createElement('option');
-                    opt.value = u.nom;
-                    opt.textContent = `${u.nom} (${u.role})`;
-                    valVendeur.appendChild(opt);
-                });
-            } catch (e) { console.error(e); }
+            const snap = await db.collection("users").orderBy("nom", "asc").get();
+            valVendeur.innerHTML = '<option value="">-- Choisir un compte --</option>';
+            snap.forEach(doc => {
+                const u = doc.data();
+                valVendeur.innerHTML += `<option value="${u.nom}">${u.nom}</option>`;
+            });
         }
 
         async function loadPrices() {
             const snap = await db.collection("stocks").get();
-            globalPrices = {}; 
             snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente); });
         }
 
         async function loadSellerData() {
             const name = valVendeur.value;
             if (!name) return;
-
             const dStart = document.getElementById('filterStart').value;
             const dEnd = document.getElementById('filterEnd').value;
 
@@ -208,28 +213,28 @@
             ]);
 
             inventoryData = {};
-            let periodVentes = 0, periodPaye = 0;
-            let totalHistVentes = 0, totalHistPaye = 0;
+            let periodVentes = 0; let periodPaye = 0;
+            let totalHistVentes = 0; let totalHistPaye = 0;
 
             recupSnap.forEach(doc => { 
                 const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { prisPeriod: 0, venduPeriod: 0, prisTotal: 0, venduTotal: 0 };
-                inventoryData[d.produit].prisTotal += d.quantite;
-                if (d.date >= dStart && d.date <= dEnd) inventoryData[d.produit].prisPeriod += d.quantite;
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, pT: 0, vT: 0 };
+                inventoryData[d.produit].pT += d.quantite;
+                if (d.date >= dStart && d.date <= dEnd) inventoryData[d.produit].pP += d.quantite;
             });
 
-            ventesSnap.forEach(doc => { 
+            ventesSnap.forEach(doc => {
                 const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { prisPeriod: 0, venduPeriod: 0, prisTotal: 0, venduTotal: 0 };
-                inventoryData[d.produit].venduTotal += d.quantite;
-                totalHistVentes += d.total || 0;
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, pT: 0, vT: 0 };
+                inventoryData[d.produit].vT += d.quantite;
+                totalHistVentes += (d.total || 0);
                 if (d.date >= dStart && d.date <= dEnd) {
-                    inventoryData[d.produit].venduPeriod += d.quantite;
-                    periodVentes += d.total || 0;
+                    inventoryData[d.produit].vP += d.quantite;
+                    periodVentes += (d.total || 0);
                 }
             });
 
-            encaissSnap.forEach(doc => { 
+            encaissSnap.forEach(doc => {
                 const d = doc.data();
                 const montant = (d.montantRecu || 0) + (d.remise || 0);
                 totalHistPaye += montant;
@@ -239,7 +244,6 @@
             document.getElementById('totalDu').innerText = formatEUR(periodVentes);
             document.getElementById('totalPaye').innerText = formatEUR(periodPaye);
             document.getElementById('resteAPayer').innerText = formatEUR(totalHistVentes - totalHistPaye);
-            
             renderUI();
         }
 
@@ -247,98 +251,59 @@
             valProduit.innerHTML = '<option value="">-- Choisir un produit --</option>';
             const tbody = document.getElementById('sellerInventoryBody');
             tbody.innerHTML = '';
-
-            for (const prod in inventoryData) {
-                const item = inventoryData[prod];
-                const enMain = item.prisTotal - item.venduTotal;
-                if (enMain > 0) {
-                    const opt = document.createElement('option');
-                    opt.value = prod; opt.textContent = prod;
-                    valProduit.appendChild(opt);
-                }
-                if (item.prisTotal > 0) {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td style="padding:8px; border:1px solid #ddd;">${prod}</td>
-                            <td style="text-align:center; padding:8px; border:1px solid #ddd; background:#f0f9ff; font-weight:bold;">${item.prisPeriod}</td>
-                            <td style="text-align:center; padding:8px; border:1px solid #ddd; background:#fff1f2; font-weight:bold;">${item.venduPeriod}</td>
-                            <td style="text-align:center; padding:8px; border:1px solid #ddd;">${enMain}</td>
-                        </tr>`;
-                }
+            for (const p in inventoryData) {
+                const item = inventoryData[p];
+                const enMain = item.pT - item.vT;
+                if (enMain > 0) valProduit.innerHTML += `<option value="${p}">${p}</option>`;
+                tbody.innerHTML += `<tr><td>${p}</td><td>${item.pP}</td><td>${item.vP}</td><td><b>${enMain}</b></td></tr>`;
             }
         }
 
         function preparerImpression() {
             const name = valVendeur.value;
-            if(!name) return alert("Sélectionnez un vendeur avant d'imprimer.");
+            if(!name) return alert("Sélectionnez un vendeur.");
             document.getElementById('printVendeurName').innerText = "Vendeur : " + name;
-            document.getElementById('printDatePeriod').innerText = "Période du " + document.getElementById('filterStart').value + " au " + document.getElementById('filterEnd').value;
             window.print();
         }
 
         valVendeur.addEventListener('change', loadSellerData);
         valProduit.addEventListener('change', () => {
             valPrixUnit.value = globalPrices[valProduit.value] || 0;
-            const data = inventoryData[valProduit.value];
-            const stockActual = data ? (data.prisTotal - data.venduTotal) : 0;
-            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `En stock : ${stockActual}` : "";
+            const it = inventoryData[valProduit.value];
+            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `Stock : ${it ? it.pT - it.vT : 0}` : "";
             updateT();
         });
 
         valQuantite.addEventListener('input', updateT);
-        function updateT() { valTotalSaisie.innerText = formatEUR((parseFloat(valQuantite.value)||0)*(parseFloat(valPrixUnit.value)||0)); }
+        function updateT() { 
+            if (valTotalSaisie) valTotalSaisie.innerText = formatEUR((parseFloat(valQuantite.value)||0)*(parseFloat(valPrixUnit.value)||0)); 
+        }
 
         document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
             const btn = document.getElementById('btnConfirmerVente');
             const name = valVendeur.value;
             const prod = valProduit.value;
             const qty = parseInt(valQuantite.value) || 0;
-            const price = parseFloat(valPrixUnit.value) || 0;
-            const acompte = parseFloat(document.getElementById('valAcompte').value) || 0;
-            const remise = parseFloat(document.getElementById('valRemise').value) || 0;
-            const date = document.getElementById('valDate').value;
-            
-            // Partie 3 values
-            const payeAbidjan = valPayAbidjan.checked;
-            const clientRef = valClientRef.value.trim();
+            const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
+            const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
-            if (!name) return alert("Sélectionnez un compte.");
-            if (!(prod && qty > 0) && !(acompte > 0 || remise > 0)) return alert("Saisissez une donnée.");
-
+            if (!name) return alert("Choisissez un vendeur.");
             btn.disabled = true;
             try {
                 if (prod && qty > 0) {
-                    const data = inventoryData[prod];
-                    const enMain = data ? (data.prisTotal - data.venduTotal) : 0;
-                    if (qty > enMain) { btn.disabled = false; return alert("Stock insuffisant."); }
-                    
                     await db.collection("ventes").add({ 
-                        date, 
-                        vendeur: name, 
-                        produit: prod, 
-                        quantite: qty, 
-                        prixUnitaire: price, 
-                        total: qty * price, 
-                        payeAbidjan: payeAbidjan,
-                        clientRef: clientRef,
+                        date: document.getElementById('valDate').value, vendeur: name, produit: prod, quantite: qty, 
+                        prixUnitaire: parseFloat(valPrixUnit.value), total: qty * parseFloat(valPrixUnit.value),
+                        payeAbidjan: valPayAbidjan.checked, clientRef: valClientRef.value,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp() 
                     });
                 }
-                if (acompte > 0 || remise > 0) {
-                    await db.collection("encaissements_vendeurs").add({ date, vendeur: name, montantRecu: acompte, remise: remise, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                if (aco > 0 || rem > 0) {
+                    await db.collection("encaissements_vendeurs").add({ date: document.getElementById('valDate').value, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
-                alert("Enregistré !");
-                
-                // Reset form
-                valQuantite.value = ""; 
-                document.getElementById('valAcompte').value = ""; 
-                document.getElementById('valRemise').value = "0";
-                valPayAbidjan.checked = false;
-                boxClientRef.style.display = 'none';
-                valClientRef.value = "";
-
-                loadSellerData(); 
-            } catch (e) { alert("Erreur."); console.error(e); } finally { btn.disabled = false; }
+                alert("Enregistré avec succès !");
+                valQuantite.value = ""; document.getElementById('valAcompte').value = ""; loadSellerData();
+            } catch (e) { alert("Erreur."); } finally { btn.disabled = false; }
         });
 
         loadDynamicUsers(); loadPrices();

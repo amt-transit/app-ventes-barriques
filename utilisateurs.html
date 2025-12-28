@@ -3,28 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gestion des Utilisateurs - AMT</title>
+    <title>Administration - AMT</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        .badge-role { background: #e2e8f0; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
-        .btn-suppr { background: #ef4444; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; }
-        .btn-reset { background: #f59e0b; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; margin-right: 5px; }
+        .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; padding: 15px; }
+        .form-section { background: #f8fafc; padding: 20px; border-radius: 12px; border: 2px solid #e2e8f0; }
         
-        .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; padding: 20px; }
-        
-        .table-responsive { width: 100%; overflow-x: auto; }
-        .user-table { width: 100%; border-collapse: collapse; margin-top: 15px; min-width: 500px; }
-        .user-table th { text-align: left; background: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; font-size: 13px; }
-        .user-table td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 12px; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; min-width: 450px; }
+        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
+        th { background: #f1f5f9; color: #64748b; }
+
+        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; }
 
         @media (max-width: 850px) {
-            .dashboard-grid-2-col { grid-template-columns: 1fr; padding: 10px; }
+            .dashboard-grid-2-col { grid-template-columns: 1fr; }
             .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
             .navigation a { font-size: 11px; padding: 8px; }
             h1 { font-size: 18px; text-align: center; }
-            input, select { width: 100%; box-sizing: border-box; }
         }
     </style>
 </head>
@@ -40,42 +38,35 @@
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="history.html">Historique</a>
         <a href="utilisateurs.html" class="active">Utilisateurs</a>
-        <a href="recuperation.html">Récupération</a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
     <div class="dashboard-grid-2-col">
-        <div class="dashboard-container" style="padding: 15px;">
-            <h2>👤 Créer un Vendeur</h2>
-            <div style="display: flex; flex-direction: column; gap: 10px;">
-                <input type="text" id="newUserName" placeholder="Nom complet" style="padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
-                <input type="text" id="newUserPass" placeholder="Mot de passe (6 car. min)" style="padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
-                <select id="newUserRole" style="padding: 12px; border-radius: 8px; border: 1px solid #ddd;">
-                    <option value="vendeur">Vendeur (Accès restreint)</option>
-                    <option value="admin">Administrateur (Accès total)</option>
+        <div class="form-section">
+            <h2 style="color:#1877f2; font-size:16px; margin-top:0;">👤 Nouvel Accès</h2>
+            <div style="display: flex; flex-direction: column;">
+                <input type="text" id="newUserName" placeholder="Nom complet">
+                <input type="text" id="newUserPass" placeholder="Mot de passe">
+                <select id="newUserRole">
+                    <option value="vendeur">Vendeur (Restreint)</option>
+                    <option value="admin">Administrateur (Total)</option>
                 </select>
-                <button id="btnCreateUser" class="primary" style="background: #1877f2; color: white; border: none; padding: 15px; border-radius: 8px; font-weight: bold; cursor: pointer;">Créer l'accès</button>
-                <p id="msgUser" style="text-align: center; font-size: 12px; font-weight: bold;"></p>
+                <button id="btnCreateUser" class="primary" style="background:#1877f2; padding:15px;">Créer l'accès</button>
+                <p id="msgUser" style="text-align:center; font-size:11px; font-weight:bold; margin-top:10px;"></p>
             </div>
         </div>
 
-        <div class="dashboard-container" style="padding: 15px;">
-            <h2>📋 Comptes existants</h2>
+        <div style="background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
+            <h2 style="font-size:16px; margin-top:0;">📋 Comptes existants</h2>
             <div class="table-responsive">
                 <table class="user-table">
-                    <thead>
-                        <tr>
-                            <th>Nom / Email</th>
-                            <th>Mot de passe</th>
-                            <th>Rôle</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Utilisateur</th><th>Pass</th><th>Rôle</th><th>Action</th></tr></thead>
                     <tbody id="userListBody"></tbody>
                 </table>
             </div>
         </div>
     </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
