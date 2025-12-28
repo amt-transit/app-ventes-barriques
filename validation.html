@@ -32,9 +32,32 @@
 
         /* AJUSTEMENTS MOBILE */
         @media (max-width: 850px) {
-            .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-            .navigation a { font-size: 11px; padding: 8px; }
-            h1 { font-size: 18px; text-align: center; }
+            /* Centre le logo et le titre l'un sur l'autre */
+            .app-header { 
+                display: flex; 
+                flex-direction: column; 
+                align-items: center; 
+                text-align: center; 
+                padding: 15px 10px;
+            }
+            .app-logo { margin-right: 0 !important; margin-bottom: 10px; }
+            
+            /* Centre parfaitement les onglets de navigation */
+            .navigation { 
+                display: flex !important; 
+                flex-wrap: wrap !important; 
+                justify-content: center !important; 
+                gap: 6px !important; 
+                padding: 10px !important;
+            }
+            .navigation a, .navigation button { 
+                font-size: 10px; 
+                padding: 8px 12px; 
+                margin: 0 !important;
+                flex-grow: 0; /* Empêche les boutons de s'étirer */
+            }
+
+            h1 { font-size: 18px; text-align: center; margin: 0; }
             .dashboard-grid-2-col { grid-template-columns: 1fr; }
             .kpi-stock-grid { grid-template-columns: repeat(2, 1fr); }
         }
