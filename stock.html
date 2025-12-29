@@ -9,132 +9,27 @@
     <link rel="icon" type="image/png" href="logo.png">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
-        .kpi-stock-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 10px; 
-            margin-bottom: 20px; 
-        }
+        .kpi-stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .card-stock { border-radius: 12px; padding: 12px; text-align: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .bg-blue { background: #1877f2; }
-        .bg-orange { background: #f59e0b; }
-        .bg-dark { background: #1e293b; }
-        .bg-purple { background: #701a75; }
-        .bg-green { background: #10b981; }
-        .bg-violet { background: #8b5cf6; }
-        
-        .stock-label { font-size: 9px; text-transform: uppercase; font-weight: bold; opacity: 0.9; }
-        .stock-number { font-size: 16px; font-weight: bold; display: block; margin-top: 5px; }
-        
+        .bg-blue { background: #1877f2; } .bg-orange { background: #f59e0b; } .bg-dark { background: #1e293b; }
+        .bg-purple { background: #701a75; } .bg-green { background: #10b981; } .bg-violet { background: #8b5cf6; }
+        .bg-slate { background: #64748b; }
+        .stock-label { font-size: 8px; text-transform: uppercase; font-weight: bold; opacity: 0.9; display: block; }
+        .stock-number { font-size: 15px; font-weight: bold; display: block; margin-top: 3px; }
         .form-section { background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0; margin-bottom: 20px; }
-        .form-grid-responsive { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-        
+        .form-grid-responsive { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
+        .stock-tab-nav { display: flex; gap: 10px; margin-bottom: 15px; justify-content: center; }
+        .stock-tab-btn { padding: 10px 20px; border: none; border-radius: 20px; cursor: pointer; font-weight: bold; background: #e2e8f0; font-family: 'Comfortaa'; font-size: 12px; }
+        .stock-tab-btn.active { background: #1877f2; color: white; }
+        .stock-section { display: none; }
+        .stock-section.active { display: block; }
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        #stockTable { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 600px; }
-        #stockTable th, #stockTable td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
-
-        @media (max-width: 600px) {
-            .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-            .navigation a { font-size: 11px; padding: 8px; }
-            h1 { font-size: 18px; text-align: center; }
-            .kpi-stock-grid { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
-        /* --- MODAL MODERNE --- */
-        .modal-content {
-            background-color: #ffffff;
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            border: none;
-            animation: slideIn 0.3s ease-out;
-        }
-
-        @keyframes slideIn {
-            from { transform: translate(-50%, -45%); opacity: 0; }
-            to { transform: translate(-50%, -50%); opacity: 1; }
-        }
-
-        /* Titre de la fiche */
-        #modalTitle {
-            text-align: center;
-            font-size: 22px;
-            color: #1e293b;
-            border-bottom: 2px solid #f1f5f9;
-            padding-bottom: 15px;
-            margin-bottom: 20px;
-        }
-
-        /* Badge de stock */
-        #modalStockStatus {
-            background: #f8fafc;
-            padding: 12px;
-            border-radius: 12px;
-            text-align: center;
-            border: 1px solid #e2e8f0;
-            font-size: 15px;
-        }
-
-        /* Boutons d'actions stylisés */
-        .btn-action-modal {
-            width: 100%;
-            padding: 12px;
-            border-radius: 10px;
-            border: none;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            transition: 0.2s;
-            margin-bottom: 10px;
-        }
-
-        .btn-loss-red { background: #fee2e2; color: #dc2626; }
-        .btn-loss-red:hover { background: #fecaca; }
-
-        .btn-cons-gray { background: #f1f5f9; color: #475569; }
-        .btn-cons-gray:hover { background: #e2e8f0; }
-
-        /* Table Historique propre */
-        .modal-table {
-            width: 100%;
-            margin-top: 20px;
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid #f1f5f9;
-        }
-
-        .modal-table th {
-            background: #f8fafc;
-            color: #64748b;
-            font-size: 11px;
-            text-transform: uppercase;
-            padding: 10px;
-        }
-
-        .modal-table td {
-            padding: 12px 10px;
-            border-bottom: 1px solid #f1f5f9;
-            font-size: 13px;
-        }
-        .no-print { margin-top: 20px; text-align: center; }
-        /* Styles pour les badges de stock dynamiques */
-        .stock-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 14px;
-            margin-left: 10px;
-        }
-
-        .badge-green { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
-        .badge-orange { background-color: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
-        .badge-red { background-color: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-        .badge-neutral { background-color: #f1f5f9; color: #475569; border: 1px solid #e2e8f0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 600px; }
+        th, td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
+        th { background: #f8fafc; color: #64748b; font-weight: bold; text-transform: uppercase; font-size: 10px; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #ffffff; border-radius: 20px; padding: 30px; width: 90%; max-width: 500px; margin: 10% auto; }
+        .btn-loss-main { width: 100%; padding: 12px; border-radius: 10px; border: none; font-weight: bold; cursor: pointer; color: white; background: #dc2626; }
     </style>
 </head>
 <body>
@@ -157,124 +52,73 @@
         <div class="form-section no-print">
             <h2 style="margin-top: 0; color: #1877f2; font-size: 15px;">🚛 Nouvel Arrivage</h2>
             <div class="form-grid-responsive">
-                <input type="date" id="stockDate" style="padding: 10px;">
-                <select id="stockProduit" style="padding: 10px;">
-                    <option value="">-- Choisir un produit --</option>
-                </select>
-                <input type="number" id="quantiteInitiale" placeholder="Qté" style="padding: 10px;">
-                <input type="number" id="prixAchat" placeholder="Prix Achat (€)" style="padding: 10px;">
-                <input type="number" id="prixVenteRef" placeholder="Prix Vente (€)" style="padding: 10px;">
-                <button id="addStockBtn" class="primary" style="background: #1877f2; padding: 10px; border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold;">Enregistrer</button>
+                <input type="date" id="stockDate">
+                <select id="stockProduit"><option value="">-- Choisir un produit --</option></select>
+                <input type="number" id="quantiteInitiale" placeholder="Qté">
+                <input type="number" id="prixAchat" placeholder="Prix Achat (€)">
+                <input type="number" id="prixVenteRef" placeholder="Prix Vente (€)">
+                <button id="addStockBtn" style="background: #1877f2; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;">Enregistrer</button>
             </div>
-            <datalist id="referenceList"></datalist>
         </div>
 
         <div id="printableStockArea" style="background: white; padding: 15px; border-radius: 10px;">
-            <h2 style="text-align: center; color: #1e293b; margin-bottom: 20px; font-size: 16px;">État des Stocks & Analyse AMT</h2>
+            <div class="stock-tab-nav no-print">
+                <button id="tabBtnVendables" class="stock-tab-btn active" onclick="switchStockTab('vendables')">📋 Produits Vendables</button>
+                <button id="tabBtnConsos" class="stock-tab-btn" onclick="switchStockTab('consos')">🛠️ Consommables</button>
+            </div>
 
-            <div class="kpi-stock-grid">
-                <div class="card-stock bg-blue">
-                    <span class="stock-label">Reçu (Total)</span>
-                    <span id="volumeTotal" class="stock-number">0</span>
+            <div id="section-vendables" class="stock-section active">
+                <div class="kpi-stock-grid">
+                    <div class="card-stock bg-blue"><span class="stock-label">Reçu (Total)</span><span id="vend_volumeTotal" class="stock-number">0</span></div>
+                    <div class="card-stock bg-orange"><span class="stock-label">Aux Vendeurs</span><span id="vend_totalSorti" class="stock-number">0</span></div>
+                    <div class="card-stock bg-purple"><span class="stock-label">Vendu Abidjan</span><span id="vend_totalAbidjan" class="stock-number">0</span></div>
+                    <div class="card-stock bg-dark"><span class="stock-label">Restant Dépôt</span><span id="vend_totalEnMagasin" class="stock-number">0</span></div>
+                    <div class="card-stock bg-green"><span class="stock-label">Bénéfice RÉEL</span><span id="vend_beneficeReel" class="stock-number">0,00 €</span></div>
+                    <div class="card-stock bg-violet"><span class="stock-label">Bénéfice POTENTIEL</span><span id="vend_beneficeTotalStock" class="stock-number">0,00 €</span></div>
                 </div>
-                <div class="card-stock bg-orange">
-                    <span class="stock-label">Donné Vendeurs</span>
-                    <span id="totalSorti" class="stock-number">0</span>
-                </div>
-                <div class="card-stock bg-dark">
-                    <span class="stock-label">Pertes Stock</span>
-                    <span id="totalPertesStock" class="stock-number">0</span>
-                </div>
-                <div class="card-stock bg-purple">
-                    <span class="stock-label">Vendu Abidjan</span>
-                    <span id="totalAbidjanQty" class="stock-number">0</span>
-                </div>
-                <div class="card-stock bg-dark" style="background: #334155;">
-                    <span class="stock-label">Restant Dépôt</span>
-                    <span id="totalEnMagasin" class="stock-number">0</span>
-                </div>
-                <div class="card-stock" style="background: #64748b;">
-                    <span class="stock-label">Coût Consommables</span>
-                    <span id="totalCoutConsommables" class="stock-number">0,00 €</span>
-                </div>
-                <div class="card-stock bg-green">
-                    <span class="stock-label">Bénéfice RÉEL</span>
-                    <span id="beneficeReel" class="stock-number">0,00 €</span>
-                </div>
-                <div class="card-stock bg-violet">
-                    <span class="stock-label">Bénéfice POTENTIEL</span>
-                    <span id="beneficeTotalStock" class="stock-number">0,00 €</span>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr style="background: #f1f5f9;">
+                                <th>Produit</th><th>Reçu</th><th>Vendu Agence</th><th style="color: #701a75;">📍 Abidjan</th><th style="color: #ef4444;">Pertes</th><th>En Dépôt</th><th>Bénéf. Réel</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendablesTableBody"></tbody>
+                    </table>
                 </div>
             </div>
 
-            <div class="table-responsive">
-                <table id="stockTable">
-                    <thead>
-                        <tr style="background: #f1f5f9;">
-                            <th>Produit</th>
-                            <th>Reçu</th>
-                            <th>Vendu Agence</th>
-                            <th style="color: #701a75;">📍 Abidjan</th>
-                            <th style="color: #ef4444;">⚠️ Pertes</th>
-                            <th style="color: #64748b;">🛠️ Consommé</th>
-                            <th>En Dépôt</th>
-                            <th>Bénéf. Réel</th>
-                        </tr>
-                    </thead>
-                    <tbody id="stockTableBody"></tbody>
-                </table>
+            <div id="section-consos" class="stock-section">
+                <div class="kpi-stock-grid">
+                    <div class="card-stock bg-blue"><span class="stock-label">Acheté (Total)</span><span id="cons_volumeTotal" class="stock-number">0</span></div>
+                    <div class="card-stock bg-orange"><span class="stock-label">Usage Vendeurs</span><span id="cons_usageVendeurs" class="stock-number">0</span></div>
+                    <div class="card-stock bg-slate"><span class="stock-label">Consommé Bureau</span><span id="cons_usageBureau" class="stock-number">0</span></div>
+                    <div class="card-stock bg-dark"><span class="stock-label">En Stock Dépôt</span><span id="cons_totalEnMagasin" class="stock-number">0</span></div>
+                    <div class="card-stock bg-dark" style="background: #334155;"><span class="stock-label">Dépense Totale</span><span id="cons_valeurInvestie" class="stock-number">0,00 €</span></div>
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr style="background: #f1f5f9;">
+                                <th>Fourniture</th><th>Reçu (Achat)</th><th>Usage Vendeurs</th><th>Consommé Bureau</th><th>Stock Dépôt</th><th>Valeur Investie</th>
+                            </tr>
+                        </thead>
+                        <tbody id="consosTableBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
-
-        <div class="no-print">
-            <button onclick="downloadStockPDF()" style="width: 100%; padding: 15px; background: #1e293b; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                📄 Télécharger l'inventaire complet (PDF)
-            </button>
-        </div>
     </div>
 
-    <div id="lossModal" class="modal">
-        <div class="modal-content modal-small" style="text-align: center;">
-            <h3 style="color: #ef4444;">⚠️ DÉCLARER UNE PERTE</h3>
-            <p id="lossProductName" style="font-weight: bold; font-size: 18px;"></p>
-            <input type="number" id="lossQuantity" placeholder="Quantité perdue" style="width: 80%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 5px;">
-            <button onclick="confirmLoss()" class="primary" style="background: #ef4444; width: 100%;">Valider</button>
-            <button onclick="document.getElementById('lossModal').style.display='none'" style="margin-top: 10px; background:none; border:none; cursor:pointer; color:gray;">Annuler</button>
-        </div>
-    </div>
-    <div id="consumeModal" class="modal">
-        <div class="modal-content modal-small" style="text-align: center;">
-            <h3 style="color: #64748b;">🛠️ CONSOMMATION INTERNE</h3>
-            <p id="consumeProductName" style="font-weight: bold; font-size: 18px;"></p>
-            <input type="number" id="consumeQuantity" placeholder="Quantité utilisée" style="width: 80%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 5px;">
-            <button onclick="confirmConsumption()" class="primary" style="background: #64748b; width: 100%;">Valider l'usage</button>
-            <button onclick="document.getElementById('consumeModal').style.display='none'" style="margin-top: 10px; background:none; border:none; cursor:pointer; color:gray;">Annuler</button>
-        </div>
-    </div>
-
-    <div id="historyModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal" onclick="document.getElementById('historyModal').style.display='none'">&times;</span>
-            <h2 id="modalTitle" style="color: #1877f2; margin-top: 0;">Détails Produit</h2>
-            <p id="modalStockStatus" style="font-weight: bold; margin-bottom: 15px;"></p>
-            <button id="btnLossFromModal" class="btn-loss-main">⚡ Signaler une Perte sur ce produit</button>
-            <button id="btnConsumeFromModal" class="btn-loss-main" style="background: #64748b; margin-top: 10px;">🛠️ Enregistrer un usage interne</button>
-            <div id="modalTableBody"></div>
-        </div>
-    </div>
+    <div id="lossModal" class="modal"><div class="modal-content" style="text-align: center;"><h3 style="color: #ef4444;">DÉCLARER PERTE</h3><p id="lossProductName" style="font-weight: bold;"></p><input type="number" id="lossQuantity" placeholder="Qté"><button onclick="confirmLoss()" style="background:#ef4444; color:white; border:none; padding:10px; width:100%; border-radius:8px; margin-top:10px;">Valider</button></div></div>
+    <div id="consumeModal" class="modal"><div class="modal-content" style="text-align: center;"><h3 style="color: #64748b;">USAGE BUREAU</h3><p id="consumeProductName" style="font-weight: bold;"></p><input type="number" id="consumeQuantity" placeholder="Qté"><button onclick="confirmConsumption()" style="background:#64748b; color:white; border:none; padding:10px; width:100%; border-radius:8px; margin-top:10px;">Valider</button></div></div>
+    <div id="historyModal" class="modal"><div class="modal-content"><span onclick="document.getElementById('historyModal').style.display='none'" style="float:right; cursor:pointer;">&times;</span><h2 id="modalTitle" style="color: #1877f2; margin-top: 0;">Détails</h2><p id="modalStockStatus"></p><button onclick="document.getElementById('historyModal').style.display='none'; openLossModal(window.currentProdName);" class="btn-loss-main">⚠️ Perte</button><button onclick="document.getElementById('historyModal').style.display='none'; openConsumeModal(window.currentProdName);" class="btn-loss-main" style="background: #64748b; margin-top: 5px;">🛠️ Bureau</button><div id="modalTableBody" style="margin-top: 15px;"></div></div></div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-            authDomain: "app-ventes-barriques.firebaseapp.com",
-            projectId: "app-ventes-barriques",
-            storageBucket: "app-ventes-barriques.appspot.com",
-            messagingSenderId: "615546459847",
-            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M", authDomain: "app-ventes-barriques.firebaseapp.com", projectId: "app-ventes-barriques", storageBucket: "app-ventes-barriques.appspot.com", messagingSenderId: "615546459847", appId: "1:615546459847:web:1b387b0b703b7a9a1210e2" };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         window.db = firebase.firestore();
     </script>
