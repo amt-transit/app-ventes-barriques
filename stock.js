@@ -113,15 +113,29 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         allStocksRaw.forEach(s => {
             if (!globalSummary[s.produit]) {
-                globalSummary[s.produit] = { in: 0, out: 0, soldAgence: 0, soldAbidjan: 0, loss: 0, lastPA: s.prixAchat, lastPV: s.prixVente, revenue: 0 };
+                globalSummary[s.produit] = { 
+                    in: 0, out: 0, soldAgence: 0, soldAbidjan: 0, 
+                    loss: 0, consumed: 0, // Nouveau compteur
+                    lastPA: s.prixAchat, lastPV: s.prixVente, revenue: 0 
+                };
             }
             globalSummary[s.produit].in += s.quantite;
             globalSummary[s.produit].lastPA = s.prixAchat;
-            globalSummary[s.produit].lastPV = s.prixVente;
         });
 
         allRecuperationsRaw.forEach(r => { if (globalSummary[r.produit]) globalSummary[r.produit].out += r.quantite; });
         allPertesRaw.forEach(p => { if (globalSummary[p.produit]) globalSummary[p.produit].loss += p.quantite; });
+        // On traite les "Recupérations" de consommables
+        allRecuperationsRaw.forEach(r => { 
+            if (globalSummary[r.produit]) {
+                // Si le prix de vente est 0 ou très bas, on considère que c'est une consommation interne
+                if (globalSummary[r.produit].lastPV <= 0) {
+                    globalSummary[r.produit].consumed += r.quantite;
+                } else {
+                    globalSummary[r.produit].out += r.quantite; 
+                }
+            }
+        });
         
         allVentesRaw.forEach(v => { 
             if (globalSummary[v.produit]) { 
@@ -138,27 +152,24 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         for (const prod in globalSummary) {
             const item = globalSummary[prod];
-            const enDepot = item.in - item.out - item.loss;
-            const totalVendu = item.soldAgence + item.soldAbidjan;
-            const bReel = item.revenue - (totalVendu * item.lastPA);
-            const bEst = (item.lastPV - item.lastPA) * enDepot;
-
-            gainReelTotal += bReel;
-            gainEstTotal += bEst;
-            totalPertesMagasin += item.loss;
-            totalAbidjanGlobal += item.soldAbidjan;
+            // Le stock restant prend en compte la consommation interne
+            const enDepot = item.in - item.out - item.loss - item.consumed;
+            
+            // Un consommable a un bénéfice négatif (c'est une dépense)
+            const bReel = item.revenue - ( (item.soldAgence + item.soldAbidjan + item.consumed) * item.lastPA );
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><b>${prod}</b></td>
                 <td style="text-align:center;">${item.in}</td>
                 <td style="text-align:center;">${item.soldAgence}</td>
-                <td style="text-align:center; color:#701a75; font-weight:bold;">${item.soldAbidjan}</td>
+                <td style="text-align:center; color:#701a75;">${item.soldAbidjan}</td>
                 <td style="text-align:center; color:#ef4444;">${item.loss}</td>
-                <td style="text-align:center; font-weight:bold; color:${enDepot < 5 ? 'red' : 'black'}">${enDepot}</td>
-                <td style="text-align:center; color:#10b981; font-weight:bold;">${bReel.toFixed(2)}€</td>
+                <td style="text-align:center; color:#64748b;">${item.consumed}</td> <td style="text-align:center; font-weight:bold;">${enDepot}</td>
+                <td style="text-align:center; color:${bReel < 0 ? '#ef4444' : '#10b981'};">
+                    ${bReel.toFixed(2)}€
+                </td>
             `;
-            tr.onclick = () => showProductDetails(prod, enDepot);
             stockTableBody.appendChild(tr);
         }
 
