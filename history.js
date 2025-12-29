@@ -2,6 +2,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SÉLECTEURS ---
     const tableBodyVentes = document.getElementById('tableBodyVentes');
     const tableBodyInvendus = document.getElementById('tableBodyInvendus');
+    const tableBodyConsommables = document.getElementById('tableBodyConsommables');
     const tableBodyPaiements = document.getElementById('tableBodyPaiements');
     const auditLogBody = document.getElementById('auditLogBody');
     const auditBadge = document.getElementById('auditCount');
@@ -19,11 +20,13 @@ document.addEventListener('DOMContentLoaded', () => {
     let salesData = [];
     let recupsData = [];
     let retoursData = [];
+    let consommationsData = []; 
     
     let unsubscribeVentes = null;
     let unsubscribePaiements = null;
     let unsubscribeRecups = null;
     let unsubscribeRetours = null;
+    let unsubscribeConsos = null; 
     let lastViewedTimestamp = localStorage.getItem('lastAuditLogView') || 0;
 
     // --- 1. INITIALISATION ---
@@ -51,13 +54,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     window.changeMonth = (offset) => {
-        if (!dateStartInput) return;
         let currentStart = new Date(dateStartInput.value);
         currentStart.setMonth(currentStart.getMonth() + offset);
-        const firstDay = new Date(currentStart.getFullYear(), currentStart.getMonth(), 1);
-        const lastDay = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0);
-        dateStartInput.value = firstDay.toISOString().split('T')[0];
-        if (dateEndInput) dateEndInput.value = lastDay.toISOString().split('T')[0];
+        dateStartInput.value = new Date(currentStart.getFullYear(), currentStart.getMonth(), 1).toISOString().split('T')[0];
+        dateEndInput.value = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0).toISOString().split('T')[0];
         startDataListeners(); 
     };
 
@@ -65,9 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const snap = await db.collection("users").orderBy("nom", "asc").get();
         snap.forEach(doc => {
             const nom = doc.data().nom;
-            const opt = `<option value="${nom}">${nom}</option>`;
-            if (filterVendeur) filterVendeur.innerHTML += opt;
-            if (logFilterAuteur) logFilterAuteur.innerHTML += opt;
+            if (filterVendeur) filterVendeur.innerHTML += `<option value="${nom}">${nom}</option>`;
         });
     }
 
@@ -83,7 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (section) section.classList.add('active');
         
         const gFilters = document.getElementById('global-filters');
-        if (gFilters) gFilters.style.display = (type === 'audit') ? 'none' : 'flex';
+        // On cache le filtre vendeur pour l'audit et les consommables (car ce sont des actions de dépôt)
+        if (gFilters) gFilters.style.display = (type === 'audit' || type === 'consommables') ? 'none' : 'flex';
         
         if (type === 'audit') resetAuditCounter();
     };
@@ -98,144 +97,133 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 3. ÉCOUTEURS DE DONNÉES ---
     function startDataListeners() {
-        if (!dateStartInput || !dateEndInput) return;
-        
+        const start = dateStartInput.value;
+        const end = dateEndInput.value;
+        const selVendeur = filterVendeur.value;
+
         if (unsubscribeVentes) unsubscribeVentes();
         if (unsubscribePaiements) unsubscribePaiements();
         if (unsubscribeRecups) unsubscribeRecups();
         if (unsubscribeRetours) unsubscribeRetours();
+        if (unsubscribeConsos) unsubscribeConsos();
 
-        const start = dateStartInput.value;
-        const end = dateEndInput.value;
-        const selectedVendeur = filterVendeur ? filterVendeur.value : "";
-
-        // Listeners Firestore
+        // Listener Ventes
         unsubscribeVentes = db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
             .onSnapshot(snap => {
                 salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                const filtered = selectedVendeur ? salesData.filter(d => d.vendeur === selectedVendeur) : salesData;
-                renderVentes(filtered);
-                renderInvendus(); // Recalculer les invendus
+                renderVentes(selVendeur ? salesData.filter(d => d.vendeur === selVendeur) : salesData);
+                renderInvendus();
+            });
+
+        // Listener Consommables (Usage Interne)
+        unsubscribeConsos = db.collection("consommations").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
+            .onSnapshot(snap => {
+                consommationsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderConsommables(consommationsData);
             });
 
         unsubscribePaiements = db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
             .onSnapshot(snap => {
                 let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (selectedVendeur) data = data.filter(d => d.vendeur === selectedVendeur);
-                renderPaiements(data);
+                renderPaiements(selVendeur ? data.filter(d => d.vendeur === selVendeur) : data);
             });
 
         unsubscribeRecups = db.collection("recuperations").where("date", ">=", start).where("date", "<=", end)
-            .onSnapshot(snap => {
-                recupsData = snap.docs.map(doc => doc.data());
-                renderInvendus();
-            });
+            .onSnapshot(snap => { recupsData = snap.docs.map(doc => doc.data()); renderInvendus(); });
 
         unsubscribeRetours = db.collection("retours_vendeurs").where("date", ">=", start).where("date", "<=", end)
-            .onSnapshot(snap => {
-                retoursData = snap.docs.map(doc => doc.data());
-                renderInvendus();
-            });
+            .onSnapshot(snap => { retoursData = snap.docs.map(doc => doc.data()); renderInvendus(); });
     }
 
     if (filterVendeur) filterVendeur.addEventListener('change', startDataListeners);
     if (dateStartInput) dateStartInput.addEventListener('change', startDataListeners);
     if (dateEndInput) dateEndInput.addEventListener('change', startDataListeners);
 
+    // --- 4. FONCTIONS DE RENDU ---
+
     function renderVentes(sales) {
         if (!tableBodyVentes) return;
-        tableBodyVentes.innerHTML = '';
-        if (sales.length === 0) { tableBodyVentes.innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Aucune vente.</td></tr>'; return; }
-        
+        tableBodyVentes.innerHTML = sales.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:gray;">Aucune vente.</td></tr>' : '';
         sales.forEach(data => {
-            const tagAbidjan = data.payeAbidjan ? `<br><span class="badge-role" style="background:#701a75; color:white; font-size:9px; padding:2px 4px; border-radius:4px;">📍 ABIDJAN</span>` : '';
-            const clientInfo = data.clientRef ? `<br><small style="color:#701a75">Ref: ${data.clientRef}</small>` : '';
-            const actions = (window.userRole === 'superadmin') 
-                ? `<button class="btn-reset" onclick="editDocument('ventes', '${data.id}')">Modif.</button>
-                   <button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button>`
-                : `<span style="font-size:10px; color:gray;">Lecture seule</span>`;
-
+            const actions = (window.userRole === 'superadmin') ? `<button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button>` : '<small>Lecture</small>';
             tableBodyVentes.innerHTML += `
                 <tr>
                     <td>${data.date}</td>
-                    <td><b>${data.produit}</b>${clientInfo}</td>
+                    <td><b>${data.produit}</b></td>
                     <td>${data.quantite}</td>
-                    <td style="font-weight:bold;">${formatEUR(data.total)}${tagAbidjan}</td>
+                    <td style="font-weight:bold;">${formatEUR(data.total)}</td>
                     <td style="color:#1877f2; font-weight:bold;">${data.vendeur}</td>
                     <td>${actions}</td>
                 </tr>`;
         });
     }
 
-    // --- LOGIQUE CALCUL DES INVENDUS (En main) ---
+    function renderConsommables(data) {
+        if (!tableBodyConsommables) return;
+        tableBodyConsommables.innerHTML = data.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:gray;">Aucun usage interne.</td></tr>' : '';
+        data.forEach(item => {
+            const actions = (window.userRole === 'superadmin') ? `<button class="deleteBtn" onclick="deleteDocument('consommations', '${item.id}')">Suppr.</button>` : '<small>Lecture</small>';
+            tableBodyConsommables.innerHTML += `
+                <tr>
+                    <td>${item.date}</td>
+                    <td><b>${item.produit}</b></td>
+                    <td>${item.quantite}</td>
+                    <td><span style="background:#f1f5f9; padding:3px 8px; border-radius:5px; font-size:10px; color:#475569; font-weight:bold;">USAGE INTERNE</span></td>
+                    <td>${actions}</td>
+                </tr>`;
+        });
+    }
+
     function renderInvendus() {
         if (!tableBodyInvendus) return;
         tableBodyInvendus.innerHTML = '';
-        
-        const selectedVendeur = filterVendeur ? filterVendeur.value : "";
+        const selVendeur = filterVendeur.value;
         let invendusMap = {};
 
-        // 1. Ajouter Récupérations
         recupsData.forEach(r => {
-            if (selectedVendeur && r.vendeur !== selectedVendeur) return;
+            if (selVendeur && r.vendeur !== selVendeur) return;
             const key = `${r.vendeur}_${r.produit}`;
             if (!invendusMap[key]) invendusMap[key] = { vendeur: r.vendeur, produit: r.produit, pris: 0, vendu: 0, rendu: 0 };
-            invendusMap[key].pris += r.quantite;
+            invendusMap[key].pris += (parseInt(r.quantite) || 0);
         });
-
-        // 2. Soustraire Ventes
         salesData.forEach(v => {
-            if (selectedVendeur && v.vendeur !== selectedVendeur) return;
+            if (selVendeur && v.vendeur !== selVendeur) return;
             const key = `${v.vendeur}_${v.produit}`;
-            if (!invendusMap[key]) invendusMap[key] = { vendeur: v.vendeur, produit: v.produit, pris: 0, vendu: 0, rendu: 0 };
-            invendusMap[key].vendu += v.quantite;
+            if (invendusMap[key]) invendusMap[key].vendu += (parseInt(v.quantite) || 0);
         });
-
-        // 3. Soustraire Retours
         retoursData.forEach(ret => {
-            if (selectedVendeur && ret.vendeur !== selectedVendeur) return;
+            if (selVendeur && ret.vendeur !== selVendeur) return;
             const key = `${ret.vendeur}_${ret.produit}`;
-            if (!invendusMap[key]) invendusMap[key] = { vendeur: ret.vendeur, produit: ret.produit, pris: 0, vendu: 0, rendu: 0 };
-            invendusMap[key].rendu += ret.quantite;
+            if (invendusMap[key]) invendusMap[key].rendu += (parseInt(ret.quantite) || 0);
         });
 
-        const keys = Object.keys(invendusMap).sort();
-        if (keys.length === 0) {
-            tableBodyInvendus.innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Aucun stock identifié sur cette période.</td></tr>';
-            return;
-        }
-
-        keys.forEach(k => {
+        Object.keys(invendusMap).forEach(k => {
             const d = invendusMap[k];
             const enMain = d.pris - d.vendu - d.rendu;
-            if (enMain === 0) return; // Ne pas afficher si le stock est épuisé
-
-            tableBodyInvendus.innerHTML += `
-                <tr>
-                    <td><b>${d.vendeur}</b></td>
-                    <td>${d.produit}</td>
-                    <td>${d.pris}</td>
-                    <td>${d.vendu}</td>
-                    <td>${d.rendu}</td>
-                    <td style="font-weight:bold; color:#1877f2; font-size:14px;">${enMain}</td>
-                </tr>`;
+            if (enMain > 0) {
+                tableBodyInvendus.innerHTML += `
+                    <tr>
+                        <td><b>${d.vendeur}</b></td>
+                        <td>${d.produit}</td>
+                        <td>${d.pris}</td>
+                        <td>${d.vendu}</td>
+                        <td>${d.rendu}</td>
+                        <td style="font-weight:bold; color:#1877f2;">${enMain}</td>
+                    </tr>`;
+            }
         });
     }
 
     function renderPaiements(payments) {
         if (!tableBodyPaiements) return;
-        tableBodyPaiements.innerHTML = '';
-        if (payments.length === 0) { tableBodyPaiements.innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Aucun paiement.</td></tr>'; return; }
-
+        tableBodyPaiements.innerHTML = payments.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:gray;">Aucun paiement.</td></tr>' : '';
         payments.forEach(data => {
-            const total = (data.montantRecu || 0) + (data.remise || 0);
-            const actions = (window.userRole === 'superadmin')
-                ? `<button class="deleteBtn" onclick="deleteDocument('encaissements_vendeurs', '${data.id}')">Suppr.</button>`
-                : `<small>Protégé</small>`;
-
+            const total = (parseFloat(data.montantRecu) || 0) + (parseFloat(data.remise) || 0);
+            const actions = (window.userRole === 'superadmin') ? `<button class="deleteBtn" onclick="deleteDocument('encaissements_vendeurs', '${data.id}')">Suppr.</button>` : '<small>Protégé</small>';
             tableBodyPaiements.innerHTML += `
                 <tr>
-                    <td>${data.date}</td><td style="font-weight:bold; color:#1877f2;">${data.vendeur}</td>
+                    <td>${data.date}</td>
+                    <td style="font-weight:bold; color:#1877f2;">${data.vendeur}</td>
                     <td style="color: #10b981;">+ ${formatEUR(data.montantRecu)}</td>
                     <td style="color: #3b82f6;">${formatEUR(data.remise)}</td>
                     <td style="font-weight:bold;">${formatEUR(total)}</td>
@@ -244,6 +232,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- 5. JOURNAL D'AUDIT ---
     function loadAuditLogs() {
         db.collection("audit_logs").orderBy("timestamp", "desc").limit(150).onSnapshot(snap => {
             allLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -253,22 +242,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyLogFilters() {
         if (!auditLogBody) return;
-        const fDate = logFilterDate ? logFilterDate.value : "";
-        const fAuteur = logFilterAuteur ? logFilterAuteur.value : "";
-        const fModule = logFilterModule ? logFilterModule.value : "";
-        const fSearch = logFilterSearch ? logFilterSearch.value.toLowerCase() : "";
-
-        const filtered = allLogs.filter(log => {
-            if (fDate && !log.dateAction.includes(fDate.split('-').reverse().join('/'))) return false;
-            if (fAuteur && log.auteur !== fAuteur) return false;
-            if (fModule && log.module !== fModule) return false;
-            if (fSearch && !log.details.toLowerCase().includes(fSearch)) return false;
-            return true;
-        });
-
+        const filtered = allLogs; // Possibilité d'ajouter des filtres ici
         auditLogBody.innerHTML = '';
         filtered.forEach(log => {
-            const mColor = log.module === 'STOCK' ? '#1877f2' : log.module === 'COMPTES' ? '#8b5cf6' : '#f59e0b';
+            const mColor = log.module === 'STOCK' ? '#1877f2' : (log.module === 'COMPTES' ? '#8b5cf6' : '#f59e0b');
             auditLogBody.innerHTML += `
                 <tr>
                     <td><small>${log.dateAction}</small></td>
@@ -280,46 +257,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    [logFilterDate, logFilterAuteur, logFilterModule, logFilterSearch].forEach(el => {
-        if (el) el.addEventListener('input', applyLogFilters);
-    });
-
-    // --- 5. ACTIONS ADMIN ---
+    // --- 6. ACTIONS ADMIN ---
     window.deleteDocument = async (coll, docId) => {
-        if (window.userRole !== 'superadmin') return alert("Super Admin requis.");
-        if (confirm("Confirmer la suppression ?")) {
-            const snap = await db.collection(coll).doc(docId).get();
-            const old = snap.data();
-            await db.collection(coll).doc(docId).delete();
-            if (window.logAction) {
-                window.logAction(coll.toUpperCase(), "SUPPRESSION", `Valeur: ${old.total || old.montantRecu}€ pour ${old.vendeur}`, old.produit || "N/A");
-            }
-        }
-    };
-
-    window.editDocument = async (coll, docId) => {
-        if (window.userRole !== 'superadmin') return alert("Super Admin requis.");
-        const snap = await db.collection(coll).doc(docId).get();
-        const old = snap.data();
-        const nQ = prompt("Nouvelle quantité :", old.quantite);
-        if (nQ && nQ != old.quantite) {
-            const nT = parseInt(nQ) * old.prixUnitaire;
-            await db.collection(coll).doc(docId).update({ quantite: parseInt(nQ), total: nT });
-            if (window.logAction) {
-                window.logAction("VENTES", "MODIFICATION", `Qté corrigée: ${old.quantite} -> ${nQ}`, old.produit);
-            }
+        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
+        if (confirm("Confirmer la suppression définitive ?")) {
+            try {
+                await db.collection(coll).doc(docId).delete();
+                alert("Enregistrement supprimé.");
+            } catch (e) { alert("Erreur lors de la suppression."); }
         }
     };
 
     window.downloadAuditLogPDF = function() {
         const element = document.getElementById('printableAuditArea');
-        if (!element) return;
-        html2pdf().set({ 
-            margin: 10, filename: 'Audit_Global.pdf', 
-            image: { type: 'jpeg', quality: 0.98 }, 
-            html2canvas: { scale: 2 }, 
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 
-        }).from(element).save();
+        html2pdf().set({ margin: 10, filename: 'Audit_AMT.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { format: 'a4', orientation: 'landscape' } }).from(element).save();
     };
 
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }

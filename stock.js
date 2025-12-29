@@ -98,45 +98,73 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderStock() {
         stockTableBody.innerHTML = '';
         globalSummary = {}; 
+        let investissementTotalConsos = 0; // Pour calculer le coût d'achat total des fournitures
 
+        // 1. Initialisation et calcul des entrées
         allStocksRaw.forEach(s => {
-            if (!globalSummary[s.produit]) {
-                globalSummary[s.produit] = { 
+            const prodNom = s.produit.trim().toUpperCase(); 
+            if (!globalSummary[prodNom]) {
+                globalSummary[prodNom] = { 
                     in: 0, out: 0, soldAgence: 0, soldAbidjan: 0, 
-                    loss: 0, consumed: 0, returns: 0, // <-- AJOUT : returns
-                    revenue: 0, lastPA: s.prixAchat, lastPV: s.prixVente 
+                    loss: 0, consumed: 0, returns: 0, 
+                    revenue: 0, lastPA: s.prixAchat || 0, lastPV: s.prixVente || 0 
                 };
             }
-            globalSummary[s.produit].in += s.quantite;
+            globalSummary[prodNom].in += (parseInt(s.quantite) || 0);
+            globalSummary[prodNom].lastPA = parseFloat(s.prixAchat) || 0;
+            globalSummary[prodNom].lastPV = parseFloat(s.prixVente) || 0;
         });
 
-        allRecuperationsRaw.forEach(r => { if (globalSummary[r.produit]) globalSummary[r.produit].out += r.quantite; });
-        allPertesRaw.forEach(p => { if (globalSummary[p.produit]) globalSummary[p.produit].loss += p.quantite; });
-        allConsommationsRaw.forEach(c => { if (globalSummary[c.produit]) globalSummary[c.produit].consumed += c.quantite; });
-        allRetoursRaw.forEach(ret => { if (globalSummary[ret.produit]) globalSummary[ret.produit].returns += ret.quantite; }); // <-- AJOUT
+        // 2. Accumulation des mouvements (Sorties, Pertes, Consommations, Retours)
+        allRecuperationsRaw.forEach(r => { 
+            const p = r.produit.trim().toUpperCase();
+            if (globalSummary[p]) globalSummary[p].out += (parseInt(r.quantite) || 0); 
+        });
+        allPertesRaw.forEach(p => { 
+            const prod = p.produit.trim().toUpperCase();
+            if (globalSummary[prod]) globalSummary[prod].loss += (parseInt(p.quantite) || 0); 
+        });
+        allConsommationsRaw.forEach(c => { 
+            const prod = c.produit.trim().toUpperCase();
+            if (globalSummary[prod]) globalSummary[prod].consumed += (parseInt(c.quantite) || 0); 
+        });
+        allRetoursRaw.forEach(ret => { 
+            const prod = ret.produit.trim().toUpperCase();
+            if (globalSummary[prod]) globalSummary[prod].returns += (parseInt(ret.quantite) || 0); 
+        });
         
         allVentesRaw.forEach(v => { 
-            if (globalSummary[v.produit]) { 
-                if (v.payeAbidjan === true) globalSummary[v.produit].soldAbidjan += v.quantite;
-                else globalSummary[v.produit].soldAgence += v.quantite;
-                globalSummary[v.produit].revenue += (v.total || 0);
+            const p = v.produit.trim().toUpperCase();
+            if (globalSummary[p]) { 
+                if (v.payeAbidjan === true) globalSummary[p].soldAbidjan += (parseInt(v.quantite) || 0);
+                else globalSummary[p].soldAgence += (parseInt(v.quantite) || 0);
+                globalSummary[p].revenue += (parseFloat(v.total) || 0);
             } 
         });
 
-        let gainReelTotal = 0; let gainEstTotal = 0;
+        let gainReelTotal = 0; 
+        let gainEstTotal = 0;
 
+        // 3. Boucle de calcul financier
         for (const prod in globalSummary) {
             const item = globalSummary[prod];
             
-            // MATHÉMATIQUES DU STOCK PHYSIQUE (En Dépôt) :
-            // (Reçu + Retours des vendeurs) - (Donné aux vendeurs + Pertes + Consommé)
-            const enDepot = (item.in + item.returns) - (item.out + item.loss + item.consumed); // <-- FORMULE CORRIGÉE
-            
+            // Calcul du stock physique
+            const enDepot = (item.in + item.returns) - (item.out + item.loss + item.consumed);
             const totalVendu = item.soldAgence + item.soldAbidjan;
+            
+            // LOGIQUE CONSOMMABLES : Si le prix de vente est 0, c'est un consommable
+            if (item.lastPV <= 0) {
+                // Investissement = Toute la quantité reçue x son prix d'achat
+                investissementTotalConsos += (item.in * item.lastPA);
+            }
+
+            // Bénéfice Réel (uniquement pour les produits vendables)
             const bReel = item.revenue - ((totalVendu + item.consumed) * item.lastPA);
             const bEst = (item.lastPV - item.lastPA) * enDepot;
 
-            gainReelTotal += bReel; gainEstTotal += bEst;
+            gainReelTotal += bReel; 
+            gainEstTotal += bEst;
 
             let depotColor = enDepot > 20 ? '#10b981' : (enDepot < 10 ? '#ef4444' : (enDepot < 15 ? '#f59e0b' : 'black'));
 
@@ -155,18 +183,21 @@ document.addEventListener('DOMContentLoaded', async () => {
             stockTableBody.appendChild(tr);
         }
 
-        // MISE À JOUR DES KPI (Compteurs en haut)
-        document.getElementById('volumeTotal').textContent = allStocksRaw.reduce((a, b) => a + b.quantite, 0);
-        document.getElementById('totalSorti').textContent = allRecuperationsRaw.reduce((a, b) => a + b.quantite, 0);
-        document.getElementById('totalPertesStock').textContent = allPertesRaw.reduce((a, b) => a + b.quantite, 0);
-        document.getElementById('totalAbidjanQty').textContent = allVentesRaw.filter(v => v.payeAbidjan).reduce((a, b) => a + b.quantite, 0);
+        // 4. MISE À JOUR DES CARTES KPI
+        document.getElementById('volumeTotal').textContent = allStocksRaw.reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
+        document.getElementById('totalSorti').textContent = allRecuperationsRaw.reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
+        document.getElementById('totalPertesStock').textContent = allPertesRaw.reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
+        document.getElementById('totalAbidjanQty').textContent = allVentesRaw.filter(v => v.payeAbidjan).reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
         
-        // Calcul final Stock Dépôt Global : (Total Reçu + Total Retours) - (Total Sorties + Total Pertes + Total Conso)
-        const tIn = allStocksRaw.reduce((a,b) => a + b.quantite, 0);
-        const tRet = allRetoursRaw.reduce((a,b) => a + b.quantite, 0);
-        const tOut = allRecuperationsRaw.reduce((a,b) => a + b.quantite, 0);
-        const tLoss = allPertesRaw.reduce((a,b) => a + b.quantite, 0);
-        const tCons = allConsommationsRaw.reduce((a,b) => a + b.quantite, 0);
+        // Affichage de l'investissement total dans les consommables
+        const coutConsElem = document.getElementById('totalCoutConsommables');
+        if (coutConsElem) coutConsElem.textContent = formatEUR(investissementTotalConsos);
+
+        const tIn = allStocksRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
+        const tRet = allRetoursRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
+        const tOut = allRecuperationsRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
+        const tLoss = allPertesRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
+        const tCons = allConsommationsRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
         
         document.getElementById('totalEnMagasin').textContent = (tIn + tRet) - (tOut + tLoss + tCons);
         document.getElementById('beneficeReel').textContent = formatEUR(gainReelTotal);

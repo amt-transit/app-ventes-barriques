@@ -15,27 +15,17 @@
             border-radius: 20px; font-family: 'Comfortaa', sans-serif; font-weight: bold; font-size: 12px;
         }
         .tab-btn.active { background: #1877f2; color: white; }
-        
         .history-section { display: none; padding: 0 15px; }
         .history-section.active { display: block; }
-        
         .filter-bar { 
             background: white; margin: 0 15px 15px; padding: 12px; border-radius: 12px; 
             border: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 10px; 
             align-items: center; justify-content: center;
         }
-
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 600px; font-size: 12px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f1f5f9; }
         th { background: #f8fafc; color: #64748b; }
-
-        @media (max-width: 600px) {
-            .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-            .navigation a { font-size: 11px; padding: 8px; }
-            h1 { font-size: 18px; text-align: center; }
-            .filter-bar { flex-direction: column; }
-        }
     </style>
 </head>
 <body>
@@ -54,6 +44,7 @@
 
     <div class="tab-navigation">
         <button class="tab-btn active" id="btnVentes" onclick="switchTab('ventes')">📋 Ventes</button>
+        <button class="tab-btn" id="btnConsommables" onclick="switchTab('consommables')">🛠️ Consommables</button>
         <button class="tab-btn" id="btnInvendus" onclick="switchTab('invendus')">📦 Invendus</button>
         <button class="tab-btn" id="btnPaiements" onclick="switchTab('paiements')">💰 Paiements</button>
         <button class="tab-btn" id="btnAudit" onclick="switchTab('audit')">🕵️ Audit <span id="auditCount" style="display:none; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:9px;">0</span></button>
@@ -61,10 +52,10 @@
 
     <div id="global-filters" class="filter-bar">
         <div style="display: flex; gap: 5px;">
-            <button onclick="changeMonth(-1)" style="padding:5px 10px; border-radius:5px; border:1px solid #ddd;">◀</button>
+            <button onclick="changeMonth(-1)">◀</button>
             <input type="date" id="mainFilterDateStart" style="font-size:11px; width:110px;">
             <input type="date" id="mainFilterDateEnd" style="font-size:11px; width:110px;">
-            <button onclick="changeMonth(1)" style="padding:5px 10px; border-radius:5px; border:1px solid #ddd;">▶</button>
+            <button onclick="changeMonth(1)">▶</button>
         </div>
         <select id="filterVendeur" style="padding:8px; border-radius:8px;"><option value="">Vendeur: Tous</option></select>
     </div>
@@ -74,6 +65,23 @@
             <table>
                 <thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th><th>Vendeur</th><th>Action</th></tr></thead>
                 <tbody id="tableBodyVentes"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="section-consommables" class="history-section">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr style="background:#f8fafc;">
+                        <th>Date</th>
+                        <th>Fourniture / Produit</th>
+                        <th>Quantité utilisée</th>
+                        <th>Type</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBodyConsommables"></tbody>
             </table>
         </div>
     </div>
