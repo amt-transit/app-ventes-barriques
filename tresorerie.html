@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trésorerie & Recouvrement - AMT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
+    <style>
+        .cash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
+        .cash-card { padding: 15px; border-radius: 15px; color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .bg-income { background: #10b981; } .bg-expense { background: #be123c; } .bg-balance { background: #1e293b; } .bg-waiting { background: #701a75; }
+        .cash-label { font-size: 9px; text-transform: uppercase; font-weight: bold; opacity: 0.9; display: block; }
+        .cash-amount { font-size: 20px; font-weight: bold; display: block; margin-top: 5px; }
+        
+        .statement-container { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 20px; }
+        .table-responsive { width: 100%; overflow-x: auto; margin-top: 15px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; }
+        th, td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: left; }
+        th { background: #f8fafc; color: #64748b; font-weight: bold; }
+        
+        .btn-settle { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; }
+        .btn-settle:hover { background: #059669; }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <img src="logo.png" alt="Logo" class="app-logo">
+        <h1>Bilan de Trésorerie & Recouvrement</h1>
+    </header>
+
+    <nav class="navigation">
+        <a href="validation.html">Validation</a>
+        <a href="stock.html">Stock</a>
+        <a href="dashboard.html">Tableau de Bord</a>
+        <a href="tresorerie.html" class="active">Trésorerie</a>
+        <a href="history.html">Historique</a>
+        <a href="utilisateurs.html">Utilisateurs</a>
+        <a href="recuperation.html">Récupération</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
+    </nav>
+
+    <div style="padding: 20px;">
+        <div class="cash-grid">
+            <div class="cash-card bg-income"><span class="cash-label">Recettes Réelles (En caisse)</span><span id="totalRecettes" class="cash-amount">0,00 €</span></div>
+            <div class="cash-card bg-expense"><span class="cash-label">Dépenses (Achats Stock)</span><span id="totalDepenses" class="cash-amount">0,00 €</span></div>
+            <div class="cash-card bg-balance"><span class="cash-label">Solde Net Disponible</span><span id="soldeReel" class="cash-amount">0,00 €</span></div>
+            <div class="cash-card bg-waiting"><span class="cash-label">En attente Abidjan</span><span id="attenteAbidjan" class="cash-amount">0,00 €</span></div>
+        </div>
+
+        <div class="statement-container">
+            <h2 style="color: #701a75; font-size: 15px; margin-top:0;">📍 Recouvrement Abidjan (Attente de reversement)</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th><th>Client / Réf</th><th>Produit</th><th>Montant</th><th>Vendeur</th><th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="abidjanPendingBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="statement-container">
+            <h2 style="font-size: 15px; margin-top:0;">Comptabilité Globale</h2>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;"><span>CA Agence (Reçu)</span><span id="ca_agence_realise" style="color:#10b981; font-weight:bold;">0,00 €</span></div>
+                <div style="display: flex; justify-content: space-between;"><span>CA Abidjan (Reçu/Réglé)</span><span id="ca_abidjan_regle" style="color:#10b981; font-weight:bold;">0,00 €</span></div>
+                <hr style="border: 0; border-top: 1px solid #eee;">
+                <div style="display: flex; justify-content: space-between; font-weight: bold;"><span>TOTAL DISPONIBLE</span><span id="total_cash_brut">0,00 €</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M", authDomain: "app-ventes-barriques.firebaseapp.com", projectId: "app-ventes-barriques", storageBucket: "app-ventes-barriques.appspot.com", messagingSenderId: "615546459847", appId: "1:615546459847:web:1b387b0b703b7a9a1210e2" };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        window.db = firebase.firestore();
+    </script>
+    <script src="auth-guard.js"></script>
+    <script src="tresorerie.js"></script>
+</body>
+</html>

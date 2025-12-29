@@ -56,6 +56,7 @@
         <a href="validation.html" class="active">Validation</a>
         <a href="stock.html">Stock</a>
         <a href="dashboard.html">Tableau de Bord</a>
+        <a href="tresorerie.html">Trésorerie</a>
         <a href="history.html">Historique</a>
         <a href="utilisateurs.html">Utilisateurs</a>
         <a href="recuperation.html">Récupération</a>
@@ -318,7 +319,7 @@
             btn.disabled = true;
             try {
                 if (prod && qty > 0) {
-                    await db.collection("ventes").add({ date, vendeur: name, produit: prod, quantite: qty, prixUnitaire: globalPrices[prod], total: qty * globalPrices[prod], payeAbidjan: valPayAbidjan.checked, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                    await db.collection("ventes").add({ date, vendeur: name, produit: prod, quantite: qty, prixUnitaire: globalPrices[prod], total: qty * globalPrices[prod], payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
                 if (prodC && qtyC > 0) {
                     await db.collection("consommations").add({ date, vendeur: name, produit: prodC, quantite: qtyC, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
