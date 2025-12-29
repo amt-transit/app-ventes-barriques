@@ -41,7 +41,85 @@
         }
 
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(3px); }
-        .modal-content { background-color: white; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); padding: 20px; border-radius: 15px; width: 90%; max-width: 600px; max-height: 85vh; overflow-y: auto; }
+        /* --- MODAL MODERNE --- */
+        .modal-content {
+            background-color: #ffffff;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            border: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { transform: translate(-50%, -45%); opacity: 0; }
+            to { transform: translate(-50%, -50%); opacity: 1; }
+        }
+
+        /* Titre de la fiche */
+        #modalTitle {
+            text-align: center;
+            font-size: 22px;
+            color: #1e293b;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 15px;
+            margin-bottom: 20px;
+        }
+
+        /* Badge de stock */
+        #modalStockStatus {
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 12px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+            font-size: 15px;
+        }
+
+        /* Boutons d'actions stylisés */
+        .btn-action-modal {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: 0.2s;
+            margin-bottom: 10px;
+        }
+
+        .btn-loss-red { background: #fee2e2; color: #dc2626; }
+        .btn-loss-red:hover { background: #fecaca; }
+
+        .btn-cons-gray { background: #f1f5f9; color: #475569; }
+        .btn-cons-gray:hover { background: #e2e8f0; }
+
+        /* Table Historique propre */
+        .modal-table {
+            width: 100%;
+            margin-top: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid #f1f5f9;
+        }
+
+        .modal-table th {
+            background: #f8fafc;
+            color: #64748b;
+            font-size: 11px;
+            text-transform: uppercase;
+            padding: 10px;
+        }
+
+        .modal-table td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 13px;
+        }
         .no-print { margin-top: 20px; text-align: center; }
     </style>
 </head>
@@ -146,6 +224,15 @@
             <button onclick="document.getElementById('lossModal').style.display='none'" style="margin-top: 10px; background:none; border:none; cursor:pointer; color:gray;">Annuler</button>
         </div>
     </div>
+    <div id="consumeModal" class="modal">
+        <div class="modal-content modal-small" style="text-align: center;">
+            <h3 style="color: #64748b;">🛠️ CONSOMMATION INTERNE</h3>
+            <p id="consumeProductName" style="font-weight: bold; font-size: 18px;"></p>
+            <input type="number" id="consumeQuantity" placeholder="Quantité utilisée" style="width: 80%; padding: 10px; margin: 15px 0; border: 1px solid #cbd5e1; border-radius: 5px;">
+            <button onclick="confirmConsumption()" class="primary" style="background: #64748b; width: 100%;">Valider l'usage</button>
+            <button onclick="document.getElementById('consumeModal').style.display='none'" style="margin-top: 10px; background:none; border:none; cursor:pointer; color:gray;">Annuler</button>
+        </div>
+    </div>
 
     <div id="historyModal" class="modal">
         <div class="modal-content">
@@ -153,6 +240,7 @@
             <h2 id="modalTitle" style="color: #1877f2; margin-top: 0;">Détails Produit</h2>
             <p id="modalStockStatus" style="font-weight: bold; margin-bottom: 15px;"></p>
             <button id="btnLossFromModal" class="btn-loss-main">⚡ Signaler une Perte sur ce produit</button>
+            <button id="btnConsumeFromModal" class="btn-loss-main" style="background: #64748b; margin-top: 10px;">🛠️ Enregistrer un usage interne</button>
             <div id="modalTableBody"></div>
         </div>
     </div>
