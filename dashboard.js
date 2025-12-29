@@ -1,31 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
-
     const startDateInput = document.getElementById('startDate');
     const endDateInput = document.getElementById('endDate');
-    let allSales = [], allStocks = [], allPayments = [], allRecuperations = [], allLosses = [], allReturns = [];
+    let allSales = [], allStocks = [], allPayments = [], allRecuperations = [], allLosses = [];
     let salesChart = null, agentChart = null;
 
-    // --- 1. INITIALISATION DES DATES ---
+    // Fonction de sécurité pour éviter les erreurs "properties of null"
+    const updateText = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
     function setDefaultDates() {
         const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        startDateInput.value = firstDay.toISOString().split('T')[0];
-        endDateInput.value = lastDay.toISOString().split('T')[0];
+        startDateInput.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        endDateInput.value = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
     }
     setDefaultDates();
 
-    // --- 2. MISE À JOUR DU TABLEAU DE BORD ---
     function updateDashboard() {
         const start = startDateInput.value;
         const end = endDateInput.value;
 
-        const filteredSales = allSales.filter(s => s.date && s.date >= start && s.date <= end);
-        const filteredPayments = allPayments.filter(p => p.date && p.date >= start && p.date <= end);
-        const filteredLosses = allLosses.filter(l => l.date && l.date >= start && l.date <= end);
-        const filteredRecups = allRecuperations.filter(r => r.date && r.date >= start && r.date <= end);
-
-        console.log("Ventes détectées:", allSales.length, "| Après filtre:", filteredSales.length);
+        const filteredSales = allSales.filter(s => s.date >= start && s.date <= end);
+        const filteredPayments = allPayments.filter(p => p.date >= start && p.date <= end);
+        const filteredLosses = allLosses.filter(l => l.date >= start && l.date <= end);
+        const filteredRecups = allRecuperations.filter(r => r.date >= start && r.date <= end);
 
         calculateKPIs(filteredSales, filteredPayments, filteredLosses, filteredRecups);
         renderProductAnalysis(filteredSales);
@@ -33,57 +32,49 @@ document.addEventListener('DOMContentLoaded', () => {
         renderReinvestment(filteredSales);
         updateDailyFlashStats(allSales);
 
-        if (document.getElementById('reportDate')) {
-            document.getElementById('reportDate').textContent = "Établi le : " + new Date().toLocaleDateString('fr-FR');
-        }
+        const reportEl = document.getElementById('reportDate');
+        if (reportEl) reportEl.textContent = "Mis à jour le : " + new Date().toLocaleDateString('fr-FR');
     }
 
-    // --- 3. CALCUL DES INDICATEURS (KPI) ---
     function calculateKPIs(sales, payments, losses, recups) {
-        // A. CHIFFRE D'AFFAIRES
-        const caAgence = sales.filter(s => s.payeAbidjan !== true).reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
-        const caAbidjan = sales.filter(s => s.payeAbidjan === true).reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
-        const totalCA = caAgence + caAbidjan;
-
-        // B. INVESTISSEMENT TOTAL (Valeur d'achat de TOUT le stock entré)
-        const valeurTotaleInvestie = allStocks.reduce((sum, item) => {
-            return sum + ((parseFloat(item.quantite) || 0) * (parseFloat(item.prixAchat) || 0));
-        }, 0);
-
-        // C. COÛT D'ACHAT DES PRODUITS VENDUS (Pour le calcul de marge)
-        let coutAchatVendus = 0;
-        sales.forEach(s => {
-            const stockInfo = allStocks.find(st => st.produit.toUpperCase() === s.produit.toUpperCase());
-            const unitPA = stockInfo ? (parseFloat(stockInfo.prixAchat) || 0) : 0;
-            coutAchatVendus += (parseInt(s.quantite) || 0) * unitPA;
+        let productMap = {};
+        allStocks.forEach(st => {
+            const p = st.produit.toUpperCase();
+            if (!productMap[p]) productMap[p] = { isConso: (parseFloat(st.prixVente) <= 0), pa: parseFloat(st.prixAchat) || 0 };
         });
 
-        // D. AUTRES CALCULS
+        const caAgence = sales.filter(s => !s.payeAbidjan).reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
+        const caAbidjan = sales.filter(s => s.payeAbidjan).reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
+        const investTotal = allStocks.reduce((sum, item) => sum + ((parseFloat(item.quantite) || 0) * (parseFloat(item.prixAchat) || 0)), 0);
+
+        let coutAchatVendus = 0;
+        sales.forEach(s => {
+            const info = productMap[s.produit.toUpperCase()];
+            if (info && !info.isConso) coutAchatVendus += (parseInt(s.quantite) || 0) * info.pa;
+        });
+
+        let qtyVend = 0, qtyCons = 0;
+        recups.forEach(r => {
+            const info = productMap[r.produit.toUpperCase()];
+            if (info && info.isConso) qtyCons += (parseInt(r.quantite) || 0);
+            else qtyVend += (parseInt(r.quantite) || 0);
+        });
+
         const totalCaisse = payments.reduce((sum, p) => sum + (parseFloat(p.montantRecu) || 0), 0);
         const totalRemises = payments.reduce((sum, p) => sum + (parseFloat(p.remise) || 0), 0);
-        const totalColisSortis = recups.reduce((sum, r) => sum + (parseInt(r.quantite) || 0), 0);
         const totalPertes = losses.reduce((sum, l) => sum + (parseInt(l.quantite) || 0), 0);
-        
-        // Dette (Sans accent pour éviter l'erreur ReferenceError)
-        const totalDuCalcul = caAgence - (totalCaisse + totalRemises);
 
-        // AFFICHAGE DES RÉSULTATS
-        document.getElementById('grandTotalVentes').textContent = formatEUR(totalCA);
-        document.getElementById('totalValeurStock').textContent = formatEUR(valeurTotaleInvestie);
-        document.getElementById('totalVenduAbidjan').textContent = formatEUR(caAbidjan);
-        document.getElementById('grandTotalCaisse').textContent = formatEUR(totalCaisse);
-        document.getElementById('totalDues').textContent = formatEUR(totalDuCalcul);
-        document.getElementById('grandTotalQuantite').textContent = totalColisSortis;
-        document.getElementById('totalPertes').textContent = totalPertes;
-
-        // Marge réelle sur ventes (Affichée dans le bloc vert)
-        const margeSurVentes = totalCA - coutAchatVendus;
-        if(document.getElementById('beneficeTotalDisplay')) {
-            document.getElementById('beneficeTotalDisplay').textContent = formatEUR(margeSurVentes);
-        }
+        updateText('grandTotalVentes', formatEUR(caAgence + caAbidjan));
+        updateText('totalValeurStock', formatEUR(investTotal));
+        updateText('totalVenduAbidjan', formatEUR(caAbidjan));
+        updateText('grandTotalCaisse', formatEUR(totalCaisse));
+        updateText('totalDues', formatEUR(caAgence - (totalCaisse + totalRemises)));
+        updateText('qtyVendablesSortis', qtyVend);
+        updateText('qtyConsosSortis', qtyCons);
+        updateText('totalPertes', totalPertes);
+        updateText('beneficeTotalDisplay', formatEUR((caAgence + caAbidjan) - coutAchatVendus));
     }
 
-    // --- 4. ANALYSE PRODUITS (TABLEAU GAUCHE) ---
     function renderProductAnalysis(sales) {
         const productData = {};
         sales.forEach(s => {
@@ -98,53 +89,46 @@ document.addEventListener('DOMContentLoaded', () => {
             for (const p in productData) {
                 const data = productData[p];
                 const stockInfo = allStocks.find(st => st.produit.toUpperCase() === p.toUpperCase());
-                const pa = stockInfo ? (parseFloat(stockInfo.prixAchat) || 0) : 0;
-                const profit = data.ca - (data.qte * pa); // Marge par produit
+                const pa = stockInfo ? parseFloat(stockInfo.prixAchat) : 0;
+                const pv = stockInfo ? parseFloat(stockInfo.prixVente) : 0;
+                const profit = data.ca - (data.qte * pa);
+                const isConso = pv <= 0;
 
                 tbody.innerHTML += `
                     <tr>
-                        <td><b>${p}</b></td>
+                        <td><b>${p}</b> ${isConso ? '<span style="font-size:9px;">🛠️</span>' : ''}</td>
                         <td style="text-align:center;">${data.qte}</td>
                         <td>${formatEUR(data.ca)}</td>
-                        <td style="color:#10b981; font-weight:bold;">${formatEUR(profit)}</td>
+                        <td style="color:${isConso ? '#64748b' : '#10b981'}; font-weight:bold;">${isConso ? 'Usage' : formatEUR(profit)}</td>
                     </tr>`;
             }
         }
         updatePieChart(productData);
     }
 
-    // --- 5. ANALYSE VENDEURS (TABLEAU DROITE) ---
     function renderSellerAnalysis(sales, payments) {
         const sellers = {};
         sales.forEach(s => {
-            if(!sellers[s.vendeur]) sellers[s.vendeur] = { qte: 0, ca_agence: 0, recu: 0 };
+            if(!sellers[s.vendeur]) sellers[s.vendeur] = { qte: 0, ca: 0, recu: 0 };
             sellers[s.vendeur].qte += (parseInt(s.quantite) || 0);
-            if (s.payeAbidjan !== true) sellers[s.vendeur].ca_agence += (parseFloat(s.total) || 0);
+            if (!s.payeAbidjan) sellers[s.vendeur].ca += (parseFloat(s.total) || 0);
         });
         payments.forEach(p => {
-            if(!sellers[p.vendeur]) sellers[p.vendeur] = { qte: 0, ca_agence: 0, recu: 0 };
+            if(!sellers[p.vendeur]) sellers[p.vendeur] = { qte: 0, ca: 0, recu: 0 };
             sellers[p.vendeur].recu += (parseFloat(p.montantRecu) || 0) + (parseFloat(p.remise) || 0);
         });
-
         const tbody = document.getElementById('agentSummaryTableBody');
         if(tbody) {
             tbody.innerHTML = '';
             for (const name in sellers) {
                 const s = sellers[name];
-                const dette = s.ca_agence - s.recu;
-                tbody.innerHTML += `
-                    <tr>
-                        <td>${name}</td>
-                        <td style="text-align:center;">${s.qte}</td>
-                        <td>${formatEUR(s.ca_agence)}</td>
-                        <td style="color:${dette > 0 ? '#be123c' : '#10b981'}; font-weight:bold;">${formatEUR(dette)}</td>
-                    </tr>`;
+                const dette = s.ca - s.recu;
+                tbody.innerHTML += `<tr><td>${name}</td><td style="text-align:center;">${s.qte}</td><td>${formatEUR(s.ca)}</td><td style="color:${dette > 0 ? '#be123c' : '#10b981'}; font-weight:bold;">${formatEUR(dette)}</td></tr>`;
             }
         }
         updateBarChart(sellers);
     }
 
-    // --- 6. RÉINVESTISSEMENT ---
     function renderReinvestment(sales) {
         const tbody = document.getElementById('reinvestmentTableBody');
         if (!tbody) return;
@@ -157,7 +141,8 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         for (const p in productsSold) {
             const stock = allStocks.find(st => st.produit.toUpperCase() === p.toUpperCase());
-            const pa = stock ? (parseFloat(stock.prixAchat) || 0) : 0;
+            if (!stock || parseFloat(stock.prixVente) <= 0) continue;
+            const pa = parseFloat(stock.prixAchat) || 0;
             const profit = productsSold[p].ca - (productsSold[p].qte * pa);
             if (profit > 0 && pa > 0) {
                 const qteMax = Math.floor(profit / pa);
@@ -166,58 +151,40 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // --- 7. GRAPHIQUES & UTILITAIRES ---
+    function updateDailyFlashStats(sales) {
+        const today = new Date().toISOString().split('T')[0];
+        const todaySales = sales.filter(s => s.date === today);
+        let totalVendables = 0, vendeurs = {};
+        todaySales.forEach(s => {
+            const stock = allStocks.find(st => st.produit.toUpperCase() === s.produit.toUpperCase());
+            if (stock && parseFloat(stock.prixVente) > 0) totalVendables += (parseInt(s.quantite) || 0);
+            vendeurs[s.vendeur] = (vendeurs[s.vendeur] || 0) + (parseFloat(s.total) || 0);
+        });
+        updateText('todayColis', totalVendables);
+        let topV = "-", max = 0;
+        for(let v in vendeurs) { if(vendeurs[v] > max) { max = vendeurs[v]; topV = v; } }
+        updateText('topVendeur', topV);
+    }
+
+    function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
     function updatePieChart(data) {
         const ctx = document.getElementById('salesPieChart');
         if (!ctx || Object.keys(data).length === 0) return;
         if (salesChart) salesChart.destroy();
-        salesChart = new Chart(ctx.getContext('2d'), {
-            type: 'doughnut',
-            data: {
-                labels: Object.keys(data),
-                datasets: [{ data: Object.values(data).map(d => d.ca), backgroundColor: ['#1877f2', '#10b981', '#f59e0b', '#be123c', '#8b5cf6', '#701a75'] }]
-            },
-            options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } }
-        });
+        salesChart = new Chart(ctx.getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data).map(d => d.ca), backgroundColor: ['#1877f2', '#10b981', '#f59e0b', '#be123c', '#8b5cf6', '#701a75'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } } });
     }
-
     function updateBarChart(data) {
         const ctx = document.getElementById('agentBarChart');
         if (!ctx || Object.keys(data).length === 0) return;
         if (agentChart) agentChart.destroy();
-        agentChart = new Chart(ctx.getContext('2d'), {
-            type: 'bar',
-            data: {
-                labels: Object.keys(data),
-                datasets: [{ label: 'CA Agence', data: Object.values(data).map(d => d.ca_agence), backgroundColor: '#1877f2' }]
-            },
-            options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } }
-        });
+        agentChart = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: Object.keys(data), datasets: [{ label: 'CA Agence', data: Object.values(data).map(d => d.ca), backgroundColor: '#1877f2' }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
     }
 
-    function updateDailyFlashStats(sales) {
-        const today = new Date().toISOString().split('T')[0];
-        const todaySales = sales.filter(s => s.date === today);
-        let totalColis = 0; let vendeurs = {};
-        todaySales.forEach(s => {
-            totalColis += (parseInt(s.quantite) || 0);
-            vendeurs[s.vendeur] = (vendeurs[s.vendeur] || 0) + (parseFloat(s.total) || 0);
-        });
-        document.getElementById('todayColis').textContent = totalColis;
-        let topV = "-"; let max = 0;
-        for(let v in vendeurs) { if(vendeurs[v] > max) { max = vendeurs[v]; topV = v; } }
-        document.getElementById('topVendeur').textContent = topV;
-    }
-
-    function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
-
-    // --- 8. ECOUTEURS FIRESTORE ---
     db.collection("stocks").onSnapshot(snap => { allStocks = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("ventes").onSnapshot(snap => { allSales = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("recuperations").onSnapshot(snap => { allRecuperations = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("encaissements_vendeurs").onSnapshot(snap => { allPayments = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("pertes").onSnapshot(snap => { allLosses = snap.docs.map(doc => doc.data()); updateDashboard(); });
-    db.collection("retours_vendeurs").onSnapshot(snap => { allReturns = snap.docs.map(doc => doc.data()); updateDashboard(); });
 
     startDateInput.addEventListener('change', updateDashboard);
     endDateInput.addEventListener('change', updateDashboard);

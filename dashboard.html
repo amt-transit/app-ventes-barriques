@@ -8,65 +8,16 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        /* --- DESIGN RESPONSIVE & CONDENSÉ --- */
-        .kpi-grid { 
-            display: grid; 
-            grid-template-columns: repeat(3, 1fr); 
-            gap: 10px; 
-            margin-bottom: 20px; 
-        }
-
-        .kpi-card { 
-            padding: 12px; 
-            border-radius: 12px; 
-            color: white; 
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        }
-        .kpi-card h3 { font-size: 9px; margin: 0; opacity: 0.8; text-transform: uppercase; }
-        .kpi-card p { font-size: 16px; margin: 5px 0 0; font-weight: bold; }
-
-        .bg-blue { background: #1877f2; }
-        .bg-purple { background: #701a75; }
-        .bg-green { background: #10b981; }
-        .bg-red { background: #be123c; }
-        .bg-orange { background: #f59e0b; }
-        .bg-dark { background: #1e293b; }
-
-        /* Tableaux : défilement horizontal sur mobile */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
-            margin-top: 10px;
-        }
-
-        .dashboard-grid-2-col {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-        }
-
+        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .kpi-card { padding: 12px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .kpi-card h3 { font-size: 8px; margin: 0; opacity: 0.8; text-transform: uppercase; }
+        .kpi-card p { font-size: 15px; margin: 5px 0 0; font-weight: bold; }
+        .bg-blue { background: #1877f2; } .bg-purple { background: #701a75; } .bg-green { background: #10b981; }
+        .bg-red { background: #be123c; } .bg-orange { background: #f59e0b; } .bg-slate { background: #64748b; } .bg-dark { background: #1e293b; }
+        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
+        .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .chart-container { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
         h2 { font-size: 14px; color: #1e293b; border-left: 4px solid #1877f2; padding-left: 10px; margin-bottom: 10px; }
-
-        /* --- AJUSTEMENTS TÉLÉPHONE (MAX 768px) --- */
-        @media (max-width: 768px) {
-            .kpi-grid { grid-template-columns: repeat(2, 1fr); } 
-            .dashboard-grid-2-col { grid-template-columns: 1fr; }
-            
-            .navigation { 
-                display: flex; 
-                flex-wrap: wrap; 
-                justify-content: center; 
-                gap: 5px; 
-                padding: 10px;
-            }
-            .navigation a { font-size: 10px; padding: 6px 10px; }
-            h1 { font-size: 16px; text-align: center; }
-            .chart-container { padding: 10px; }
-            canvas { max-height: 180px; }
-        }
     </style>
 </head>
 <body>
@@ -86,41 +37,38 @@
     </nav>
 
     <div style="padding: 15px;">
-        
-        <div class="filter-container" style="background: white; padding: 8px 12px; border-radius: 10px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0; gap: 5px; flex-wrap: nowrap; overflow-x: hidden;">
-            <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+        <div class="filter-container" style="background: white; padding: 8px 12px; border-radius: 10px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0;">
+            <div style="display: flex; gap: 4px; align-items: center;">
                 <label style="font-size: 11px; font-weight: bold;">Du:</label>
-                <input type="date" id="startDate" style="padding: 4px; font-size: 11px; width: 105px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                <input type="date" id="startDate">
                 <label style="font-size: 11px; font-weight: bold;">au</label>
-                <input type="date" id="endDate" style="padding: 4px; font-size: 11px; width: 105px; border: 1px solid #cbd5e1; border-radius: 4px;">
+                <input type="date" id="endDate">
             </div>
-            <p id="reportDate" style="font-size: 9px; color: #64748b; margin: 0; text-align: right; white-space: nowrap;"></p>
+            <p id="reportDate" style="font-size: 9px; color: #64748b; margin: 0;"></p>
         </div>
 
         <div class="kpi-grid">
             <div class="kpi-card bg-blue"><h3>Chiffre d'Affaires</h3><p id="grandTotalVentes">0,00 €</p></div>
-            <div class="kpi-card" style="background: #334155;">
-                <h3>Investissement Total (Dépôt)</h3>
-                <p id="totalValeurStock">0,00 €</p>
-            </div>
+            <div class="kpi-card" style="background: #334155;"><h3>Investissement Dépôt</h3><p id="totalValeurStock">0,00 €</p></div>
             <div class="kpi-card bg-purple"><h3>📍 Abidjan</h3><p id="totalVenduAbidjan">0,00 €</p></div>
             <div class="kpi-card bg-green"><h3>Caisse Agence</h3><p id="grandTotalCaisse">0,00 €</p></div>
             <div class="kpi-card bg-red"><h3>Dette Vendeurs</h3><p id="totalDues">0,00 €</p></div>
-            <div class="kpi-card bg-orange"><h3>Colis Sortis</h3><p id="grandTotalQuantite">0</p></div>
+            <div class="kpi-card bg-orange"><h3>Produits Sortis</h3><p id="qtyVendablesSortis">0</p></div>
+            <div class="kpi-card bg-slate"><h3>Consos Sortis</h3><p id="qtyConsosSortis">0</p></div>
             <div class="kpi-card bg-dark"><h3>Pertes</h3><p id="totalPertes">0</p></div>
         </div>
 
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 100px; background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
-                <span style="font-size: 9px; font-weight: bold;">JOUR (COLIS)</span><br>
+            <div style="flex: 1; background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+                <span style="font-size: 9px; font-weight: bold;">JOUR (VENDABLES)</span><br>
                 <strong id="todayColis" style="font-size: 16px; color: #1877f2;">0</strong>
             </div>
-            <div style="flex: 1; min-width: 100px; background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
+            <div style="flex: 1; background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
                 <span style="font-size: 9px; font-weight: bold;">TOP VENDEUR</span><br>
                 <strong id="topVendeur" style="font-size: 13px; color: #f59e0b;">-</strong>
             </div>
-            <div style="flex: 1; min-width: 120px; background: #10b981; color: white; padding: 10px; border-radius: 8px; text-align: center;">
-                <span style="font-size: 9px; font-weight: bold;">MARGE</span><br>
+            <div style="flex: 1; background: #10b981; color: white; padding: 10px; border-radius: 8px; text-align: center;">
+                <span style="font-size: 9px; font-weight: bold;">MARGE RÉELLE</span><br>
                 <strong id="beneficeTotalDisplay" style="font-size: 16px;">0,00 €</strong>
             </div>
         </div>
@@ -130,18 +78,17 @@
                 <h2>Performance Produits</h2>
                 <canvas id="salesPieChart"></canvas>
                 <div class="table-responsive">
-                    <table id="productSummaryTable">
+                    <table>
                         <thead><tr><th>Produit</th><th>Qté</th><th>CA</th><th>Profit</th></tr></thead>
                         <tbody id="productSummaryTableBody"></tbody>
                     </table>
                 </div>
             </div>
-
             <div class="chart-container">
                 <h2>Suivi Vendeurs</h2>
                 <canvas id="agentBarChart"></canvas>
                 <div class="table-responsive">
-                    <table id="agentSummaryTable">
+                    <table>
                         <thead><tr><th>Vendeur</th><th>Ventes</th><th>CA</th><th>Dette</th></tr></thead>
                         <tbody id="agentSummaryTableBody"></tbody>
                     </table>
@@ -152,8 +99,8 @@
         <div class="chart-container" style="margin-top: 15px;">
             <h2>🛒 Réapprovisionnement</h2>
             <div class="table-responsive">
-                <table id="reinvestmentTable">
-                    <thead><tr><th>Produit</th><th>Prix Achat</th><th>Qté Max</th></tr></thead>
+                <table>
+                    <thead><tr><th>Produit</th><th>Prix Achat</th><th>Possibilité de rachat</th></tr></thead>
                     <tbody id="reinvestmentTableBody"></tbody>
                 </table>
             </div>
@@ -165,14 +112,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-            authDomain: "app-ventes-barriques.firebaseapp.com",
-            projectId: "app-ventes-barriques",
-            storageBucket: "app-ventes-barriques.appspot.com",
-            messagingSenderId: "615546459847",
-            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M", authDomain: "app-ventes-barriques.firebaseapp.com", projectId: "app-ventes-barriques", storageBucket: "app-ventes-barriques.appspot.com", messagingSenderId: "615546459847", appId: "1:615546459847:web:1b387b0b703b7a9a1210e2" };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         window.db = firebase.firestore();
     </script>
