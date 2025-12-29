@@ -175,26 +175,27 @@
             }
         });
 
-        // Charger les points et stocker les données brutes une seule fois
+        // --- DANS LE SCRIPT DE recuperation.html ---
+
+        // Modification de la fonction loadSellerPersonalPoints pour isoler les prix
         async function loadSellerPersonalPoints(nom) {
             if(!nom) return;
             
-            // Si les filtres sont vides (premier chargement), on met la semaine en cours
-            if (!document.getElementById('filterDateDebut').value) {
-                setDatesSemaineEnCours();
-            }
-
             const dateDebut = document.getElementById('filterDateDebut').value;
             const dateFin = document.getElementById('filterDateFin').value;
 
-            // Chargement des données Firestore
-            const [recupSnap, ventesSnap, encaissSnap] = await Promise.all([
+            // Récupérer aussi les prix pour savoir ce qui est un consommable
+            const [recupSnap, ventesSnap, encaissSnap, pricesSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", nom).get(),
                 db.collection("ventes").where("vendeur", "==", nom).get(),
-                db.collection("encaissements_vendeurs").where("vendeur", "==", nom).get()
+                db.collection("encaissements_vendeurs").where("vendeur", "==", nom).get(),
+                db.collection("stocks").get()
             ]);
 
-            // Stockage et filtrage local par date
+            // Mapper les prix de vente
+            let pVenteMap = {};
+            pricesSnap.forEach(doc => { pVenteMap[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
+
             rawData.recups = recupSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
             rawData.ventes = ventesSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
             const encaissementsFiltrés = encaissSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
@@ -213,24 +214,31 @@
             myStockBody.innerHTML = '';
             for(const p in statsProduits) {
                 const item = statsProduits[p];
+                const isConsommable = pVenteMap[p] <= 0; //
                 myStockBody.innerHTML += `
                     <tr class="clickable-row" onclick="openHistoryModal('${p}')">
-                        <td style="text-align:left;">${p} ℹ️</td>
+                        <td style="text-align:left;">${p} ${isConsommable ? '🛠️' : 'ℹ️'}</td>
                         <td>${item.pris}</td>
                         <td style="color:#ef4444;">${item.vendus}</td>
                         <td style="font-weight:bold; color:#1877f2;">${item.pris - item.vendus}</td>
                     </tr>`;
             }
 
-            // Calcul des totaux financiers basés sur la période filtrée
-            let totalVendu = 0, totalVerse = 0;
-            rawData.ventes.forEach(d => { totalVendu += (d.total || 0); });
-            encaissementsFiltrés.forEach(d => { totalVerse += (d.montantRecu || 0) + (d.remise || 0); });
+            // CALCUL FINANCIER CORRIGÉ : On ignore les ventes de produits dont le PV est 0
+            let totalVenduArgent = 0;
+            rawData.ventes.forEach(d => { 
+                if (pVenteMap[d.produit] > 0) { // Uniquement si ce n'est pas un consommable
+                    totalVenduArgent += (parseFloat(d.total) || 0); 
+                }
+            });
+
+            let totalVerse = 0;
+            encaissementsFiltrés.forEach(d => { totalVerse += (parseFloat(d.montantRecu) || 0) + (parseFloat(d.remise) || 0); });
             
             const fmt = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
-            document.getElementById('myTotalVendu').innerText = fmt(totalVendu);
+            document.getElementById('myTotalVendu').innerText = fmt(totalVenduArgent);
             document.getElementById('myTotalVerse').innerText = fmt(totalVerse);
-            document.getElementById('myReste').innerText = fmt(totalVendu - totalVerse);
+            document.getElementById('myReste').innerText = fmt(totalVenduArgent - totalVerse);
         }
 
         // Système Modal : Affichage instantané via rawData

@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let allSales = [], allStocks = [], allPayments = [], allRecuperations = [], allLosses = [], allReturns = [];
     let salesChart = null, agentChart = null;
 
+    // --- 1. INITIALISATION DES DATES ---
     function setDefaultDates() {
         const now = new Date();
         const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -14,19 +15,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     setDefaultDates();
 
+    // --- 2. MISE À JOUR DU TABLEAU DE BORD ---
     function updateDashboard() {
         const start = startDateInput.value;
         const end = endDateInput.value;
 
-        // Filtrage strict par date
         const filteredSales = allSales.filter(s => s.date && s.date >= start && s.date <= end);
         const filteredPayments = allPayments.filter(p => p.date && p.date >= start && p.date <= end);
         const filteredLosses = allLosses.filter(l => l.date && l.date >= start && l.date <= end);
         const filteredRecups = allRecuperations.filter(r => r.date && r.date >= start && r.date <= end);
 
-        // Debug Console pour vérifier l'arrivée des données
-        console.log("Ventes détectées dans Firestore:", allSales.length);
-        console.log("Ventes après filtre date:", filteredSales.length);
+        console.log("Ventes détectées:", allSales.length, "| Après filtre:", filteredSales.length);
 
         calculateKPIs(filteredSales, filteredPayments, filteredLosses, filteredRecups);
         renderProductAnalysis(filteredSales);
@@ -35,57 +34,58 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDailyFlashStats(allSales);
 
         if (document.getElementById('reportDate')) {
-            document.getElementById('reportDate').textContent = "Mis à jour le : " + new Date().toLocaleDateString('fr-FR');
+            document.getElementById('reportDate').textContent = "Établi le : " + new Date().toLocaleDateString('fr-FR');
         }
     }
 
+    // --- 3. CALCUL DES INDICATEURS (KPI) ---
     function calculateKPIs(sales, payments, losses, recups) {
-        // 1. CALCUL DE L'INVESTISSEMENT TOTAL (Valeur d'achat de tout le dépôt)
-        // On utilise allStocks qui contient tous les arrivages enregistrés
-        const valeurTotaleInvestie = allStocks.reduce((sum, item) => {
-            return sum + ( (parseFloat(item.quantite) || 0) * (parseFloat(item.prixAchat) || 0) );
-        }, 0);
-
-        // 2. CHIFFRE D'AFFAIRES (CA)
+        // A. CHIFFRE D'AFFAIRES
         const caAgence = sales.filter(s => s.payeAbidjan !== true).reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
         const caAbidjan = sales.filter(s => s.payeAbidjan === true).reduce((sum, s) => sum + (parseFloat(s.total) || 0), 0);
         const totalCA = caAgence + caAbidjan;
 
-        // 3. COÛT D'ACHAT DU VENDU (Investissement sur les ventes uniquement)
-        let totalCoutAchatVendu = 0;
+        // B. INVESTISSEMENT TOTAL (Valeur d'achat de TOUT le stock entré)
+        const valeurTotaleInvestie = allStocks.reduce((sum, item) => {
+            return sum + ((parseFloat(item.quantite) || 0) * (parseFloat(item.prixAchat) || 0));
+        }, 0);
+
+        // C. COÛT D'ACHAT DES PRODUITS VENDUS (Pour le calcul de marge)
+        let coutAchatVendus = 0;
         sales.forEach(s => {
             const stockInfo = allStocks.find(st => st.produit.toUpperCase() === s.produit.toUpperCase());
             const unitPA = stockInfo ? (parseFloat(stockInfo.prixAchat) || 0) : 0;
-            totalCoutAchatVendu += (parseInt(s.quantite) || 0) * unitPA;
+            coutAchatVendus += (parseInt(s.quantite) || 0) * unitPA;
         });
 
-        // 4. AUTRES CALCULS (Caisse, Dette, Pertes)
+        // D. AUTRES CALCULS
         const totalCaisse = payments.reduce((sum, p) => sum + (parseFloat(p.montantRecu) || 0), 0);
         const totalRemises = payments.reduce((sum, p) => sum + (parseFloat(p.remise) || 0), 0);
         const totalColisSortis = recups.reduce((sum, r) => sum + (parseInt(r.quantite) || 0), 0);
         const totalPertes = losses.reduce((sum, l) => sum + (parseInt(l.quantite) || 0), 0);
         
-        // Correction de l'erreur : on définit totalDu ici (sans accent)
-        const totalDu = caAgence - (totalCaisse + totalRemises);
+        // Dette (Sans accent pour éviter l'erreur ReferenceError)
+        const totalDuCalcul = caAgence - (totalCaisse + totalRemises);
 
-        // --- MISE À JOUR DE L'AFFICHAGE HTML ---
-        if(document.getElementById('grandTotalVentes')) document.getElementById('grandTotalVentes').textContent = formatEUR(totalCA);
-        if(document.getElementById('totalInvestissement')) document.getElementById('totalInvestissement').textContent = formatEUR(totalCoutAchatVendu);
-        
-        // Affichage de l'Investissement Total (Dépôt)
-        if(document.getElementById('totalValeurStock')) document.getElementById('totalValeurStock').textContent = formatEUR(valeurTotaleInvestie);
-        
-        if(document.getElementById('totalVenduAbidjan')) document.getElementById('totalVenduAbidjan').textContent = formatEUR(caAbidjan);
-        if(document.getElementById('grandTotalCaisse')) document.getElementById('grandTotalCaisse').textContent = formatEUR(totalCaisse);
-        if(document.getElementById('totalDues')) document.getElementById('totalDues').textContent = formatEUR(totalDu);
-        if(document.getElementById('grandTotalQuantite')) document.getElementById('grandTotalQuantite').textContent = totalColisSortis;
-        if(document.getElementById('totalPertes')) document.getElementById('totalPertes').textContent = totalPertes;
+        // AFFICHAGE DES RÉSULTATS
+        document.getElementById('grandTotalVentes').textContent = formatEUR(totalCA);
+        document.getElementById('totalValeurStock').textContent = formatEUR(valeurTotaleInvestie);
+        document.getElementById('totalVenduAbidjan').textContent = formatEUR(caAbidjan);
+        document.getElementById('grandTotalCaisse').textContent = formatEUR(totalCaisse);
+        document.getElementById('totalDues').textContent = formatEUR(totalDuCalcul);
+        document.getElementById('grandTotalQuantite').textContent = totalColisSortis;
+        document.getElementById('totalPertes').textContent = totalPertes;
+
+        // Marge réelle sur ventes (Affichée dans le bloc vert)
+        const margeSurVentes = totalCA - coutAchatVendus;
+        if(document.getElementById('beneficeTotalDisplay')) {
+            document.getElementById('beneficeTotalDisplay').textContent = formatEUR(margeSurVentes);
+        }
     }
 
+    // --- 4. ANALYSE PRODUITS (TABLEAU GAUCHE) ---
     function renderProductAnalysis(sales) {
         const productData = {};
-        let totalProfit = 0;
-
         sales.forEach(s => {
             if (!productData[s.produit]) productData[s.produit] = { qte: 0, ca: 0 };
             productData[s.produit].qte += (parseInt(s.quantite) || 0);
@@ -99,8 +99,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = productData[p];
                 const stockInfo = allStocks.find(st => st.produit.toUpperCase() === p.toUpperCase());
                 const pa = stockInfo ? (parseFloat(stockInfo.prixAchat) || 0) : 0;
-                const profit = data.ca - (data.qte * pa);
-                totalProfit += profit;
+                const profit = data.ca - (data.qte * pa); // Marge par produit
 
                 tbody.innerHTML += `
                     <tr>
@@ -111,10 +110,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     </tr>`;
             }
         }
-        document.getElementById('beneficeTotalDisplay').textContent = formatEUR(totalProfit);
         updatePieChart(productData);
     }
 
+    // --- 5. ANALYSE VENDEURS (TABLEAU DROITE) ---
     function renderSellerAnalysis(sales, payments) {
         const sellers = {};
         sales.forEach(s => {
@@ -122,7 +121,6 @@ document.addEventListener('DOMContentLoaded', () => {
             sellers[s.vendeur].qte += (parseInt(s.quantite) || 0);
             if (s.payeAbidjan !== true) sellers[s.vendeur].ca_agence += (parseFloat(s.total) || 0);
         });
-        
         payments.forEach(p => {
             if(!sellers[p.vendeur]) sellers[p.vendeur] = { qte: 0, ca_agence: 0, recu: 0 };
             sellers[p.vendeur].recu += (parseFloat(p.montantRecu) || 0) + (parseFloat(p.remise) || 0);
@@ -146,6 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
         updateBarChart(sellers);
     }
 
+    // --- 6. RÉINVESTISSEMENT ---
     function renderReinvestment(sales) {
         const tbody = document.getElementById('reinvestmentTableBody');
         if (!tbody) return;
@@ -167,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- 7. GRAPHIQUES & UTILITAIRES ---
     function updatePieChart(data) {
         const ctx = document.getElementById('salesPieChart');
         if (!ctx || Object.keys(data).length === 0) return;
@@ -211,6 +211,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
+    // --- 8. ECOUTEURS FIRESTORE ---
     db.collection("stocks").onSnapshot(snap => { allStocks = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("ventes").onSnapshot(snap => { allSales = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("recuperations").onSnapshot(snap => { allRecuperations = snap.docs.map(doc => doc.data()); updateDashboard(); });

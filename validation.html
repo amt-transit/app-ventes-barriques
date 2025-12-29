@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        /* STYLE BASÉ SUR L'ONGLET STOCK */
         .kpi-stock-grid { 
             display: grid; 
             grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
@@ -33,10 +32,9 @@
 
         @media (max-width: 850px) {
             .app-header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 15px 10px; }
-            .app-logo { margin-right: 0 !important; margin-bottom: 10px; }
             .navigation { display: flex !important; flex-wrap: wrap !important; justify-content: center !important; gap: 6px !important; padding: 10px !important; }
             .navigation a, .navigation button { font-size: 10px; padding: 8px 12px; margin: 0 !important; flex-grow: 0; }
-            h1 { font-size: 18px; text-align: center; margin: 0; }
+            h1 { font-size: 18px; text-align: center; }
             .dashboard-grid-2-col { grid-template-columns: 1fr; }
             .kpi-stock-grid { grid-template-columns: repeat(2, 1fr); }
         }
@@ -73,16 +71,14 @@
                 <select id="valVendeur" style="padding:10px; width:100%;"></select>
 
                 <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <p style="font-size: 10px; font-weight: bold; color: #475569; margin: 0 0 5px 0;">📦 PARTIE 1 : VENTES</p>
+                    <p style="font-size: 10px; font-weight: bold; color: #475569; margin: 0 0 5px 0;">📦 PARTIE 1 : VENTES CLIENTS</p>
                     <select id="valProduit" style="padding:10px; width:100%; margin-bottom:5px;"></select>
                     <div id="sellerStockInfo" style="font-size: 10px; color: #1877f2; font-weight: bold; margin-bottom:5px;"></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <input type="number" id="valQuantite" placeholder="Qté">
                         <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background:#f1f5f9; padding:10px;">
                     </div>
-                    <p style="font-size: 11px; text-align: right; margin-top: 5px; font-weight: bold;">
-                        Total : <span id="valTotalSaisie">0,00 €</span>
-                    </p>
+                    <p style="font-size: 11px; text-align: right; margin-top: 5px; font-weight: bold;">Total : <span id="valTotalSaisie">0,00 €</span></p>
                 </div>
 
                 <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
@@ -93,13 +89,21 @@
                     </div>
                 </div>
 
+                <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
+                    <p style="font-size: 10px; font-weight: bold; color: #475569; margin: 0 0 5px 0;">🛠️ PARTIE 3 : USAGE INTERNE (FOURNITURES)</p>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                        <select id="valProduitConso" style="padding:10px;"></select>
+                        <input type="number" id="valQuantiteConso" placeholder="Qté Utilisée" style="padding:10px;">
+                    </div>
+                    <p style="font-size: 9px; color: #64748b; margin-top: 5px;">Note : Aucune dette n'est générée pour les consommables.</p>
+                </div>
+
                 <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #94a3b8;">
                     <p style="font-size: 10px; font-weight: bold; color: #1e293b; margin: 0 0 5px 0;">🔄 PARTIE 4 : RETOURS DE COLIS (INVENDUS)</p>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
                         <select id="valProduitRetour" style="padding:10px;"></select>
                         <input type="number" id="valQuantiteRetour" placeholder="Qté Rendue" style="padding:10px;">
                     </div>
-                    <p style="font-size: 9px; color: #64748b; margin-top: 5px;">Note : Cette action réintègre le produit dans le dépôt principal.</p>
                 </div>
 
                 <div style="background: #fdf4ff; padding: 10px; border-radius: 8px; border: 1px solid #f5d0fe;">
@@ -124,7 +128,7 @@
             </div>
 
             <div class="kpi-stock-grid">
-                <div class="card-stock bg-blue"><span class="stock-label">Vendu (Période)</span><span id="totalDu" class="stock-number">0€</span></div>
+                <div class="card-stock bg-blue"><span class="stock-label">Vendu à l'Agence</span><span id="totalDu" class="stock-number">0€</span></div>
                 <div class="card-stock bg-green"><span class="stock-label">Encaissé (Période)</span><span id="totalPaye" class="stock-number">0€</span></div>
                 <div class="card-stock bg-red" style="grid-column: span 2;"><span class="stock-label">Dette Réelle Totale</span><span id="resteAPayer" class="stock-number">0€</span></div>
             </div>
@@ -142,6 +146,7 @@
                             <th>Produit</th>
                             <th>Pris</th>
                             <th>Vendu</th>
+                            <th>🛠️ Conso.</th>
                             <th>Rendu</th>
                             <th>En main</th>
                         </tr>
@@ -167,15 +172,15 @@
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         window.db = firebase.firestore();
     </script>
-    
     <script src="auth-guard.js"></script>
 
     <script>
-        // --- LOGIQUE JS ---
         const valVendeur = document.getElementById('valVendeur');
         const valProduit = document.getElementById('valProduit');
+        const valProduitConso = document.getElementById('valProduitConso');
         const valProduitRetour = document.getElementById('valProduitRetour');
         const valQuantite = document.getElementById('valQuantite');
+        const valQuantiteConso = document.getElementById('valQuantiteConso');
         const valQuantiteRetour = document.getElementById('valQuantiteRetour');
         const valPrixUnit = document.getElementById('valPrixUnit');
         const valTotalSaisie = document.getElementById('valTotalSaisie');
@@ -202,15 +207,12 @@
         async function loadDynamicUsers() {
             const snap = await db.collection("users").orderBy("nom", "asc").get();
             valVendeur.innerHTML = '<option value="">-- Choisir un compte --</option>';
-            snap.forEach(doc => {
-                const u = doc.data();
-                valVendeur.innerHTML += `<option value="${u.nom}">${u.nom}</option>`;
-            });
+            snap.forEach(doc => { valVendeur.innerHTML += `<option value="${doc.data().nom}">${doc.data().nom}</option>`; });
         }
 
         async function loadPrices() {
             const snap = await db.collection("stocks").get();
-            snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente); });
+            snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
         }
 
         async function loadSellerData() {
@@ -219,49 +221,55 @@
             const dStart = document.getElementById('filterStart').value;
             const dEnd = document.getElementById('filterEnd').value;
 
-            const [recupSnap, ventesSnap, encaissSnap, retoursSnap] = await Promise.all([
+            const [recupSnap, ventesSnap, encaissSnap, retoursSnap, consosSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", name).get(),
                 db.collection("ventes").where("vendeur", "==", name).get(),
                 db.collection("encaissements_vendeurs").where("vendeur", "==", name).get(),
-                db.collection("retours_vendeurs").where("vendeur", "==", name).get()
+                db.collection("retours_vendeurs").where("vendeur", "==", name).get(),
+                db.collection("consommations").where("vendeur", "==", name).get()
             ]);
 
             inventoryData = {};
-            let pVentes = 0; let pPaye = 0; let tHistV = 0; let tHistP = 0;
+            let pVentesArgent = 0; let pPaye = 0; let tHistV = 0; let tHistP = 0;
 
             recupSnap.forEach(doc => { 
                 const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, rP: 0, pT: 0, vT: 0, rT: 0 };
-                inventoryData[d.produit].pT += d.quantite;
-                if (d.date >= dStart && d.date <= dEnd) inventoryData[d.produit].pP += d.quantite;
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
+                inventoryData[d.produit].pT += (parseInt(d.quantite) || 0);
             });
 
             ventesSnap.forEach(doc => {
                 const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, rP: 0, pT: 0, vT: 0, rT: 0 };
-                inventoryData[d.produit].vT += d.quantite;
-                tHistV += (d.total || 0);
-                if (d.date >= dStart && d.date <= dEnd) {
-                    inventoryData[d.produit].vP += d.quantite;
-                    pVentes += (d.total || 0);
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
+                inventoryData[d.produit].vT += (parseInt(d.quantite) || 0);
+                
+                // CORRECTION LOGIQUE DETTE : Uniquement si PV > 0 ET non payé à Abidjan
+                if (globalPrices[d.produit] > 0 && d.payeAbidjan !== true) {
+                    tHistV += (parseFloat(d.total) || 0);
+                    if (d.date >= dStart && d.date <= dEnd) pVentesArgent += (parseFloat(d.total) || 0);
                 }
+            });
+
+            consosSnap.forEach(doc => {
+                const d = doc.data();
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
+                inventoryData[d.produit].cT += (parseInt(d.quantite) || 0);
             });
 
             retoursSnap.forEach(doc => {
                 const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, rP: 0, pT: 0, vT: 0, rT: 0 };
-                inventoryData[d.produit].rT += d.quantite;
-                if (d.date >= dStart && d.date <= dEnd) inventoryData[d.produit].rP += d.quantite;
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
+                inventoryData[d.produit].rT += (parseInt(d.quantite) || 0);
             });
 
             encaissSnap.forEach(doc => {
                 const d = doc.data();
-                const montant = (d.montantRecu || 0) + (d.remise || 0);
+                const montant = (parseFloat(d.montantRecu) || 0) + (parseFloat(d.remise) || 0);
                 tHistP += montant;
                 if (d.date >= dStart && d.date <= dEnd) pPaye += montant;
             });
 
-            document.getElementById('totalDu').innerText = formatEUR(pVentes);
+            document.getElementById('totalDu').innerText = formatEUR(pVentesArgent);
             document.getElementById('totalPaye').innerText = formatEUR(pPaye);
             document.getElementById('resteAPayer').innerText = formatEUR(tHistV - tHistP);
             renderUI();
@@ -270,78 +278,65 @@
         function renderUI() {
             valProduit.innerHTML = '<option value="">-- Vente --</option>';
             valProduitRetour.innerHTML = '<option value="">-- Retour --</option>';
+            valProduitConso.innerHTML = '<option value="">-- Conso --</option>';
             const tbody = document.getElementById('sellerInventoryBody');
             tbody.innerHTML = '';
             for (const p in inventoryData) {
-                const item = inventoryData[p];
-                const enMain = item.pT - item.vT - item.rT; // Calcul incluant les retours
+                const i = inventoryData[p];
+                const enMain = i.pT - i.vT - i.rT - i.cT;
                 if (enMain > 0) {
                     valProduit.innerHTML += `<option value="${p}">${p}</option>`;
                     valProduitRetour.innerHTML += `<option value="${p}">${p}</option>`;
+                    valProduitConso.innerHTML += `<option value="${p}">${p}</option>`;
                 }
-                tbody.innerHTML += `<tr><td>${p}</td><td>${item.pP}</td><td>${item.vP}</td><td>${item.rP}</td><td><b>${enMain}</b></td></tr>`;
+                tbody.innerHTML += `<tr><td>${p} ${globalPrices[p] <= 0 ? '🛠️' : ''}</td><td>${i.pT}</td><td>${i.vT}</td><td>${i.cT || 0}</td><td>${i.rT}</td><td><b>${enMain}</b></td></tr>`;
             }
-        }
-
-        function preparerImpression() {
-            const name = valVendeur.value;
-            if(!name) return alert("Sélectionnez un vendeur.");
-            window.print();
         }
 
         valVendeur.addEventListener('change', loadSellerData);
         valProduit.addEventListener('change', () => {
             valPrixUnit.value = globalPrices[valProduit.value] || 0;
             const it = inventoryData[valProduit.value];
-            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `En main : ${it ? it.pT - it.vT - it.rT : 0}` : "";
+            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `En main : ${it ? it.pT - it.vT - it.rT - it.cT : 0}` : "";
             updateT();
         });
 
         valQuantite.addEventListener('input', updateT);
-        function updateT() { 
-            if (valTotalSaisie) valTotalSaisie.innerText = formatEUR((parseFloat(valQuantite.value)||0)*(parseFloat(valPrixUnit.value)||0)); 
-        }
+        function updateT() { if (valTotalSaisie) valTotalSaisie.innerText = formatEUR((parseFloat(valQuantite.value)||0)*(parseFloat(valPrixUnit.value)||0)); }
 
         document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
             const btn = document.getElementById('btnConfirmerVente');
             const name = valVendeur.value;
-            const prod = valProduit.value;
-            const prodRet = valProduitRetour.value;
-            const qty = parseInt(valQuantite.value) || 0;
-            const qtyRet = parseInt(valQuantiteRetour.value) || 0;
             const date = document.getElementById('valDate').value;
+            const prod = valProduit.value; const qty = parseInt(valQuantite.value) || 0;
+            const prodC = valProduitConso.value; const qtyC = parseInt(valQuantiteConso.value) || 0;
+            const prodR = valProduitRetour.value; const qtyR = parseInt(valQuantiteRetour.value) || 0;
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
             if (!name) return alert("Choisissez un vendeur.");
             btn.disabled = true;
             try {
-                // Enregistrement Vente
                 if (prod && qty > 0) {
-                    await db.collection("ventes").add({ 
-                        date, vendeur: name, produit: prod, quantite: qty, 
-                        prixUnitaire: parseFloat(valPrixUnit.value), total: qty * parseFloat(valPrixUnit.value),
-                        payeAbidjan: valPayAbidjan.checked, clientRef: valClientRef.value,
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp() 
-                    });
+                    await db.collection("ventes").add({ date, vendeur: name, produit: prod, quantite: qty, prixUnitaire: globalPrices[prod], total: qty * globalPrices[prod], payeAbidjan: valPayAbidjan.checked, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
-                // Enregistrement Retour
-                if (prodRet && qtyRet > 0) {
-                    await db.collection("retours_vendeurs").add({ 
-                        date, vendeur: name, produit: prodRet, quantite: qtyRet, 
-                        timestamp: firebase.firestore.FieldValue.serverTimestamp() 
-                    });
+                if (prodC && qtyC > 0) {
+                    await db.collection("consommations").add({ date, vendeur: name, produit: prodC, quantite: qtyC, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
-                // Enregistrement Argent
+                if (prodR && qtyR > 0) {
+                    await db.collection("retours_vendeurs").add({ date, vendeur: name, produit: prodR, quantite: qtyR, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                }
                 if (aco > 0 || rem > 0) {
                     await db.collection("encaissements_vendeurs").add({ date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
                 alert("Données enregistrées !");
-                valQuantite.value = ""; valQuantiteRetour.value = ""; document.getElementById('valAcompte').value = ""; loadSellerData();
+                valQuantite.value = ""; valQuantiteConso.value = ""; valQuantiteRetour.value = ""; document.getElementById('valAcompte').value = ""; 
+                loadSellerData();
             } catch (e) { alert("Erreur."); } finally { btn.disabled = false; }
         });
 
         loadDynamicUsers(); loadPrices();
+        function preparerImpression() { if(!valVendeur.value) return alert("Sélectionnez un vendeur."); window.print(); }
     </script>
 </body>
 </html>

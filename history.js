@@ -7,13 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const auditLogBody = document.getElementById('auditLogBody');
     const auditBadge = document.getElementById('auditCount');
     const filterVendeur = document.getElementById('filterVendeur');
+    const filterClientRef = document.getElementById('filterClientRef'); // Nouveau
     const dateStartInput = document.getElementById('mainFilterDateStart');
     const dateEndInput = document.getElementById('mainFilterDateEnd');
-
-    const logFilterDate = document.getElementById('logFilterDate');
-    const logFilterAuteur = document.getElementById('logFilterAuteur');
-    const logFilterModule = document.getElementById('logFilterModule');
-    const logFilterSearch = document.getElementById('logFilterSearch');
 
     // --- ÉTAT ---
     let allLogs = [];
@@ -81,7 +77,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (section) section.classList.add('active');
         
         const gFilters = document.getElementById('global-filters');
-        // On cache le filtre vendeur pour l'audit et les consommables (car ce sont des actions de dépôt)
         if (gFilters) gFilters.style.display = (type === 'audit' || type === 'consommables') ? 'none' : 'flex';
         
         if (type === 'audit') resetAuditCounter();
@@ -100,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const start = dateStartInput.value;
         const end = dateEndInput.value;
         const selVendeur = filterVendeur.value;
+        const selClient = filterClientRef.value.toLowerCase(); // Recherche Client
 
         if (unsubscribeVentes) unsubscribeVentes();
         if (unsubscribePaiements) unsubscribePaiements();
@@ -107,15 +103,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unsubscribeRetours) unsubscribeRetours();
         if (unsubscribeConsos) unsubscribeConsos();
 
-        // Listener Ventes
         unsubscribeVentes = db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
             .onSnapshot(snap => {
                 salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderVentes(selVendeur ? salesData.filter(d => d.vendeur === selVendeur) : salesData);
+                
+                // Filtrage combiné : Vendeur + Référence Client
+                let filtered = selVendeur ? salesData.filter(d => d.vendeur === selVendeur) : salesData;
+                if (selClient) {
+                    filtered = filtered.filter(d => 
+                        (d.clientRef && d.clientRef.toLowerCase().includes(selClient)) || 
+                        (d.produit && d.produit.toLowerCase().includes(selClient))
+                    );
+                }
+                
+                renderVentes(filtered);
                 renderInvendus();
             });
 
-        // Listener Consommables (Usage Interne)
         unsubscribeConsos = db.collection("consommations").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
             .onSnapshot(snap => {
                 consommationsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -135,23 +139,35 @@ document.addEventListener('DOMContentLoaded', () => {
             .onSnapshot(snap => { retoursData = snap.docs.map(doc => doc.data()); renderInvendus(); });
     }
 
-    if (filterVendeur) filterVendeur.addEventListener('change', startDataListeners);
-    if (dateStartInput) dateStartInput.addEventListener('change', startDataListeners);
-    if (dateEndInput) dateEndInput.addEventListener('change', startDataListeners);
+    // Écouteurs pour les changements de filtres
+    [filterVendeur, filterClientRef, dateStartInput, dateEndInput].forEach(el => {
+        if (el) el.addEventListener('input', startDataListeners);
+    });
 
     // --- 4. FONCTIONS DE RENDU ---
 
     function renderVentes(sales) {
         if (!tableBodyVentes) return;
-        tableBodyVentes.innerHTML = sales.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:gray;">Aucune vente.</td></tr>' : '';
+        tableBodyVentes.innerHTML = sales.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:gray;">Aucune vente trouvée.</td></tr>' : '';
+        
         sales.forEach(data => {
             const actions = (window.userRole === 'superadmin') ? `<button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button>` : '<small>Lecture</small>';
+            
+            // Marquage visuel Agence vs Abidjan
+            const tagAbidjan = data.payeAbidjan 
+                ? `<br><span style="background:#701a75; color:white; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:bold;">📍 ABIDJAN</span>` 
+                : `<br><span style="background:#1877f2; color:white; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:bold;">🏠 AGENCE</span>`;
+            
+            const infoClient = data.clientRef 
+                ? `<br><small style="color:#475569; font-style:italic;">Client: ${data.clientRef}</small>` 
+                : '';
+
             tableBodyVentes.innerHTML += `
                 <tr>
                     <td>${data.date}</td>
-                    <td><b>${data.produit}</b></td>
+                    <td><b>${data.produit}</b>${infoClient}</td>
                     <td>${data.quantite}</td>
-                    <td style="font-weight:bold;">${formatEUR(data.total)}</td>
+                    <td style="font-weight:bold;">${formatEUR(data.total)}${tagAbidjan}</td>
                     <td style="color:#1877f2; font-weight:bold;">${data.vendeur}</td>
                     <td>${actions}</td>
                 </tr>`;
@@ -232,7 +248,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 5. JOURNAL D'AUDIT ---
     function loadAuditLogs() {
         db.collection("audit_logs").orderBy("timestamp", "desc").limit(150).onSnapshot(snap => {
             allLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -242,9 +257,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyLogFilters() {
         if (!auditLogBody) return;
-        const filtered = allLogs; // Possibilité d'ajouter des filtres ici
         auditLogBody.innerHTML = '';
-        filtered.forEach(log => {
+        allLogs.forEach(log => {
             const mColor = log.module === 'STOCK' ? '#1877f2' : (log.module === 'COMPTES' ? '#8b5cf6' : '#f59e0b');
             auditLogBody.innerHTML += `
                 <tr>
@@ -257,14 +271,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 6. ACTIONS ADMIN ---
     window.deleteDocument = async (coll, docId) => {
-        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
-        if (confirm("Confirmer la suppression définitive ?")) {
+        if (window.userRole !== 'superadmin') return alert("Super Admin requis.");
+        if (confirm("Supprimer définitivement ?")) {
             try {
                 await db.collection(coll).doc(docId).delete();
-                alert("Enregistrement supprimé.");
-            } catch (e) { alert("Erreur lors de la suppression."); }
+                alert("Supprimé.");
+            } catch (e) { alert("Erreur."); }
         }
     };
 

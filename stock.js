@@ -98,41 +98,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     function renderStock() {
         stockTableBody.innerHTML = '';
         globalSummary = {}; 
-        let investissementTotalConsos = 0; // Pour calculer le coût d'achat total des fournitures
+        let investissementTotalConsos = 0; 
+        let cumulBeneficeReelGlobal = 0; 
 
-        // 1. Initialisation et calcul des entrées
+        // 1. Initialisation par produit (Entrées en stock)
         allStocksRaw.forEach(s => {
-            const prodNom = s.produit.trim().toUpperCase(); 
-            if (!globalSummary[prodNom]) {
-                globalSummary[prodNom] = { 
+            const p = s.produit.trim().toUpperCase(); 
+            if (!globalSummary[p]) {
+                globalSummary[p] = { 
                     in: 0, out: 0, soldAgence: 0, soldAbidjan: 0, 
-                    loss: 0, consumed: 0, returns: 0, 
+                    loss: 0, consumedDepot: 0, consumedTotal: 0, returns: 0, 
                     revenue: 0, lastPA: s.prixAchat || 0, lastPV: s.prixVente || 0 
                 };
             }
-            globalSummary[prodNom].in += (parseInt(s.quantite) || 0);
-            globalSummary[prodNom].lastPA = parseFloat(s.prixAchat) || 0;
-            globalSummary[prodNom].lastPV = parseFloat(s.prixVente) || 0;
+            globalSummary[p].in += (parseInt(s.quantite) || 0);
+            globalSummary[p].lastPA = parseFloat(s.prixAchat) || 0;
+            globalSummary[p].lastPV = parseFloat(s.prixVente) || 0;
         });
 
-        // 2. Accumulation des mouvements (Sorties, Pertes, Consommations, Retours)
+        // 2. Accumulation des mouvements
+        // Sorties vers vendeurs
         allRecuperationsRaw.forEach(r => { 
             const p = r.produit.trim().toUpperCase();
             if (globalSummary[p]) globalSummary[p].out += (parseInt(r.quantite) || 0); 
         });
+
+        // Consommations (Logique de distinction Dépôt vs Vendeur)
+        allConsommationsRaw.forEach(c => { 
+            const p = c.produit.trim().toUpperCase();
+            if (globalSummary[p]) {
+                const qte = (parseInt(c.quantite) || 0);
+                // Si la consommation n'a pas de vendeur, elle sort directement du dépôt
+                if (!c.vendeur || c.vendeur === "" || c.vendeur === "MAGASIN") {
+                    globalSummary[p].consumedDepot += qte;
+                }
+                // On suit le total consommé pour les statistiques financières
+                globalSummary[p].consumedTotal += qte;
+            } 
+        });
+
+        // Pertes et Retours
         allPertesRaw.forEach(p => { 
             const prod = p.produit.trim().toUpperCase();
             if (globalSummary[prod]) globalSummary[prod].loss += (parseInt(p.quantite) || 0); 
-        });
-        allConsommationsRaw.forEach(c => { 
-            const prod = c.produit.trim().toUpperCase();
-            if (globalSummary[prod]) globalSummary[prod].consumed += (parseInt(c.quantite) || 0); 
         });
         allRetoursRaw.forEach(ret => { 
             const prod = ret.produit.trim().toUpperCase();
             if (globalSummary[prod]) globalSummary[prod].returns += (parseInt(ret.quantite) || 0); 
         });
         
+        // 3. Accumulation des ventes
         allVentesRaw.forEach(v => { 
             const p = v.produit.trim().toUpperCase();
             if (globalSummary[p]) { 
@@ -142,66 +157,72 @@ document.addEventListener('DOMContentLoaded', async () => {
             } 
         });
 
-        let gainReelTotal = 0; 
-        let gainEstTotal = 0;
+        // 4. Génération des lignes du tableau
+        for (const p in globalSummary) {
+            const item = globalSummary[p];
+            
+            // NOUVELLE FORMULE PHYSIQUE :
+            // Le stock au dépôt = (Reçu + Retours) - (Donné Vendeurs + Pertes + Consommé AU DEPOT)
+            const enDepot = (item.in + item.returns) - (item.out + item.loss + item.consumedDepot);
+            
+            const totalSold = item.soldAgence + item.soldAbidjan;
 
-        // 3. Boucle de calcul financier
-        for (const prod in globalSummary) {
-            const item = globalSummary[prod];
-            
-            // Calcul du stock physique
-            const enDepot = (item.in + item.returns) - (item.out + item.loss + item.consumed);
-            const totalVendu = item.soldAgence + item.soldAbidjan;
-            
-            // LOGIQUE CONSOMMABLES : Si le prix de vente est 0, c'est un consommable
+            // Logique Consommables (PV=0) : Investissement total
             if (item.lastPV <= 0) {
-                // Investissement = Toute la quantité reçue x son prix d'achat
                 investissementTotalConsos += (item.in * item.lastPA);
             }
 
-            // Bénéfice Réel (uniquement pour les produits vendables)
-            const bReel = item.revenue - ((totalVendu + item.consumed) * item.lastPA);
-            const bEst = (item.lastPV - item.lastPA) * enDepot;
+            // Marge sur vente réelle (Profit)
+            const bReel = item.revenue - (totalSold * item.lastPA);
+            // Bénéfice Potentiel (Uniquement produits vendables)
+            const bEst = item.lastPV > 0 ? (item.lastPV - item.lastPA) * enDepot : 0;
 
-            gainReelTotal += bReel; 
-            gainEstTotal += bEst;
+            cumulBeneficeReelGlobal += bReel;
 
             let depotColor = enDepot > 20 ? '#10b981' : (enDepot < 10 ? '#ef4444' : (enDepot < 15 ? '#f59e0b' : 'black'));
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td><b>${prod}</b></td>
+                <td><b>${p}</b></td>
                 <td style="text-align:center;">${item.in}</td>
                 <td style="text-align:center;">${item.soldAgence}</td>
                 <td style="text-align:center; color:#701a75;">${item.soldAbidjan}</td>
                 <td style="text-align:center; color:#ef4444;">${item.loss}</td>
-                <td style="text-align:center; color:#64748b;">${item.consumed}</td>
+                <td style="text-align:center; color:#64748b;">${item.consumedTotal}</td>
                 <td style="text-align:center; font-weight:bold; color:${depotColor}">${enDepot}</td>
                 <td style="text-align:center; color:${bReel < 0 ? '#ef4444' : '#10b981'}; font-weight:bold;">${bReel.toFixed(2)}€</td>
             `;
-            tr.onclick = () => showProductDetails(prod, enDepot);
+            tr.onclick = () => showProductDetails(p, enDepot);
             stockTableBody.appendChild(tr);
         }
 
-        // 4. MISE À JOUR DES CARTES KPI
+        // 5. MISE À JOUR DES CARTES KPI (EN-TÊTES)
         document.getElementById('volumeTotal').textContent = allStocksRaw.reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
         document.getElementById('totalSorti').textContent = allRecuperationsRaw.reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
         document.getElementById('totalPertesStock').textContent = allPertesRaw.reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
         document.getElementById('totalAbidjanQty').textContent = allVentesRaw.filter(v => v.payeAbidjan).reduce((a, b) => a + (parseInt(b.quantite) || 0), 0);
         
-        // Affichage de l'investissement total dans les consommables
+        // Coût total des consommables (Achat)
         const coutConsElem = document.getElementById('totalCoutConsommables');
         if (coutConsElem) coutConsElem.textContent = formatEUR(investissementTotalConsos);
 
+        // Calcul du Stock Magasin Global pour la carte KPI
         const tIn = allStocksRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
         const tRet = allRetoursRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
         const tOut = allRecuperationsRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
         const tLoss = allPertesRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
-        const tCons = allConsommationsRaw.reduce((a,b) => a + (parseInt(b.quantite) || 0), 0);
+        // On utilise ici la somme des consommations "Dépôt" pour le stock physique global
+        const tConsDepot = Object.values(globalSummary).reduce((a, b) => a + b.consumedDepot, 0);
         
-        document.getElementById('totalEnMagasin').textContent = (tIn + tRet) - (tOut + tLoss + tCons);
-        document.getElementById('beneficeReel').textContent = formatEUR(gainReelTotal);
-        document.getElementById('beneficeTotalStock').textContent = formatEUR(gainEstTotal);
+        document.getElementById('totalEnMagasin').textContent = (tIn + tRet) - (tOut + tLoss + tConsDepot);
+        document.getElementById('beneficeReel').textContent = formatEUR(cumulBeneficeReelGlobal);
+
+        // Bénéfice POTENTIEL Global recalculé proprement
+        const gainEstTotalGlobal = Object.values(globalSummary).reduce((sum, item) => {
+            const stockRestant = (item.in + item.returns) - (item.out + item.loss + item.consumedDepot);
+            return sum + (item.lastPV > 0 ? (item.lastPV - item.lastPA) * stockRestant : 0);
+        }, 0);
+        document.getElementById('beneficeTotalStock').textContent = formatEUR(gainEstTotalGlobal);
     }
 
     // --- 5. EXPORT PDF / MODALS ---

@@ -58,12 +58,13 @@
             <button onclick="changeMonth(1)">▶</button>
         </div>
         <select id="filterVendeur" style="padding:8px; border-radius:8px;"><option value="">Vendeur: Tous</option></select>
+        <input type="text" id="filterClientRef" placeholder="🔍 Réf. Client..." style="padding:8px; border-radius:8px; border:1px solid #cbd5e1; width:140px; font-family:'Comfortaa'; font-size:11px;">
     </div>
 
     <div id="section-ventes" class="history-section active">
         <div class="table-responsive">
             <table>
-                <thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th><th>Vendeur</th><th>Action</th></tr></thead>
+                <thead><tr><th>Date</th><th>Produit / Client</th><th>Qté</th><th>Total</th><th>Vendeur</th><th>Action</th></tr></thead>
                 <tbody id="tableBodyVentes"></tbody>
             </table>
         </div>
