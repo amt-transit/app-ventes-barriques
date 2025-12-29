@@ -66,7 +66,9 @@
             <h2 style="margin-top: 0; color: #1877f2; font-size: 15px;">🚛 Nouvel Arrivage</h2>
             <div class="form-grid-responsive">
                 <input type="date" id="stockDate" style="padding: 10px;">
-                <input type="text" id="stockProduit" placeholder="Produit" list="referenceList" style="padding: 10px;">
+                <select id="stockProduit" style="padding: 10px;">
+                    <option value="">-- Choisir un produit --</option>
+                </select>
                 <input type="number" id="quantiteInitiale" placeholder="Qté" style="padding: 10px;">
                 <input type="number" id="prixAchat" placeholder="Prix Achat (€)" style="padding: 10px;">
                 <input type="number" id="prixVenteRef" placeholder="Prix Vente (€)" style="padding: 10px;">
