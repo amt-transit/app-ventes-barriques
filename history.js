@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     // --- SÉLECTEURS ---
     const tableBodyVentes = document.getElementById('tableBodyVentes');
+    const tableBodyInvendus = document.getElementById('tableBodyInvendus');
     const tableBodyPaiements = document.getElementById('tableBodyPaiements');
     const auditLogBody = document.getElementById('auditLogBody');
     const auditBadge = document.getElementById('auditCount');
@@ -8,7 +9,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const dateStartInput = document.getElementById('mainFilterDateStart');
     const dateEndInput = document.getElementById('mainFilterDateEnd');
 
-    // Filtres Audit (Peuvent être null si absents du HTML)
     const logFilterDate = document.getElementById('logFilterDate');
     const logFilterAuteur = document.getElementById('logFilterAuteur');
     const logFilterModule = document.getElementById('logFilterModule');
@@ -16,13 +16,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ÉTAT ---
     let allLogs = [];
+    let salesData = [];
+    let recupsData = [];
+    let retoursData = [];
+    
     let unsubscribeVentes = null;
     let unsubscribePaiements = null;
+    let unsubscribeRecups = null;
+    let unsubscribeRetours = null;
     let lastViewedTimestamp = localStorage.getItem('lastAuditLogView') || 0;
 
     // --- 1. INITIALISATION ---
     async function init() {
-        setDefaultDates(); // Mois en cours
+        setDefaultDates();
         await loadUsersIntoFilters();
         
         firebase.auth().onAuthStateChanged(user => {
@@ -35,7 +41,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Définit le mois actuel (du 1er au dernier jour)
     function setDefaultDates() {
         if (!dateStartInput || !dateEndInput) return;
         const now = new Date();
@@ -45,18 +50,14 @@ document.addEventListener('DOMContentLoaded', () => {
         dateEndInput.value = lastDay.toISOString().split('T')[0];
     }
 
-    // Fonction de navigation mois par mois
     window.changeMonth = (offset) => {
         if (!dateStartInput) return;
         let currentStart = new Date(dateStartInput.value);
         currentStart.setMonth(currentStart.getMonth() + offset);
-        
         const firstDay = new Date(currentStart.getFullYear(), currentStart.getMonth(), 1);
         const lastDay = new Date(currentStart.getFullYear(), currentStart.getMonth() + 1, 0);
-        
         dateStartInput.value = firstDay.toISOString().split('T')[0];
         if (dateEndInput) dateEndInput.value = lastDay.toISOString().split('T')[0];
-        
         startDataListeners(); 
     };
 
@@ -92,42 +93,54 @@ document.addEventListener('DOMContentLoaded', () => {
             lastViewedTimestamp = allLogs[0].timestamp.toMillis();
             localStorage.setItem('lastAuditLogView', lastViewedTimestamp);
         }
-        if (auditBadge) { 
-            auditBadge.style.display = 'none'; 
-            auditBadge.innerText = '0'; 
-        }
+        if (auditBadge) { auditBadge.style.display = 'none'; auditBadge.innerText = '0'; }
     }
 
-    // --- 3. ÉCOUTEURS VENTES & PAIEMENTS ---
+    // --- 3. ÉCOUTEURS DE DONNÉES ---
     function startDataListeners() {
         if (!dateStartInput || !dateEndInput) return;
         
         if (unsubscribeVentes) unsubscribeVentes();
         if (unsubscribePaiements) unsubscribePaiements();
+        if (unsubscribeRecups) unsubscribeRecups();
+        if (unsubscribeRetours) unsubscribeRetours();
 
         const start = dateStartInput.value;
         const end = dateEndInput.value;
         const selectedVendeur = filterVendeur ? filterVendeur.value : "";
 
-        let qVentes = db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc");
-        let qPaiements = db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc");
+        // Listeners Firestore
+        unsubscribeVentes = db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
+            .onSnapshot(snap => {
+                salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const filtered = selectedVendeur ? salesData.filter(d => d.vendeur === selectedVendeur) : salesData;
+                renderVentes(filtered);
+                renderInvendus(); // Recalculer les invendus
+            });
 
-        unsubscribeVentes = qVentes.onSnapshot(snap => {
-            let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (selectedVendeur) data = data.filter(d => d.vendeur === selectedVendeur);
-            renderVentes(data);
-        });
+        unsubscribePaiements = db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
+            .onSnapshot(snap => {
+                let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (selectedVendeur) data = data.filter(d => d.vendeur === selectedVendeur);
+                renderPaiements(data);
+            });
 
-        unsubscribePaiements = qPaiements.onSnapshot(snap => {
-            let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            if (selectedVendeur) data = data.filter(d => d.vendeur === selectedVendeur);
-            renderPaiements(data);
-        });
+        unsubscribeRecups = db.collection("recuperations").where("date", ">=", start).where("date", "<=", end)
+            .onSnapshot(snap => {
+                recupsData = snap.docs.map(doc => doc.data());
+                renderInvendus();
+            });
+
+        unsubscribeRetours = db.collection("retours_vendeurs").where("date", ">=", start).where("date", "<=", end)
+            .onSnapshot(snap => {
+                retoursData = snap.docs.map(doc => doc.data());
+                renderInvendus();
+            });
     }
 
+    if (filterVendeur) filterVendeur.addEventListener('change', startDataListeners);
     if (dateStartInput) dateStartInput.addEventListener('change', startDataListeners);
     if (dateEndInput) dateEndInput.addEventListener('change', startDataListeners);
-    if (filterVendeur) filterVendeur.addEventListener('change', startDataListeners);
 
     function renderVentes(sales) {
         if (!tableBodyVentes) return;
@@ -154,6 +167,61 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // --- LOGIQUE CALCUL DES INVENDUS (En main) ---
+    function renderInvendus() {
+        if (!tableBodyInvendus) return;
+        tableBodyInvendus.innerHTML = '';
+        
+        const selectedVendeur = filterVendeur ? filterVendeur.value : "";
+        let invendusMap = {};
+
+        // 1. Ajouter Récupérations
+        recupsData.forEach(r => {
+            if (selectedVendeur && r.vendeur !== selectedVendeur) return;
+            const key = `${r.vendeur}_${r.produit}`;
+            if (!invendusMap[key]) invendusMap[key] = { vendeur: r.vendeur, produit: r.produit, pris: 0, vendu: 0, rendu: 0 };
+            invendusMap[key].pris += r.quantite;
+        });
+
+        // 2. Soustraire Ventes
+        salesData.forEach(v => {
+            if (selectedVendeur && v.vendeur !== selectedVendeur) return;
+            const key = `${v.vendeur}_${v.produit}`;
+            if (!invendusMap[key]) invendusMap[key] = { vendeur: v.vendeur, produit: v.produit, pris: 0, vendu: 0, rendu: 0 };
+            invendusMap[key].vendu += v.quantite;
+        });
+
+        // 3. Soustraire Retours
+        retoursData.forEach(ret => {
+            if (selectedVendeur && ret.vendeur !== selectedVendeur) return;
+            const key = `${ret.vendeur}_${ret.produit}`;
+            if (!invendusMap[key]) invendusMap[key] = { vendeur: ret.vendeur, produit: ret.produit, pris: 0, vendu: 0, rendu: 0 };
+            invendusMap[key].rendu += ret.quantite;
+        });
+
+        const keys = Object.keys(invendusMap).sort();
+        if (keys.length === 0) {
+            tableBodyInvendus.innerHTML = '<tr><td colspan="6" style="text-align:center; color:gray;">Aucun stock identifié sur cette période.</td></tr>';
+            return;
+        }
+
+        keys.forEach(k => {
+            const d = invendusMap[k];
+            const enMain = d.pris - d.vendu - d.rendu;
+            if (enMain === 0) return; // Ne pas afficher si le stock est épuisé
+
+            tableBodyInvendus.innerHTML += `
+                <tr>
+                    <td><b>${d.vendeur}</b></td>
+                    <td>${d.produit}</td>
+                    <td>${d.pris}</td>
+                    <td>${d.vendu}</td>
+                    <td>${d.rendu}</td>
+                    <td style="font-weight:bold; color:#1877f2; font-size:14px;">${enMain}</td>
+                </tr>`;
+        });
+    }
+
     function renderPaiements(payments) {
         if (!tableBodyPaiements) return;
         tableBodyPaiements.innerHTML = '';
@@ -176,30 +244,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- 4. JOURNAL D'AUDIT (SÉCURISÉ) ---
     function loadAuditLogs() {
         db.collection("audit_logs").orderBy("timestamp", "desc").limit(150).onSnapshot(snap => {
             allLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            
-            // Gestion du badge
-            const auditBtn = document.getElementById('btnAudit');
-            const isTabAudit = auditBtn ? auditBtn.classList.contains('active') : false;
-            
-            if (!isTabAudit && auditBadge) {
-                const newItems = allLogs.filter(log => (log.timestamp?.toMillis() || 0) > lastViewedTimestamp).length;
-                if (newItems > 0) {
-                    auditBadge.innerText = newItems;
-                    auditBadge.style.display = 'inline-block';
-                }
-            }
             applyLogFilters();
         });
     }
 
     function applyLogFilters() {
         if (!auditLogBody) return;
-
-        // Protection contre les éléments null (Résout l'erreur 177)
         const fDate = logFilterDate ? logFilterDate.value : "";
         const fAuteur = logFilterAuteur ? logFilterAuteur.value : "";
         const fModule = logFilterModule ? logFilterModule.value : "";
@@ -214,11 +267,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         auditLogBody.innerHTML = '';
-        if (filtered.length === 0) {
-            auditLogBody.innerHTML = '<tr><td colspan="5" style="text-align:center; color:gray; padding:10px;">Aucun log trouvé.</td></tr>';
-            return;
-        }
-
         filtered.forEach(log => {
             const mColor = log.module === 'STOCK' ? '#1877f2' : log.module === 'COMPTES' ? '#8b5cf6' : '#f59e0b';
             auditLogBody.innerHTML += `
@@ -232,17 +280,14 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Ajout sécurisé des écouteurs (Résout l'erreur 209)
     [logFilterDate, logFilterAuteur, logFilterModule, logFilterSearch].forEach(el => {
-        if (el) {
-            el.addEventListener('input', applyLogFilters);
-        }
+        if (el) el.addEventListener('input', applyLogFilters);
     });
 
     // --- 5. ACTIONS ADMIN ---
     window.deleteDocument = async (coll, docId) => {
         if (window.userRole !== 'superadmin') return alert("Super Admin requis.");
-        if (confirm("Confirmer la suppression ? (Sera enregistré dans l'Audit)")) {
+        if (confirm("Confirmer la suppression ?")) {
             const snap = await db.collection(coll).doc(docId).get();
             const old = snap.data();
             await db.collection(coll).doc(docId).delete();
@@ -270,8 +315,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const element = document.getElementById('printableAuditArea');
         if (!element) return;
         html2pdf().set({ 
-            margin: 10, 
-            filename: 'Audit_Global.pdf', 
+            margin: 10, filename: 'Audit_Global.pdf', 
             image: { type: 'jpeg', quality: 0.98 }, 
             html2canvas: { scale: 2 }, 
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' } 

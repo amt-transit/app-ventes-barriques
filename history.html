@@ -46,7 +46,7 @@
     <nav class="navigation">
         <a href="validation.html">Validation</a>
         <a href="stock.html">Stock</a>
-        <a href="dashboard.html">Dashboard</a>
+        <a href="dashboard.html">Tableau de Bord</a>
         <a href="history.html" class="active">Historique</a>
         <a href="utilisateurs.html">Utilisateurs</a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
@@ -54,6 +54,7 @@
 
     <div class="tab-navigation">
         <button class="tab-btn active" id="btnVentes" onclick="switchTab('ventes')">📋 Ventes</button>
+        <button class="tab-btn" id="btnInvendus" onclick="switchTab('invendus')">📦 Invendus</button>
         <button class="tab-btn" id="btnPaiements" onclick="switchTab('paiements')">💰 Paiements</button>
         <button class="tab-btn" id="btnAudit" onclick="switchTab('audit')">🕵️ Audit <span id="auditCount" style="display:none; background:red; color:white; border-radius:50%; padding:2px 6px; font-size:9px;">0</span></button>
     </div>
@@ -73,6 +74,24 @@
             <table>
                 <thead><tr><th>Date</th><th>Produit</th><th>Qté</th><th>Total</th><th>Vendeur</th><th>Action</th></tr></thead>
                 <tbody id="tableBodyVentes"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="section-invendus" class="history-section">
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr style="background:#f1f5f9;">
+                        <th>Vendeur</th>
+                        <th>Produit</th>
+                        <th>Récupéré</th>
+                        <th>Vendu</th>
+                        <th>Rendu</th>
+                        <th style="color:#1877f2;">En main (Invendu)</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBodyInvendus"></tbody>
             </table>
         </div>
     </div>

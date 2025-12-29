@@ -19,6 +19,7 @@
         .bg-blue { background: #1877f2; }
         .bg-green { background: #10b981; }
         .bg-red { background: #be123c; }
+        .bg-slate { background: #64748b; }
         
         .stock-label { font-size: 9px; text-transform: uppercase; font-weight: bold; opacity: 0.9; }
         .stock-number { font-size: 16px; font-weight: bold; display: block; margin-top: 5px; }
@@ -30,33 +31,11 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 400px; }
         th, td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
 
-        /* AJUSTEMENTS MOBILE */
         @media (max-width: 850px) {
-            /* Centre le logo et le titre l'un sur l'autre */
-            .app-header { 
-                display: flex; 
-                flex-direction: column; 
-                align-items: center; 
-                text-align: center; 
-                padding: 15px 10px;
-            }
+            .app-header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 15px 10px; }
             .app-logo { margin-right: 0 !important; margin-bottom: 10px; }
-            
-            /* Centre parfaitement les onglets de navigation */
-            .navigation { 
-                display: flex !important; 
-                flex-wrap: wrap !important; 
-                justify-content: center !important; 
-                gap: 6px !important; 
-                padding: 10px !important;
-            }
-            .navigation a, .navigation button { 
-                font-size: 10px; 
-                padding: 8px 12px; 
-                margin: 0 !important;
-                flex-grow: 0; /* Empêche les boutons de s'étirer */
-            }
-
+            .navigation { display: flex !important; flex-wrap: wrap !important; justify-content: center !important; gap: 6px !important; padding: 10px !important; }
+            .navigation a, .navigation button { font-size: 10px; padding: 8px 12px; margin: 0 !important; flex-grow: 0; }
             h1 { font-size: 18px; text-align: center; margin: 0; }
             .dashboard-grid-2-col { grid-template-columns: 1fr; }
             .kpi-stock-grid { grid-template-columns: repeat(2, 1fr); }
@@ -98,7 +77,7 @@
                     <select id="valProduit" style="padding:10px; width:100%; margin-bottom:5px;"></select>
                     <div id="sellerStockInfo" style="font-size: 10px; color: #1877f2; font-weight: bold; margin-bottom:5px;"></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" id="valQuantite" placeholder="Qté" style="padding:10px;">
+                        <input type="number" id="valQuantite" placeholder="Qté">
                         <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background:#f1f5f9; padding:10px;">
                     </div>
                     <p style="font-size: 11px; text-align: right; margin-top: 5px; font-weight: bold;">
@@ -114,8 +93,17 @@
                     </div>
                 </div>
 
+                <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #94a3b8;">
+                    <p style="font-size: 10px; font-weight: bold; color: #1e293b; margin: 0 0 5px 0;">🔄 PARTIE 4 : RETOURS DE COLIS (INVENDUS)</p>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                        <select id="valProduitRetour" style="padding:10px;"></select>
+                        <input type="number" id="valQuantiteRetour" placeholder="Qté Rendue" style="padding:10px;">
+                    </div>
+                    <p style="font-size: 9px; color: #64748b; margin-top: 5px;">Note : Cette action réintègre le produit dans le dépôt principal.</p>
+                </div>
+
                 <div style="background: #fdf4ff; padding: 10px; border-radius: 8px; border: 1px solid #f5d0fe;">
-                    <p style="font-size: 10px; font-weight: bold; color: #701a75; margin: 0 0 5px 0;">📍 PARTIE 3 : OPTION ABIDJAN</p>
+                    <p style="font-size: 10px; font-weight: bold; color: #701a75; margin: 0 0 5px 0;">📍 OPTION ABIDJAN</p>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="valPayAbidjan" style="width: 18px; height: 18px; cursor: pointer;">
                         <label style="font-size: 12px; font-weight:bold; cursor:pointer;">Payé à Abidjan</label>
@@ -154,6 +142,7 @@
                             <th>Produit</th>
                             <th>Pris</th>
                             <th>Vendu</th>
+                            <th>Rendu</th>
                             <th>En main</th>
                         </tr>
                     </thead>
@@ -182,10 +171,12 @@
     <script src="auth-guard.js"></script>
 
     <script>
-        // --- LOGIQUE JS SÉCURISÉE ---
+        // --- LOGIQUE JS ---
         const valVendeur = document.getElementById('valVendeur');
         const valProduit = document.getElementById('valProduit');
+        const valProduitRetour = document.getElementById('valProduitRetour');
         const valQuantite = document.getElementById('valQuantite');
+        const valQuantiteRetour = document.getElementById('valQuantiteRetour');
         const valPrixUnit = document.getElementById('valPrixUnit');
         const valTotalSaisie = document.getElementById('valTotalSaisie');
         const valPayAbidjan = document.getElementById('valPayAbidjan');
@@ -201,7 +192,6 @@
 
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
-        // Correction de l'erreur style.display
         if (valPayAbidjan) {
             valPayAbidjan.addEventListener('change', (e) => {
                 if (boxClientRef) boxClientRef.style.display = e.target.checked ? 'block' : 'none';
@@ -229,63 +219,73 @@
             const dStart = document.getElementById('filterStart').value;
             const dEnd = document.getElementById('filterEnd').value;
 
-            const [recupSnap, ventesSnap, encaissSnap] = await Promise.all([
+            const [recupSnap, ventesSnap, encaissSnap, retoursSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", name).get(),
                 db.collection("ventes").where("vendeur", "==", name).get(),
-                db.collection("encaissements_vendeurs").where("vendeur", "==", name).get()
+                db.collection("encaissements_vendeurs").where("vendeur", "==", name).get(),
+                db.collection("retours_vendeurs").where("vendeur", "==", name).get()
             ]);
 
             inventoryData = {};
-            let periodVentes = 0; let periodPaye = 0;
-            let totalHistVentes = 0; let totalHistPaye = 0;
+            let pVentes = 0; let pPaye = 0; let tHistV = 0; let tHistP = 0;
 
             recupSnap.forEach(doc => { 
                 const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, pT: 0, vT: 0 };
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, rP: 0, pT: 0, vT: 0, rT: 0 };
                 inventoryData[d.produit].pT += d.quantite;
                 if (d.date >= dStart && d.date <= dEnd) inventoryData[d.produit].pP += d.quantite;
             });
 
             ventesSnap.forEach(doc => {
                 const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, pT: 0, vT: 0 };
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, rP: 0, pT: 0, vT: 0, rT: 0 };
                 inventoryData[d.produit].vT += d.quantite;
-                totalHistVentes += (d.total || 0);
+                tHistV += (d.total || 0);
                 if (d.date >= dStart && d.date <= dEnd) {
                     inventoryData[d.produit].vP += d.quantite;
-                    periodVentes += (d.total || 0);
+                    pVentes += (d.total || 0);
                 }
+            });
+
+            retoursSnap.forEach(doc => {
+                const d = doc.data();
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pP: 0, vP: 0, rP: 0, pT: 0, vT: 0, rT: 0 };
+                inventoryData[d.produit].rT += d.quantite;
+                if (d.date >= dStart && d.date <= dEnd) inventoryData[d.produit].rP += d.quantite;
             });
 
             encaissSnap.forEach(doc => {
                 const d = doc.data();
                 const montant = (d.montantRecu || 0) + (d.remise || 0);
-                totalHistPaye += montant;
-                if (d.date >= dStart && d.date <= dEnd) periodPaye += montant;
+                tHistP += montant;
+                if (d.date >= dStart && d.date <= dEnd) pPaye += montant;
             });
 
-            document.getElementById('totalDu').innerText = formatEUR(periodVentes);
-            document.getElementById('totalPaye').innerText = formatEUR(periodPaye);
-            document.getElementById('resteAPayer').innerText = formatEUR(totalHistVentes - totalHistPaye);
+            document.getElementById('totalDu').innerText = formatEUR(pVentes);
+            document.getElementById('totalPaye').innerText = formatEUR(pPaye);
+            document.getElementById('resteAPayer').innerText = formatEUR(tHistV - tHistP);
             renderUI();
         }
 
         function renderUI() {
-            valProduit.innerHTML = '<option value="">-- Choisir un produit --</option>';
+            valProduit.innerHTML = '<option value="">-- Vente --</option>';
+            valProduitRetour.innerHTML = '<option value="">-- Retour --</option>';
             const tbody = document.getElementById('sellerInventoryBody');
             tbody.innerHTML = '';
             for (const p in inventoryData) {
                 const item = inventoryData[p];
-                const enMain = item.pT - item.vT;
-                if (enMain > 0) valProduit.innerHTML += `<option value="${p}">${p}</option>`;
-                tbody.innerHTML += `<tr><td>${p}</td><td>${item.pP}</td><td>${item.vP}</td><td><b>${enMain}</b></td></tr>`;
+                const enMain = item.pT - item.vT - item.rT; // Calcul incluant les retours
+                if (enMain > 0) {
+                    valProduit.innerHTML += `<option value="${p}">${p}</option>`;
+                    valProduitRetour.innerHTML += `<option value="${p}">${p}</option>`;
+                }
+                tbody.innerHTML += `<tr><td>${p}</td><td>${item.pP}</td><td>${item.vP}</td><td>${item.rP}</td><td><b>${enMain}</b></td></tr>`;
             }
         }
 
         function preparerImpression() {
             const name = valVendeur.value;
             if(!name) return alert("Sélectionnez un vendeur.");
-            document.getElementById('printVendeurName').innerText = "Vendeur : " + name;
             window.print();
         }
 
@@ -293,7 +293,7 @@
         valProduit.addEventListener('change', () => {
             valPrixUnit.value = globalPrices[valProduit.value] || 0;
             const it = inventoryData[valProduit.value];
-            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `Stock : ${it ? it.pT - it.vT : 0}` : "";
+            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `En main : ${it ? it.pT - it.vT - it.rT : 0}` : "";
             updateT();
         });
 
@@ -306,26 +306,38 @@
             const btn = document.getElementById('btnConfirmerVente');
             const name = valVendeur.value;
             const prod = valProduit.value;
+            const prodRet = valProduitRetour.value;
             const qty = parseInt(valQuantite.value) || 0;
+            const qtyRet = parseInt(valQuantiteRetour.value) || 0;
+            const date = document.getElementById('valDate').value;
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
             if (!name) return alert("Choisissez un vendeur.");
             btn.disabled = true;
             try {
+                // Enregistrement Vente
                 if (prod && qty > 0) {
                     await db.collection("ventes").add({ 
-                        date: document.getElementById('valDate').value, vendeur: name, produit: prod, quantite: qty, 
+                        date, vendeur: name, produit: prod, quantite: qty, 
                         prixUnitaire: parseFloat(valPrixUnit.value), total: qty * parseFloat(valPrixUnit.value),
                         payeAbidjan: valPayAbidjan.checked, clientRef: valClientRef.value,
                         timestamp: firebase.firestore.FieldValue.serverTimestamp() 
                     });
                 }
-                if (aco > 0 || rem > 0) {
-                    await db.collection("encaissements_vendeurs").add({ date: document.getElementById('valDate').value, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                // Enregistrement Retour
+                if (prodRet && qtyRet > 0) {
+                    await db.collection("retours_vendeurs").add({ 
+                        date, vendeur: name, produit: prodRet, quantite: qtyRet, 
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+                    });
                 }
-                alert("Enregistré avec succès !");
-                valQuantite.value = ""; document.getElementById('valAcompte').value = ""; loadSellerData();
+                // Enregistrement Argent
+                if (aco > 0 || rem > 0) {
+                    await db.collection("encaissements_vendeurs").add({ date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+                alert("Données enregistrées !");
+                valQuantite.value = ""; valQuantiteRetour.value = ""; document.getElementById('valAcompte').value = ""; loadSellerData();
             } catch (e) { alert("Erreur."); } finally { btn.disabled = false; }
         });
 
