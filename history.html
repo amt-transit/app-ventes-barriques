@@ -10,28 +10,25 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         .tab-navigation { display: flex; gap: 8px; margin: 15px; justify-content: center; flex-wrap: wrap; }
-        .tab-btn { 
-            padding: 10px 15px; cursor: pointer; border: none; background: #e2e8f0; 
-            border-radius: 20px; font-family: 'Comfortaa', sans-serif; font-weight: bold; font-size: 12px;
-        }
+        .tab-btn { padding: 10px 15px; cursor: pointer; border: none; background: #e2e8f0; border-radius: 20px; font-family: 'Comfortaa', sans-serif; font-weight: bold; font-size: 12px; }
         .tab-btn.active { background: #1877f2; color: white; }
         .history-section { display: none; padding: 0 15px; }
         .history-section.active { display: block; }
-        .filter-bar { 
-            background: white; margin: 0 15px 15px; padding: 12px; border-radius: 12px; 
-            border: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 10px; 
-            align-items: center; justify-content: center;
-        }
+        .filter-bar { background: white; margin: 0 15px 15px; padding: 12px; border-radius: 12px; border: 1px solid #e2e8f0; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: center; }
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; min-width: 600px; font-size: 12px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #f1f5f9; }
         th { background: #f8fafc; color: #64748b; }
+        .clickable-row:hover { background-color: #f8fafc; cursor: pointer; }
+        
+        /* Modal Styles améliorés */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); }
+        .modal-content { background: white; margin: 5% auto; padding: 25px; border-radius: 15px; width: 95%; max-width: 800px; max-height: 85vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .close-modal { float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #64748b; }
     </style>
 </head>
 <body>
-    <header class="app-header">
-        <h1>Centre d'Historique</h1>
-    </header>
+    <header class="app-header"><h1>Centre d'Historique</h1></header>
 
     <nav class="navigation">
         <a href="validation.html">Validation</a>
@@ -74,15 +71,7 @@
     <div id="section-consommables" class="history-section">
         <div class="table-responsive">
             <table>
-                <thead>
-                    <tr style="background:#f8fafc;">
-                        <th>Date</th>
-                        <th>Fourniture / Produit</th>
-                        <th>Quantité utilisée</th>
-                        <th>Type</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
+                <thead><tr style="background:#f8fafc;"><th>Date</th><th>Fourniture / Produit</th><th>Quantité utilisée</th><th>Type</th><th>Action</th></tr></thead>
                 <tbody id="tableBodyConsommables"></tbody>
             </table>
         </div>
@@ -93,10 +82,11 @@
             <table>
                 <thead>
                     <tr style="background:#f1f5f9;">
-                        <th>Vendeur</th>
-                        <th>Produit</th>
-                        <th>Récupéré</th>
-                        <th>Vendu</th>
+                        <th>Compte Vendeur</th>
+                        <th>Nb Produits</th>
+                        <th>Récupéré (Total)</th>
+                        <th>Vendu Agence</th>
+                        <th style="color:#701a75;">Vendu Abidjan</th>
                         <th>Rendu</th>
                         <th style="color:#1877f2;">En main (Invendu)</th>
                     </tr>
@@ -119,9 +109,30 @@
         <div id="printableAuditArea" style="background:white; padding:15px; border-radius:12px; border:1px solid #e2e8f0;">
             <button onclick="downloadAuditLogPDF()" style="margin-bottom:10px; width:100%; padding:10px; background:#1e293b; color:white; border:none; border-radius:8px;">📄 Exporter PDF</button>
             <div class="table-responsive">
-                <table style="min-width:500px;">
-                    <thead><tr><th>Date/Heure</th><th>Auteur</th><th>Module</th><th>Action</th><th>Détails</th></tr></thead>
-                    <tbody id="auditLogBody"></tbody>
+                <table><thead><tr><th>Date/Heure</th><th>Auteur</th><th>Module</th><th>Action</th><th>Détails</th></tr></thead><tbody id="auditLogBody"></tbody></table>
+            </div>
+        </div>
+    </div>
+
+    <div id="invendusModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeInvendusModal()">&times;</span>
+            <h2 id="modalInvendusTitle" style="font-size:18px; color:#1877f2; margin-top:0;">Détails du Compte</h2>
+            <hr style="border:0; border-top:1px solid #eee; margin-bottom:20px;">
+            
+            <h3 style="font-size:13px; color:#1e293b;">📊 Résumé par Produit</h3>
+            <div class="table-responsive">
+                <table style="width:100%; font-size:11px; margin-bottom:25px;">
+                    <thead><tr style="background:#f8fafc;"><th>Produit</th><th>Pris</th><th>Agence</th><th>Abidjan</th><th>Rendu</th><th>En main</th></tr></thead>
+                    <tbody id="modalSummaryBody"></tbody>
+                </table>
+            </div>
+
+            <h3 style="font-size:13px; color:#1e293b;">📜 Historique des mouvements (période sélectionnée)</h3>
+            <div class="table-responsive">
+                <table style="width:100%; font-size:10px;">
+                    <thead><tr style="background:#f1f5f9;"><th>Date</th><th>Opération</th><th>Produit</th><th>Qté</th><th>Note</th></tr></thead>
+                    <tbody id="modalHistoryBody"></tbody>
                 </table>
             </div>
         </div>
@@ -131,14 +142,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-            authDomain: "app-ventes-barriques.firebaseapp.com",
-            projectId: "app-ventes-barriques",
-            storageBucket: "app-ventes-barriques.appspot.com",
-            messagingSenderId: "615546459847",
-            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M", authDomain: "app-ventes-barriques.firebaseapp.com", projectId: "app-ventes-barriques", storageBucket: "app-ventes-barriques.appspot.com", messagingSenderId: "615546459847", appId: "1:615546459847:web:1b387b0b703b7a9a1210e2" };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         window.db = firebase.firestore();
     </script>

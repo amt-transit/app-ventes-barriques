@@ -1,52 +1,44 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- SÉLECTEURS ---
     const tableBodyVentes = document.getElementById('tableBodyVentes');
     const tableBodyInvendus = document.getElementById('tableBodyInvendus');
     const tableBodyConsommables = document.getElementById('tableBodyConsommables');
     const tableBodyPaiements = document.getElementById('tableBodyPaiements');
-    const auditLogBody = document.getElementById('auditLogBody');
-    const auditBadge = document.getElementById('auditCount');
     const filterVendeur = document.getElementById('filterVendeur');
-    const filterClientRef = document.getElementById('filterClientRef'); // Nouveau
+    const filterClientRef = document.getElementById('filterClientRef'); 
     const dateStartInput = document.getElementById('mainFilterDateStart');
     const dateEndInput = document.getElementById('mainFilterDateEnd');
 
-    // --- ÉTAT ---
-    let allLogs = [];
+    let usersData = []; 
     let salesData = [];
     let recupsData = [];
     let retoursData = [];
     let consommationsData = []; 
     
     let unsubscribeVentes = null;
-    let unsubscribePaiements = null;
     let unsubscribeRecups = null;
     let unsubscribeRetours = null;
-    let unsubscribeConsos = null; 
-    let lastViewedTimestamp = localStorage.getItem('lastAuditLogView') || 0;
 
-    // --- 1. INITIALISATION ---
     async function init() {
         setDefaultDates();
-        await loadUsersIntoFilters();
-        
+        await loadAllUsers();
         firebase.auth().onAuthStateChanged(user => {
-            if (user) {
-                setTimeout(() => {
-                    startDataListeners();
-                    loadAuditLogs();
-                }, 800);
-            }
+            if (user) { setTimeout(() => { startDataListeners(); loadAuditLogs(); }, 800); }
         });
     }
 
     function setDefaultDates() {
-        if (!dateStartInput || !dateEndInput) return;
         const now = new Date();
-        const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-        const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        dateStartInput.value = firstDay.toISOString().split('T')[0];
-        dateEndInput.value = lastDay.toISOString().split('T')[0];
+        dateStartInput.value = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+        dateEndInput.value = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+    }
+
+    async function loadAllUsers() {
+        const snap = await db.collection("users").orderBy("nom", "asc").get();
+        usersData = snap.docs.map(doc => doc.data());
+        if (filterVendeur) {
+            filterVendeur.innerHTML = '<option value="">Vendeur: Tous</option>';
+            usersData.forEach(u => { filterVendeur.innerHTML += `<option value="${u.nom}">${u.nom}</option>`; });
+        }
     }
 
     window.changeMonth = (offset) => {
@@ -57,235 +49,137 @@ document.addEventListener('DOMContentLoaded', () => {
         startDataListeners(); 
     };
 
-    async function loadUsersIntoFilters() {
-        const snap = await db.collection("users").orderBy("nom", "asc").get();
-        snap.forEach(doc => {
-            const nom = doc.data().nom;
-            if (filterVendeur) filterVendeur.innerHTML += `<option value="${nom}">${nom}</option>`;
-        });
-    }
-
-    // --- 2. NAVIGATION ---
     window.switchTab = (type) => {
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.querySelectorAll('.history-section').forEach(s => s.classList.remove('active'));
-        
-        const btn = document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}`);
-        if (btn) btn.classList.add('active');
-        
-        const section = document.getElementById(`section-${type}`);
-        if (section) section.classList.add('active');
-        
+        document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}`).classList.add('active');
+        document.getElementById(`section-${type}`).classList.add('active');
         const gFilters = document.getElementById('global-filters');
         if (gFilters) gFilters.style.display = (type === 'audit' || type === 'consommables') ? 'none' : 'flex';
-        
-        if (type === 'audit') resetAuditCounter();
     };
 
-    function resetAuditCounter() {
-        if (allLogs.length > 0 && allLogs[0].timestamp) {
-            lastViewedTimestamp = allLogs[0].timestamp.toMillis();
-            localStorage.setItem('lastAuditLogView', lastViewedTimestamp);
-        }
-        if (auditBadge) { auditBadge.style.display = 'none'; auditBadge.innerText = '0'; }
-    }
-
-    // --- 3. ÉCOUTEURS DE DONNÉES ---
     function startDataListeners() {
-        const start = dateStartInput.value;
-        const end = dateEndInput.value;
-        const selVendeur = filterVendeur.value;
-        const selClient = filterClientRef.value.toLowerCase(); // Recherche Client
-
+        const start = dateStartInput.value; const end = dateEndInput.value;
         if (unsubscribeVentes) unsubscribeVentes();
-        if (unsubscribePaiements) unsubscribePaiements();
         if (unsubscribeRecups) unsubscribeRecups();
         if (unsubscribeRetours) unsubscribeRetours();
-        if (unsubscribeConsos) unsubscribeConsos();
 
         unsubscribeVentes = db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
-            .onSnapshot(snap => {
-                salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                
-                // Filtrage combiné : Vendeur + Référence Client
-                let filtered = selVendeur ? salesData.filter(d => d.vendeur === selVendeur) : salesData;
-                if (selClient) {
-                    filtered = filtered.filter(d => 
-                        (d.clientRef && d.clientRef.toLowerCase().includes(selClient)) || 
-                        (d.produit && d.produit.toLowerCase().includes(selClient))
-                    );
-                }
-                
-                renderVentes(filtered);
-                renderInvendus();
-            });
-
-        unsubscribeConsos = db.collection("consommations").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
-            .onSnapshot(snap => {
-                consommationsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderConsommables(consommationsData);
-            });
-
-        unsubscribePaiements = db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
-            .onSnapshot(snap => {
-                let data = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderPaiements(selVendeur ? data.filter(d => d.vendeur === selVendeur) : data);
-            });
+            .onSnapshot(snap => { salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })); renderVentes(); renderInvendus(); });
 
         unsubscribeRecups = db.collection("recuperations").where("date", ">=", start).where("date", "<=", end)
             .onSnapshot(snap => { recupsData = snap.docs.map(doc => doc.data()); renderInvendus(); });
 
         unsubscribeRetours = db.collection("retours_vendeurs").where("date", ">=", start).where("date", "<=", end)
             .onSnapshot(snap => { retoursData = snap.docs.map(doc => doc.data()); renderInvendus(); });
-    }
-
-    // Écouteurs pour les changements de filtres
-    [filterVendeur, filterClientRef, dateStartInput, dateEndInput].forEach(el => {
-        if (el) el.addEventListener('input', startDataListeners);
-    });
-
-    // --- 4. FONCTIONS DE RENDU ---
-
-    function renderVentes(sales) {
-        if (!tableBodyVentes) return;
-        tableBodyVentes.innerHTML = sales.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:gray;">Aucune vente trouvée.</td></tr>' : '';
         
-        sales.forEach(data => {
-            const actions = (window.userRole === 'superadmin') ? `<button class="deleteBtn" onclick="deleteDocument('ventes', '${data.id}')">Suppr.</button>` : '<small>Lecture</small>';
-            
-            // Marquage visuel Agence vs Abidjan
-            const tagAbidjan = data.payeAbidjan 
-                ? `<br><span style="background:#701a75; color:white; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:bold;">📍 ABIDJAN</span>` 
-                : `<br><span style="background:#1877f2; color:white; font-size:9px; padding:2px 5px; border-radius:4px; font-weight:bold;">🏠 AGENCE</span>`;
-            
-            const infoClient = data.clientRef 
-                ? `<br><small style="color:#475569; font-style:italic;">Client: ${data.clientRef}</small>` 
-                : '';
-
-            tableBodyVentes.innerHTML += `
-                <tr>
-                    <td>${data.date}</td>
-                    <td><b>${data.produit}</b>${infoClient}</td>
-                    <td>${data.quantite}</td>
-                    <td style="font-weight:bold;">${formatEUR(data.total)}${tagAbidjan}</td>
-                    <td style="color:#1877f2; font-weight:bold;">${data.vendeur}</td>
-                    <td>${actions}</td>
-                </tr>`;
-        });
+        db.collection("consommations").where("date", ">=", start).where("date", "<=", end).onSnapshot(s => { consommationsData = s.docs.map(d => d.data()); renderConsommables(); });
+        db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).onSnapshot(s => { renderPaiements(s.docs.map(d => ({id: d.id, ...d.data()}))); });
     }
 
-    function renderConsommables(data) {
-        if (!tableBodyConsommables) return;
-        tableBodyConsommables.innerHTML = data.length === 0 ? '<tr><td colspan="5" style="text-align:center; color:gray;">Aucun usage interne.</td></tr>' : '';
-        data.forEach(item => {
-            const actions = (window.userRole === 'superadmin') ? `<button class="deleteBtn" onclick="deleteDocument('consommations', '${item.id}')">Suppr.</button>` : '<small>Lecture</small>';
-            tableBodyConsommables.innerHTML += `
-                <tr>
-                    <td>${item.date}</td>
-                    <td><b>${item.produit}</b></td>
-                    <td>${item.quantite}</td>
-                    <td><span style="background:#f1f5f9; padding:3px 8px; border-radius:5px; font-size:10px; color:#475569; font-weight:bold;">USAGE INTERNE</span></td>
-                    <td>${actions}</td>
-                </tr>`;
-        });
-    }
-
+    // --- REGROUPEMENT PAR COMPTE UTILISATEUR ---
     function renderInvendus() {
         if (!tableBodyInvendus) return;
         tableBodyInvendus.innerHTML = '';
         const selVendeur = filterVendeur.value;
-        let invendusMap = {};
+        const filteredUsers = selVendeur ? usersData.filter(u => u.nom === selVendeur) : usersData;
 
-        recupsData.forEach(r => {
-            if (selVendeur && r.vendeur !== selVendeur) return;
-            const key = `${r.vendeur}_${r.produit}`;
-            if (!invendusMap[key]) invendusMap[key] = { vendeur: r.vendeur, produit: r.produit, pris: 0, vendu: 0, rendu: 0 };
-            invendusMap[key].pris += (parseInt(r.quantite) || 0);
-        });
-        salesData.forEach(v => {
-            if (selVendeur && v.vendeur !== selVendeur) return;
-            const key = `${v.vendeur}_${v.produit}`;
-            if (invendusMap[key]) invendusMap[key].vendu += (parseInt(v.quantite) || 0);
-        });
-        retoursData.forEach(ret => {
-            if (selVendeur && ret.vendeur !== selVendeur) return;
-            const key = `${ret.vendeur}_${ret.produit}`;
-            if (invendusMap[key]) invendusMap[key].rendu += (parseInt(ret.quantite) || 0);
-        });
+        filteredUsers.forEach(user => {
+            const uRecups = recupsData.filter(r => r.vendeur === user.nom);
+            const uSales = salesData.filter(s => s.vendeur === user.nom);
+            const uRetours = retoursData.filter(ret => ret.vendeur === user.nom);
 
-        Object.keys(invendusMap).forEach(k => {
-            const d = invendusMap[k];
-            const enMain = d.pris - d.vendu - d.rendu;
-            if (enMain > 0) {
-                tableBodyInvendus.innerHTML += `
-                    <tr>
-                        <td><b>${d.vendeur}</b></td>
-                        <td>${d.produit}</td>
-                        <td>${d.pris}</td>
-                        <td>${d.vendu}</td>
-                        <td>${d.rendu}</td>
-                        <td style="font-weight:bold; color:#1877f2;">${enMain}</td>
-                    </tr>`;
-            }
+            const distinctProds = [...new Set([...uRecups.map(r=>r.produit), ...uSales.map(s=>s.produit), ...uRetours.map(ret=>ret.produit)])];
+            
+            // Si aucune activité, on passe (ou on affiche 0 selon votre choix)
+            if (distinctProds.length === 0) return; 
+
+            let totalPris = 0, totalAg = 0, totalAbi = 0, totalRendu = 0;
+            distinctProds.forEach(p => {
+                totalPris += uRecups.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+                totalAg += uSales.filter(s => s.produit === p && !s.payeAbidjan).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+                totalAbi += uSales.filter(s => s.produit === p && s.payeAbidjan === true).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+                totalRendu += uRetours.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            });
+
+            const totalEnMain = totalPris - (totalAg + totalAbi + totalRendu);
+
+            const tr = document.createElement('tr');
+            tr.className = "clickable-row";
+            tr.onclick = () => openInvendusModal(user.nom); // Ouvrir pour ce vendeur
+            tr.innerHTML = `
+                <td><b>${user.nom}</b></td>
+                <td>${distinctProds.length} types</td>
+                <td>${totalPris}</td>
+                <td>${totalAg}</td>
+                <td style="color:#701a75;">${totalAbi}</td>
+                <td>${totalRendu}</td>
+                <td style="font-weight:bold; color:#1877f2;">${totalEnMain}</td>
+            `;
+            tableBodyInvendus.appendChild(tr);
         });
     }
 
-    function renderPaiements(payments) {
-        if (!tableBodyPaiements) return;
-        tableBodyPaiements.innerHTML = payments.length === 0 ? '<tr><td colspan="6" style="text-align:center; color:gray;">Aucun paiement.</td></tr>' : '';
-        payments.forEach(data => {
-            const total = (parseFloat(data.montantRecu) || 0) + (parseFloat(data.remise) || 0);
-            const actions = (window.userRole === 'superadmin') ? `<button class="deleteBtn" onclick="deleteDocument('encaissements_vendeurs', '${data.id}')">Suppr.</button>` : '<small>Protégé</small>';
-            tableBodyPaiements.innerHTML += `
-                <tr>
-                    <td>${data.date}</td>
-                    <td style="font-weight:bold; color:#1877f2;">${data.vendeur}</td>
-                    <td style="color: #10b981;">+ ${formatEUR(data.montantRecu)}</td>
-                    <td style="color: #3b82f6;">${formatEUR(data.remise)}</td>
-                    <td style="font-weight:bold;">${formatEUR(total)}</td>
-                    <td>${actions}</td>
-                </tr>`;
-        });
-    }
+    // --- MODALE MULTI-PRODUITS ET MULTI-DATES ---
+    window.openInvendusModal = (vendeur) => {
+        document.getElementById('modalInvendusTitle').innerText = `Bilan : ${vendeur}`;
+        const sumBody = document.getElementById('modalSummaryBody');
+        const histBody = document.getElementById('modalHistoryBody');
+        sumBody.innerHTML = ''; histBody.innerHTML = '';
 
-    function loadAuditLogs() {
-        db.collection("audit_logs").orderBy("timestamp", "desc").limit(150).onSnapshot(snap => {
-            allLogs = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-            applyLogFilters();
-        });
-    }
+        const uRecups = recupsData.filter(r => r.vendeur === vendeur);
+        const uSales = salesData.filter(s => s.vendeur === vendeur);
+        const uRetours = retoursData.filter(ret => ret.vendeur === vendeur);
+        const prods = [...new Set([...uRecups.map(r=>r.produit), ...uSales.map(s=>s.produit), ...uRetours.map(ret=>ret.produit)])];
 
-    function applyLogFilters() {
-        if (!auditLogBody) return;
-        auditLogBody.innerHTML = '';
-        allLogs.forEach(log => {
-            const mColor = log.module === 'STOCK' ? '#1877f2' : (log.module === 'COMPTES' ? '#8b5cf6' : '#f59e0b');
-            auditLogBody.innerHTML += `
-                <tr>
-                    <td><small>${log.dateAction}</small></td>
-                    <td><b>${log.auteur}</b></td>
-                    <td><span class="badge-role" style="background:${mColor}; color:white; padding:2px 6px; font-size:10px; border-radius:4px;">${log.module}</span></td>
-                    <td style="color:${log.type === 'SUPPRESSION' ? 'red' : 'orange'}; font-weight:bold;">${log.type}</td>
-                    <td style="font-size:11px;">${log.details} [${log.produit || 'N/A'}]</td>
-                </tr>`;
+        // 1. Remplir le résumé par produit
+        prods.forEach(p => {
+            const pPris = uRecups.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pAg = uSales.filter(s => s.produit === p && !s.payeAbidjan).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pAbi = uSales.filter(s => s.produit === p && s.payeAbidjan === true).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pRendu = uRetours.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pReste = pPris - (pAg + pAbi + pRendu);
+            sumBody.innerHTML += `<tr><td><b>${p}</b></td><td>${pPris}</td><td>${pAg}</td><td>${pAbi}</td><td>${pRendu}</td><td style="font-weight:bold; color:#1877f2;">${pReste}</td></tr>`;
         });
-    }
 
-    window.deleteDocument = async (coll, docId) => {
-        if (window.userRole !== 'superadmin') return alert("Super Admin requis.");
-        if (confirm("Supprimer définitivement ?")) {
-            try {
-                await db.collection(coll).doc(docId).delete();
-                alert("Supprimé.");
-            } catch (e) { alert("Erreur."); }
-        }
+        // 2. Remplir l'historique chronologique
+        let logs = [];
+        uRecups.forEach(d => logs.push({d: d.date, t: '📦 Récupération', p: d.produit, q: d.quantite, n: '-'}));
+        uSales.forEach(d => logs.push({d: d.date, t: d.payeAbidjan ? '📍 Vente Abidjan' : '🏠 Vente Agence', p: d.produit, q: d.quantite, n: d.clientRef || '-'}));
+        uRetours.forEach(d => logs.push({d: d.date, t: '🔄 Retour Colis', p: d.produit, q: d.quantite, n: '-'}));
+        
+        logs.sort((a,b) => new Date(b.d) - new Date(a.d));
+        logs.forEach(l => { histBody.innerHTML += `<tr><td>${l.d}</td><td>${l.t}</td><td>${l.p}</td><td>${l.q}</td><td>${l.n}</td></tr>`; });
+
+        document.getElementById('invendusModal').style.display = 'block';
     };
 
-    window.downloadAuditLogPDF = function() {
-        const element = document.getElementById('printableAuditArea');
-        html2pdf().set({ margin: 10, filename: 'Audit_AMT.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { format: 'a4', orientation: 'landscape' } }).from(element).save();
-    };
+    window.closeInvendusModal = () => document.getElementById('invendusModal').style.display = 'none';
 
+    // (Reste des fonctions renderVentes, audit, etc. identiques)
+    function renderVentes() {
+        const selV = filterVendeur.value; const selC = filterClientRef.value.toLowerCase();
+        let filtered = selV ? salesData.filter(d => d.vendeur === selV) : salesData;
+        if(selC) filtered = filtered.filter(d => (d.clientRef && d.clientRef.toLowerCase().includes(selC)) || d.produit.toLowerCase().includes(selC));
+        tableBodyVentes.innerHTML = '';
+        filtered.forEach(d => {
+            const tag = d.payeAbidjan ? `<br><span style="background:#701a75; color:white; font-size:9px; padding:2px 4px; border-radius:4px;">📍 ABIDJAN</span>` : `<br><span style="background:#1877f2; color:white; font-size:9px; padding:2px 4px; border-radius:4px;">🏠 AGENCE</span>`;
+            tableBodyVentes.innerHTML += `<tr><td>${d.date}</td><td><b>${d.produit}</b><br><small>Ref: ${d.clientRef||'-'}</small></td><td>${d.quantite}</td><td style="font-weight:bold;">${formatEUR(d.total)}${tag}</td><td>${d.vendeur}</td><td><button onclick="deleteDocument('ventes','${d.id}')">Suppr.</button></td></tr>`;
+        });
+    }
+
+    function renderConsommables() {
+        tableBodyConsommables.innerHTML = '';
+        consommationsData.forEach(d => { tableBodyConsommables.innerHTML += `<tr><td>${d.date}</td><td><b>${d.produit}</b></td><td>${d.quantite}</td><td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:10px;">USAGE INTERNE</span></td><td><button>Suppr.</button></td></tr>`; });
+    }
+
+    function renderPaiements(data) {
+        tableBodyPaiements.innerHTML = '';
+        data.forEach(d => { tableBodyPaiements.innerHTML += `<tr><td>${d.date}</td><td>${d.vendeur}</td><td>${d.montantRecu}€</td><td>${d.remise}€</td><td style="font-weight:bold;">${(d.montantRecu||0)+(d.remise||0)}€</td><td><button>Suppr.</button></td></tr>`; });
+    }
+
+    function loadAuditLogs() { db.collection("audit_logs").orderBy("timestamp", "desc").limit(50).onSnapshot(s => { auditLogBody.innerHTML = ''; s.forEach(doc => { const l = doc.data(); auditLogBody.innerHTML += `<tr><td><small>${l.dateAction}</small></td><td>${l.auteur}</td><td>${l.module}</td><td>${l.type}</td><td>${l.details}</td></tr>`; }); }); }
+    window.deleteDocument = async (c, i) => { if(confirm("Supprimer ?")) await db.collection(c).doc(i).delete(); };
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
     
     init();
