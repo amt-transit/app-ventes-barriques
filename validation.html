@@ -8,41 +8,29 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        .kpi-stock-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 10px; 
-            margin-bottom: 20px; 
-        }
+        .kpi-stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
         .card-stock { border-radius: 12px; padding: 12px; text-align: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .bg-blue { background: #1877f2; }
-        .bg-green { background: #10b981; }
-        .bg-red { background: #be123c; }
-        .bg-slate { background: #64748b; }
-        
+        .bg-blue { background: #1877f2; } .bg-green { background: #10b981; } .bg-red { background: #be123c; }
         .stock-label { font-size: 9px; text-transform: uppercase; font-weight: bold; opacity: 0.9; }
         .stock-number { font-size: 16px; font-weight: bold; display: block; margin-top: 5px; }
-
         .form-section { background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0; margin-bottom: 20px; }
         .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 400px; }
         th, td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
 
-        @media (max-width: 850px) {
-            .app-header { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 15px 10px; }
-            .navigation { display: flex !important; flex-wrap: wrap !important; justify-content: center !important; gap: 6px !important; padding: 10px !important; }
-            .navigation a, .navigation button { font-size: 10px; padding: 8px 12px; margin: 0 !important; flex-grow: 0; }
-            h1 { font-size: 18px; text-align: center; }
-            .dashboard-grid-2-col { grid-template-columns: 1fr; }
-            .kpi-stock-grid { grid-template-columns: repeat(2, 1fr); }
-        }
+        /* Styles pour les listes de session */
+        .temp-list { margin-top: 10px; border: 1px dashed #64748b; border-radius: 8px; padding: 8px; background: #ffffff; display: none; }
+        .btn-add-item { background: #1e293b; color: white; border: none; border-radius: 5px; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; font-size: 11px; }
+        .btn-remove { color: #be123c; cursor: pointer; font-weight: bold; border: none; background: none; }
+        
+        .section-ventes { border-left: 5px solid #1877f2; padding-left: 10px; margin-bottom: 20px; }
+        .section-consos { border-left: 5px solid #64748b; padding-left: 10px; margin-bottom: 20px; }
+        .section-retours { border-left: 5px solid #f59e0b; padding-left: 10px; margin-bottom: 20px; }
 
-        @media print {
-            .navigation, .app-header, .no-print, #btnConfirmerVente { display: none !important; }
-            body { background: white; }
-            .dashboard-grid-2-col { display: block; }
+        @media (max-width: 850px) {
+            .app-header { display: flex; flex-direction: column; align-items: center; }
+            .dashboard-grid-2-col { grid-template-columns: 1fr; }
         }
     </style>
 </head>
@@ -64,94 +52,88 @@
     </nav>
 
     <div class="dashboard-grid-2-col" style="padding: 15px;">
-        
         <div class="form-section">
-            <h2 style="color: #1877f2; font-size: 15px; margin-top:0;">📝 Saisie des données</h2>
+            <h2 style="color: #1877f2; font-size: 15px; margin-top:0;">📝 Saisie groupée des données</h2>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="date" id="valDate" style="padding:10px; width:100%; box-sizing:border-box;">
                 <select id="valVendeur" style="padding:10px; width:100%;"></select>
 
-                <div style="background: white; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                    <p style="font-size: 10px; font-weight: bold; color: #475569; margin: 0 0 5px 0;">📦 PARTIE 1 : VENTES CLIENTS</p>
+                <div class="section-ventes">
+                    <p style="font-size: 10px; font-weight: bold; color: #1877f2;">📦 ÉTAPE 1 : VENTES CLIENTS</p>
                     <select id="valProduit" style="padding:10px; width:100%; margin-bottom:5px;"></select>
                     <div id="sellerStockInfo" style="font-size: 10px; color: #1877f2; font-weight: bold; margin-bottom:5px;"></div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <input type="number" id="valQuantite" placeholder="Qté">
                         <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background:#f1f5f9; padding:10px;">
                     </div>
-                    <p style="font-size: 11px; text-align: right; margin-top: 5px; font-weight: bold;">Total : <span id="valTotalSaisie">0,00 €</span></p>
+                    <button class="btn-add-item" onclick="ajouterItem('ventes')">Ajouter Vente ➕</button>
+                    <div id="list-ventes" class="temp-list">
+                        <table style="width:100%; font-size:10px; margin:0;">
+                            <thead><tr style="background:#e0efff;"><th>Produit</th><th>Qté</th><th>Total</th><th></th></tr></thead>
+                            <tbody id="body-ventes"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section-consos">
+                    <p style="font-size: 10px; font-weight: bold; color: #64748b;">🛠️ ÉTAPE 2 : USAGE INTERNE (FOURNITURES)</p>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                        <select id="valProduitConso" style="padding:10px;"></select>
+                        <input type="number" id="valQuantiteConso" placeholder="Qté">
+                    </div>
+                    <button class="btn-add-item" onclick="ajouterItem('consos')">Ajouter Usage ➕</button>
+                    <div id="list-consos" class="temp-list">
+                        <table style="width:100%; font-size:10px; margin:0;">
+                            <thead><tr style="background:#f1f5f9;"><th>Fourniture</th><th>Qté</th><th></th></tr></thead>
+                            <tbody id="body-consos"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="section-retours">
+                    <p style="font-size: 10px; font-weight: bold; color: #1e293b;">🔄 ÉTAPE 3 : RETOURS DE COLIS</p>
+                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                        <select id="valProduitRetour" style="padding:10px;"></select>
+                        <input type="number" id="valQuantiteRetour" placeholder="Qté">
+                    </div>
+                    <button class="btn-add-item" onclick="ajouterItem('retours')">Ajouter Retour ➕</button>
+                    <div id="list-retours" class="temp-list">
+                        <table style="width:100%; font-size:10px; margin:0;">
+                            <thead><tr style="background:#fff7ed;"><th>Produit</th><th>Qté</th><th></th></tr></thead>
+                            <tbody id="body-retours"></tbody>
+                        </table>
+                    </div>
                 </div>
 
                 <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
-                    <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 PARTIE 2 : ARGENT REÇU</p>
+                    <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 ÉTAPE 4 : ARGENT REÇU</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <input type="number" id="valAcompte" placeholder="Montant (€)" style="padding:10px;">
                         <input type="number" id="valRemise" value="0" style="padding:10px;">
                     </div>
                 </div>
 
-                <div style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1;">
-                    <p style="font-size: 10px; font-weight: bold; color: #475569; margin: 0 0 5px 0;">🛠️ PARTIE 3 : USAGE INTERNE (FOURNITURES)</p>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
-                        <select id="valProduitConso" style="padding:10px;"></select>
-                        <input type="number" id="valQuantiteConso" placeholder="Qté Utilisée" style="padding:10px;">
-                    </div>
-                    <p style="font-size: 9px; color: #64748b; margin-top: 5px;">Note : Aucune dette n'est générée pour les consommables.</p>
-                </div>
-
-                <div style="background: #f8fafc; padding: 10px; border-radius: 8px; border: 1px solid #94a3b8;">
-                    <p style="font-size: 10px; font-weight: bold; color: #1e293b; margin: 0 0 5px 0;">🔄 PARTIE 4 : RETOURS DE COLIS (INVENDUS)</p>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
-                        <select id="valProduitRetour" style="padding:10px;"></select>
-                        <input type="number" id="valQuantiteRetour" placeholder="Qté Rendue" style="padding:10px;">
-                    </div>
-                </div>
-
                 <div style="background: #fdf4ff; padding: 10px; border-radius: 8px; border: 1px solid #f5d0fe;">
-                    <p style="font-size: 10px; font-weight: bold; color: #701a75; margin: 0 0 5px 0;">📍 OPTION ABIDJAN</p>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="valPayAbidjan" style="width: 18px; height: 18px; cursor: pointer;">
-                        <label style="font-size: 12px; font-weight:bold; cursor:pointer;">Payé à Abidjan</label>
+                        <label style="font-size: 12px; font-weight:bold;">Payé à Abidjan</label>
                     </div>
-                    <div id="boxClientRef" style="display:none; margin-top:10px;">
-                        <input type="text" id="valClientRef" placeholder="Nom/Référence Client" style="width:100%; padding:10px; border-radius:5px; border:1px solid #f5d0fe; box-sizing:border-box;">
-                    </div>
+                    <input type="text" id="valClientRef" placeholder="Nom/Référence Client" style="display:none; width:100%; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #f5d0fe;">
                 </div>
 
-                <button id="btnConfirmerVente" class="primary" style="background:#1877f2; height:45px; border:none; border-radius:8px; color:white; font-weight:bold; cursor:pointer;">ENREGISTRER</button>
+                <button id="btnConfirmerVente" style="background:#1877f2; height:50px; border:none; border-radius:8px; color:white; font-weight:bold; cursor:pointer;">ENREGISTRER TOUTE LA SESSION</button>
             </div>
         </div>
 
         <div>
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h2 style="margin: 0; font-size: 16px;">📊 État du Vendeur</h2>
-                <button onclick="preparerImpression()" style="background: #10b981; color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; font-size: 11px;">🖨️ Imprimer</button>
-            </div>
-
             <div class="kpi-stock-grid">
-                <div class="card-stock bg-blue"><span class="stock-label">Vendu à l'Agence</span><span id="totalDu" class="stock-number">0€</span></div>
-                <div class="card-stock bg-green"><span class="stock-label">Encaissé (Période)</span><span id="totalPaye" class="stock-number">0€</span></div>
-                <div class="card-stock bg-red" style="grid-column: span 2;"><span class="stock-label">Dette Réelle Totale</span><span id="resteAPayer" class="stock-number">0€</span></div>
+                <div class="card-stock bg-blue"><span class="stock-label">Vendu Agence</span><span id="totalDu" class="stock-number">0€</span></div>
+                <div class="card-stock bg-green"><span class="stock-label">Encaissé</span><span id="totalPaye" class="stock-number">0€</span></div>
+                <div class="card-stock bg-red" style="grid-column: span 2;"><span class="stock-label">Dette Vendeur</span><span id="resteAPayer" class="stock-number">0€</span></div>
             </div>
-
-            <div class="form-section no-print" style="display: flex; gap: 5px; align-items: center;">
-                <input type="date" id="filterStart" style="flex:1; padding:8px;">
-                <input type="date" id="filterEnd" style="flex:1; padding:8px;">
-                <button onclick="loadSellerData()" style="background:#334155; color:white; border:none; padding:10px; border-radius:5px; cursor:pointer;">🔍</button>
-            </div>
-
             <div class="table-responsive">
                 <table id="sellerInventoryTable">
-                    <thead>
-                        <tr style="background: #f1f5f9;">
-                            <th>Produit</th>
-                            <th>Pris</th>
-                            <th>Vendu</th>
-                            <th>🛠️ Conso.</th>
-                            <th>Rendu</th>
-                            <th>En main</th>
-                        </tr>
-                    </thead>
+                    <thead><tr style="background: #f1f5f9;"><th>Produit</th><th>Pris</th><th>Vendu</th><th>🛠️ Conso.</th><th>Rendu</th><th>En main</th></tr></thead>
                     <tbody id="sellerInventoryBody"></tbody>
                 </table>
             </div>
@@ -162,14 +144,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-            authDomain: "app-ventes-barriques.firebaseapp.com",
-            projectId: "app-ventes-barriques",
-            storageBucket: "app-ventes-barriques.appspot.com",
-            messagingSenderId: "615546459847",
-            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M", authDomain: "app-ventes-barriques.firebaseapp.com", projectId: "app-ventes-barriques", storageBucket: "app-ventes-barriques.appspot.com", messagingSenderId: "615546459847", appId: "1:615546459847:web:1b387b0b703b7a9a1210e2" };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         window.db = firebase.firestore();
     </script>
@@ -177,167 +152,178 @@
 
     <script>
         const valVendeur = document.getElementById('valVendeur');
-        const valProduit = document.getElementById('valProduit');
-        const valProduitConso = document.getElementById('valProduitConso');
-        const valProduitRetour = document.getElementById('valProduitRetour');
-        const valQuantite = document.getElementById('valQuantite');
-        const valQuantiteConso = document.getElementById('valQuantiteConso');
-        const valQuantiteRetour = document.getElementById('valQuantiteRetour');
-        const valPrixUnit = document.getElementById('valPrixUnit');
-        const valTotalSaisie = document.getElementById('valTotalSaisie');
         const valPayAbidjan = document.getElementById('valPayAbidjan');
-        const boxClientRef = document.getElementById('boxClientRef');
         const valClientRef = document.getElementById('valClientRef');
-
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('valDate').value = today;
-        document.getElementById('filterStart').value = today;
-        document.getElementById('filterEnd').value = today;
-
-        let inventoryData = {}; let globalPrices = {};
+        
+        let inventoryData = {}; 
+        let globalPrices = {};
+        
+        // TABLEAUX DE SESSION (PANIER)
+        let sessionVentes = [];
+        let sessionConsos = [];
+        let sessionRetours = [];
 
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
-        if (valPayAbidjan) {
-            valPayAbidjan.addEventListener('change', (e) => {
-                if (boxClientRef) boxClientRef.style.display = e.target.checked ? 'block' : 'none';
-                if (!e.target.checked && valClientRef) valClientRef.value = "";
-            });
+        // --- GESTION DU PANIER MULTIPLE ---
+        function ajouterItem(type) {
+            let prod, qty, pu = 0;
+            
+            if (type === 'ventes') {
+                prod = document.getElementById('valProduit').value;
+                qty = parseInt(document.getElementById('valQuantite').value);
+                pu = parseFloat(document.getElementById('valPrixUnit').value);
+            } else if (type === 'consos') {
+                prod = document.getElementById('valProduitConso').value;
+                qty = parseInt(document.getElementById('valQuantiteConso').value);
+            } else {
+                prod = document.getElementById('valProduitRetour').value;
+                qty = parseInt(document.getElementById('valQuantiteRetour').value);
+            }
+
+            if (!prod || isNaN(qty) || qty <= 0) return alert("Saisie invalide.");
+
+            // Vérification du stock restant "En main"
+            const it = inventoryData[prod];
+            const enMain = it ? it.pT - it.vT - it.rT - it.cT : 0;
+            
+            // On calcule combien on a déjà ajouté au panier pour ce produit
+            const dejaDansPanier = (sessionVentes.filter(v => v.p === prod).reduce((s,v)=>s+v.q,0)) + 
+                                  (sessionConsos.filter(c => c.p === prod).reduce((s,c)=>s+c.q,0)) + 
+                                  (sessionRetours.filter(r => r.p === prod).reduce((s,r)=>s+r.q,0));
+
+            if ((qty + dejaDansPanier) > enMain) return alert(`Action impossible. Le vendeur n'a que ${enMain} colis de ce type en main.`);
+
+            if (type === 'ventes') sessionVentes.push({ p: prod, q: qty, pu: pu, t: qty * pu });
+            else if (type === 'consos') sessionConsos.push({ p: prod, q: qty });
+            else sessionRetours.push({ p: prod, q: qty });
+
+            // Reset inputs
+            if (type === 'ventes') document.getElementById('valQuantite').value = "";
+            else if (type === 'consos') document.getElementById('valQuantiteConso').value = "";
+            else document.getElementById('valQuantiteRetour').value = "";
+
+            renderLists();
         }
 
-        async function loadDynamicUsers() {
-            const snap = await db.collection("users").orderBy("nom", "asc").get();
-            valVendeur.innerHTML = '<option value="">-- Choisir un compte --</option>';
-            snap.forEach(doc => { valVendeur.innerHTML += `<option value="${doc.data().nom}">${doc.data().nom}</option>`; });
+        function renderLists() {
+            // Rendu Ventes
+            const bV = document.getElementById('body-ventes'); bV.innerHTML = "";
+            document.getElementById('list-ventes').style.display = sessionVentes.length > 0 ? "block" : "none";
+            sessionVentes.forEach((v, i) => { bV.innerHTML += `<tr><td>${v.p}</td><td>${v.q}</td><td>${v.t}€</td><td><button class="btn-remove" onclick="supprSession('ventes', ${i})">❌</button></td></tr>`; });
+
+            // Rendu Consos
+            const bC = document.getElementById('body-consos'); bC.innerHTML = "";
+            document.getElementById('list-consos').style.display = sessionConsos.length > 0 ? "block" : "none";
+            sessionConsos.forEach((c, i) => { bC.innerHTML += `<tr><td>${c.p}</td><td>${c.q}</td><td><button class="btn-remove" onclick="supprSession('consos', ${i})">❌</button></td></tr>`; });
+
+            // Rendu Retours
+            const bR = document.getElementById('body-retours'); bR.innerHTML = "";
+            document.getElementById('list-retours').style.display = sessionRetours.length > 0 ? "block" : "none";
+            sessionRetours.forEach((r, i) => { bR.innerHTML += `<tr><td>${r.p}</td><td>${r.q}</td><td><button class="btn-remove" onclick="supprSession('retours', ${i})">❌</button></td></tr>`; });
         }
 
+        window.supprSession = (type, index) => {
+            if (type === 'ventes') sessionVentes.splice(index, 1);
+            else if (type === 'consos') sessionConsos.splice(index, 1);
+            else sessionRetours.splice(index, 1);
+            renderLists();
+        };
+
+        // --- LOGIQUE FIRESTORE ET CALCULS ---
         async function loadPrices() {
             const snap = await db.collection("stocks").get();
             snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
         }
 
         async function loadSellerData() {
-            const name = valVendeur.value;
-            if (!name) return;
-            const dStart = document.getElementById('filterStart').value;
-            const dEnd = document.getElementById('filterEnd').value;
-
-            const [recupSnap, ventesSnap, encaissSnap, retoursSnap, consosSnap] = await Promise.all([
+            const name = valVendeur.value; if (!name) return;
+            const [rSnap, vSnap, eSnap, retSnap, cSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", name).get(),
                 db.collection("ventes").where("vendeur", "==", name).get(),
                 db.collection("encaissements_vendeurs").where("vendeur", "==", name).get(),
                 db.collection("retours_vendeurs").where("vendeur", "==", name).get(),
                 db.collection("consommations").where("vendeur", "==", name).get()
             ]);
-
             inventoryData = {};
-            let pVentesArgent = 0; let pPaye = 0; let tHistV = 0; let tHistP = 0;
-
-            recupSnap.forEach(doc => { 
-                const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
-                inventoryData[d.produit].pT += (parseInt(d.quantite) || 0);
+            let hVendu = 0, hPaye = 0;
+            rSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].pT += d.quantite; });
+            vSnap.forEach(doc => { 
+                const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].vT += d.quantite;
+                if (globalPrices[d.produit] > 0 && d.payeAbidjan !== true) hVendu += (d.total || 0);
             });
+            cSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].cT += d.quantite; });
+            retSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].rT += d.quantite; });
+            eSnap.forEach(doc => { const d = doc.data(); hPaye += (d.montantRecu || 0) + (d.remise || 0); });
 
-            ventesSnap.forEach(doc => {
-                const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
-                inventoryData[d.produit].vT += (parseInt(d.quantite) || 0);
-                
-                // CORRECTION LOGIQUE DETTE : Uniquement si PV > 0 ET non payé à Abidjan
-                if (globalPrices[d.produit] > 0 && d.payeAbidjan !== true) {
-                    tHistV += (parseFloat(d.total) || 0);
-                    if (d.date >= dStart && d.date <= dEnd) pVentesArgent += (parseFloat(d.total) || 0);
-                }
-            });
-
-            consosSnap.forEach(doc => {
-                const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
-                inventoryData[d.produit].cT += (parseInt(d.quantite) || 0);
-            });
-
-            retoursSnap.forEach(doc => {
-                const d = doc.data();
-                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0, pP:0, vP:0, rP:0, cP:0 };
-                inventoryData[d.produit].rT += (parseInt(d.quantite) || 0);
-            });
-
-            encaissSnap.forEach(doc => {
-                const d = doc.data();
-                const montant = (parseFloat(d.montantRecu) || 0) + (parseFloat(d.remise) || 0);
-                tHistP += montant;
-                if (d.date >= dStart && d.date <= dEnd) pPaye += montant;
-            });
-
-            document.getElementById('totalDu').innerText = formatEUR(pVentesArgent);
-            document.getElementById('totalPaye').innerText = formatEUR(pPaye);
-            document.getElementById('resteAPayer').innerText = formatEUR(tHistV - tHistP);
+            document.getElementById('resteAPayer').innerText = (hVendu - hPaye).toFixed(2) + "€";
             renderUI();
         }
 
         function renderUI() {
-            valProduit.innerHTML = '<option value="">-- Vente --</option>';
-            valProduitRetour.innerHTML = '<option value="">-- Retour --</option>';
-            valProduitConso.innerHTML = '<option value="">-- Conso --</option>';
-            const tbody = document.getElementById('sellerInventoryBody');
-            tbody.innerHTML = '';
+            document.querySelectorAll('select[id^="valProduit"]').forEach(s => s.innerHTML = '<option value="">-- Choisir --</option>');
+            const tbody = document.getElementById('sellerInventoryBody'); tbody.innerHTML = '';
             for (const p in inventoryData) {
-                const i = inventoryData[p];
-                const enMain = i.pT - i.vT - i.rT - i.cT;
+                const i = inventoryData[p]; const enMain = i.pT - i.vT - i.rT - i.cT;
                 if (enMain > 0) {
-                    valProduit.innerHTML += `<option value="${p}">${p}</option>`;
-                    valProduitRetour.innerHTML += `<option value="${p}">${p}</option>`;
-                    valProduitConso.innerHTML += `<option value="${p}">${p}</option>`;
+                    document.getElementById('valProduit').innerHTML += `<option value="${p}">${p}</option>`;
+                    document.getElementById('valProduitRetour').innerHTML += `<option value="${p}">${p}</option>`;
+                    document.getElementById('valProduitConso').innerHTML += `<option value="${p}">${p}</option>`;
                 }
-                tbody.innerHTML += `<tr><td>${p} ${globalPrices[p] <= 0 ? '🛠️' : ''}</td><td>${i.pT}</td><td>${i.vT}</td><td>${i.cT || 0}</td><td>${i.rT}</td><td><b>${enMain}</b></td></tr>`;
+                tbody.innerHTML += `<tr><td>${p} ${globalPrices[p] <= 0 ? '🛠️' : ''}</td><td>${i.pT}</td><td>${i.vT}</td><td>${i.cT}</td><td>${i.rT}</td><td><b>${enMain}</b></td></tr>`;
             }
         }
-
-        valVendeur.addEventListener('change', loadSellerData);
-        valProduit.addEventListener('change', () => {
-            valPrixUnit.value = globalPrices[valProduit.value] || 0;
-            const it = inventoryData[valProduit.value];
-            document.getElementById('sellerStockInfo').innerText = valProduit.value ? `En main : ${it ? it.pT - it.vT - it.rT - it.cT : 0}` : "";
-            updateT();
-        });
-
-        valQuantite.addEventListener('input', updateT);
-        function updateT() { if (valTotalSaisie) valTotalSaisie.innerText = formatEUR((parseFloat(valQuantite.value)||0)*(parseFloat(valPrixUnit.value)||0)); }
 
         document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
             const btn = document.getElementById('btnConfirmerVente');
             const name = valVendeur.value;
             const date = document.getElementById('valDate').value;
-            const prod = valProduit.value; const qty = parseInt(valQuantite.value) || 0;
-            const prodC = valProduitConso.value; const qtyC = parseInt(valQuantiteConso.value) || 0;
-            const prodR = valProduitRetour.value; const qtyR = parseInt(valQuantiteRetour.value) || 0;
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
-            if (!name) return alert("Choisissez un vendeur.");
+            if (!name || !date) return alert("Choisissez un vendeur et une date.");
+            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && rem === 0) return alert("Aucune donnée saisie.");
+
             btn.disabled = true;
             try {
-                if (prod && qty > 0) {
-                    await db.collection("ventes").add({ date, vendeur: name, produit: prod, quantite: qty, prixUnitaire: globalPrices[prod], total: qty * globalPrices[prod], payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                // 1. Enregistrement des Ventes
+                for (let v of sessionVentes) {
+                    await db.collection("ventes").add({ date, vendeur: name, produit: v.p, quantite: v.q, prixUnitaire: v.pu, total: v.t, payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
-                if (prodC && qtyC > 0) {
-                    await db.collection("consommations").add({ date, vendeur: name, produit: prodC, quantite: qtyC, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                // 2. Enregistrement des Consos
+                for (let c of sessionConsos) {
+                    await db.collection("consommations").add({ date, vendeur: name, produit: c.p, quantite: c.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
-                if (prodR && qtyR > 0) {
-                    await db.collection("retours_vendeurs").add({ date, vendeur: name, produit: prodR, quantite: qtyR, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                // 3. Enregistrement des Retours
+                for (let r of sessionRetours) {
+                    await db.collection("retours_vendeurs").add({ date, vendeur: name, produit: r.p, quantite: r.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
+                // 4. Enregistrement Argent
                 if (aco > 0 || rem > 0) {
                     await db.collection("encaissements_vendeurs").add({ date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
-                alert("Données enregistrées !");
-                valQuantite.value = ""; valQuantiteConso.value = ""; valQuantiteRetour.value = ""; document.getElementById('valAcompte').value = ""; 
-                loadSellerData();
+
+                alert("Tout a été enregistré avec succès !");
+                sessionVentes = []; sessionConsos = []; sessionRetours = [];
+                document.getElementById('valAcompte').value = "";
+                renderLists(); loadSellerData();
             } catch (e) { alert("Erreur."); } finally { btn.disabled = false; }
         });
 
-        loadDynamicUsers(); loadPrices();
-        function preparerImpression() { if(!valVendeur.value) return alert("Sélectionnez un vendeur."); window.print(); }
+        valPayAbidjan.addEventListener('change', (e) => { valClientRef.style.display = e.target.checked ? 'block' : 'none'; });
+        valVendeur.addEventListener('change', loadSellerData);
+        document.getElementById('valProduit').addEventListener('change', () => {
+            valPrixUnit.value = globalPrices[document.getElementById('valProduit').value] || 0;
+            const it = inventoryData[document.getElementById('valProduit').value];
+            document.getElementById('sellerStockInfo').innerText = `En main : ${it ? it.pT - it.vT - it.rT - it.cT : 0}`;
+        });
+
+        document.getElementById('valDate').value = new Date().toISOString().split('T')[0];
+        db.collection("users").orderBy("nom", "asc").get().then(snap => {
+            valVendeur.innerHTML = '<option value="">-- Choisir un compte --</option>';
+            snap.forEach(doc => { valVendeur.innerHTML += `<option value="${doc.data().nom}">${doc.data().nom}</option>`; });
+        });
+        loadPrices();
     </script>
 </body>
 </html>
