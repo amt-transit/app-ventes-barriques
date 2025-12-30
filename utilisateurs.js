@@ -6,7 +6,6 @@ const roleSelect = document.getElementById('newUserRole');
 function loadUsers() {
     if (!userListBody) return;
     
-    // Écoute en temps réel
     db.collection("users").orderBy("nom", "asc").onSnapshot(snap => {
         userListBody.innerHTML = '';
         
@@ -18,9 +17,17 @@ function loadUsers() {
                 return; 
             }
 
-            // RESTRICTION PASS : Seul le Super Admin voit le MDP en clair
             const isSuper = (window.userRole === 'superadmin');
             const passwordValue = isSuper ? (u.password_plain || "Non défini") : "********";
+
+            // Sélecteur de rôle dynamique
+            const roleSelector = `
+                <select class="select-role-table" onchange="updateUserRole('${doc.id}', this.value, '${u.nom}')">
+                    <option value="vendeur" ${u.role === 'vendeur' ? 'selected' : ''}>Vendeur</option>
+                    <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+                    ${isSuper ? `<option value="superadmin" ${u.role === 'superadmin' ? 'selected' : ''}>SuperAdmin</option>` : ''}
+                </select>
+            `;
 
             userListBody.innerHTML += `
                 <tr>
@@ -32,20 +39,41 @@ function loadUsers() {
                             : `<span>Encodé</span>`
                         }
                     </td>
-                    <td><span class="badge-role">${u.role}</span></td>
+                    <td>${roleSelector}</td>
                     <td>
-                        <button onclick="resetPassword('${u.email}')" class="btn-reset">Reset</button>
-                        ${isSuper ? `<button onclick="deleteUser('${doc.id}')" class="btn-suppr">Suppr.</button>` : ''}
+                        <button onclick="resetPassword('${u.email}')" style="padding:5px 10px; cursor:pointer; border-radius:5px; border:1px solid #ccc;">Reset</button>
+                        ${isSuper ? `<button onclick="deleteUser('${doc.id}')" style="padding:5px 10px; cursor:pointer; background:#fee2e2; color:#be123c; border:1px solid #fecaca; border-radius:5px; margin-left:5px;">Suppr.</button>` : ''}
                     </td>
                 </tr>`;
         });
     });
 }
 
-// --- 2. CONFIGURATION DU FORMULAIRE ---
+// --- 2. MODIFICATION DU RÔLE ---
+window.updateUserRole = async (email, newRole, nom) => {
+    if (confirm(`Changer le statut de ${nom} vers "${newRole}" ?`)) {
+        try {
+            await db.collection("users").doc(email).update({
+                role: newRole
+            });
+
+            // LOG DE L'ACTION
+            if (typeof window.logAction === 'function') {
+                await window.logAction("COMPTES", "MODIFICATION", `Changement de rôle pour ${nom} : Nouveau statut = ${newRole}`);
+            }
+
+            alert("Statut mis à jour avec succès.");
+        } catch (e) {
+            alert("Erreur lors de la mise à jour : " + e.message);
+        }
+    } else {
+        loadUsers(); // Recharger pour annuler visuellement le changement dans le select
+    }
+};
+
+// --- 3. CONFIGURATION DU FORMULAIRE ---
 function setupForm() {
     if (window.userRole === 'admin') {
-        // Supprime l'option Super Admin pour les simples admins
         for (let i = 0; i < roleSelect.options.length; i++) {
             if (roleSelect.options[i].value === 'superadmin') {
                 roleSelect.remove(i);
@@ -54,7 +82,7 @@ function setupForm() {
     }
 }
 
-// --- 3. AFFICHAGE DU MOT DE PASSE (Réservé Super Admin) ---
+// --- 4. AFFICHAGE DU MOT DE PASSE ---
 window.togglePass = (id) => {
     const p = document.getElementById('pass-' + id);
     const h = document.getElementById('hide-' + id);
@@ -67,7 +95,7 @@ window.togglePass = (id) => {
     }
 };
 
-// --- 4. CRÉATION DE COMPTE + LOG ---
+// --- 5. CRÉATION DE COMPTE ---
 document.getElementById('btnCreateUser').addEventListener('click', async () => {
     const nomBrut = document.getElementById('newUserName').value.trim();
     const pass = document.getElementById('newUserPass').value;
@@ -76,25 +104,20 @@ document.getElementById('btnCreateUser').addEventListener('click', async () => {
     if (window.userRole === 'admin' && role === 'superadmin') return alert("Action non autorisée.");
     if (!nomBrut || pass.length < 6) return alert("Nom requis et mot de passe de 6 car. min.");
 
-    // Génération email propre
     const cleaned = nomBrut.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '');
     const email = cleaned + "@amt.com";
 
     try {
         msgUser.innerText = "⏳ Création...";
-        
-        // Vérification doublon email
         const check = await db.collection("users").doc(email).get();
         if (check.exists) return alert("Cet email/utilisateur existe déjà.");
 
-        // Création technique (Second App pour ne pas déconnecter l'admin actuel)
         let secApp;
         try { secApp = firebase.initializeApp(firebaseConfig, "Secondary"); } 
         catch (e) { secApp = firebase.app("Secondary"); }
 
         const userCred = await secApp.auth().createUserWithEmailAndPassword(email, pass);
         
-        // Sauvegarde Firestore (ID = email)
         await db.collection("users").doc(email).set({
             nom: nomBrut, 
             email: email, 
@@ -104,7 +127,6 @@ document.getElementById('btnCreateUser').addEventListener('click', async () => {
             createdAt: firebase.firestore.FieldValue.serverTimestamp()
         });
 
-        // ENREGISTREMENT DU LOG
         if (typeof window.logAction === 'function') {
             await window.logAction("COMPTES", "CRÉATION", `Compte ${role} créé pour ${nomBrut}`);
         }
@@ -121,7 +143,7 @@ document.getElementById('btnCreateUser').addEventListener('click', async () => {
     }
 });
 
-// --- 5. SUPPRESSION DE COMPTE + LOG ---
+// --- 6. SUPPRESSION DE COMPTE ---
 window.deleteUser = async (id) => {
     if (window.userRole !== 'superadmin') return alert("Seul le Super Admin peut supprimer des comptes.");
     
@@ -132,19 +154,17 @@ window.deleteUser = async (id) => {
 
         if (confirm(`Voulez-vous vraiment supprimer le compte de ${uData.nom} ?`)) {
             await db.collection("users").doc(id).delete();
-
-            // ENREGISTREMENT DU LOG
             if (typeof window.logAction === 'function') {
                 await window.logAction("COMPTES", "SUPPRESSION", `Compte ${uData.role} de ${uData.nom} supprimé.`);
             }
-            alert("Compte supprimé et action logguée.");
+            alert("Compte supprimé.");
         }
     } catch (e) {
         alert("Erreur suppression: " + e.message);
     }
 };
 
-// --- 6. RÉINITIALISATION ---
+// --- 7. RÉINITIALISATION ---
 window.resetPassword = (email) => {
     if (confirm("Envoyer un email de réinitialisation ?")) {
         firebase.auth().sendPasswordResetEmail(email)
@@ -153,14 +173,14 @@ window.resetPassword = (email) => {
     }
 };
 
-// --- 7. INITIALISATION AUTO ---
+// --- 8. INITIALISATION AUTO ---
 firebase.auth().onAuthStateChanged(user => {
     if (user) {
         db.collection("users").where("email", "==", user.email).get().then(snap => {
             if(!snap.empty) {
                 const data = snap.docs[0].data();
                 window.userRole = data.role;
-                window.userName = data.nom; // Utile pour le log
+                window.userName = data.nom;
                 setupForm();
                 loadUsers();
             }
