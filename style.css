@@ -14,7 +14,7 @@ body {
     display: flex; 
     align-items: center; 
     justify-content: center;
-    padding: 4px 15px;
+    padding: 10px 15px;
     background-color: #fff;
     border-bottom: 1px solid #e0e0e0; 
     margin-bottom: 8px;
@@ -25,24 +25,28 @@ body {
 h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 14px; }
 
 /* ==========================================================================
-   2. NAVIGATION
+   2. NAVIGATION (VERSION BUREAU)
    ========================================================================== */
 .navigation {
     display: flex; 
     justify-content: center; 
     gap: 4px;
     margin-bottom: 12px;
+    flex-wrap: wrap;
 }
 
 .navigation a {
     text-decoration: none; 
-    padding: 5px 12px; 
+    padding: 8px 12px; 
     border-radius: 4px;
     background-color: #e9ecef; 
     color: #333; 
     font-weight: bold;
     font-size: 11px;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
 }
 .navigation a:hover { background-color: #ced4da; }
 .navigation a.active { background-color: #1877f2; color: white; }
@@ -51,7 +55,7 @@ h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 14px; }
     background-color: #6c757d; 
     color: white; 
     border: none; 
-    padding: 5px 12px;
+    padding: 8px 12px;
     border-radius: 4px; 
     font-weight: bold; 
     cursor: pointer; 
@@ -59,9 +63,72 @@ h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 14px; }
 }
 
 /* ==========================================================================
-   3. FORMULAIRES DE SAISIE (SAISIE & STOCK)
+   3. ADAPTATION MOBILE (ICÔNES ET GRILLES)
    ========================================================================== */
-#caisseForm {
+@media (max-width: 768px) {
+    /* Header plus compact */
+    .app-header { padding: 5px; }
+    .app-header h1 { font-size: 14px; }
+
+    /* Navigation en icônes */
+    .navigation {
+        gap: 2px;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: #f0f2f5;
+        padding: 5px 0;
+    }
+
+    .navigation a {
+        font-size: 0; /* Cache le texte */
+        padding: 10px;
+        flex: 1;
+        justify-content: center;
+        border-radius: 8px;
+    }
+
+    /* Ajout des icônes via pseudo-éléments */
+    .navigation a::before { font-size: 18px; }
+    .navigation a[href*="validation"]::before { content: "📝"; }
+    .navigation a[href*="stock"]::before { content: "📦"; }
+    .navigation a[href*="dashboard"]::before { content: "📊"; }
+    .navigation a[href*="tresorerie"]::before { content: "💰"; }
+    .navigation a[href*="history"]::before { content: "📜"; }
+    .navigation a[href*="utilisateurs"]::before { content: "👥"; }
+    .navigation a[href*="recuperation"]::before { content: "🔄"; }
+    
+    .logout-button { font-size: 0; padding: 10px; }
+    .logout-button::before { content: "🚪"; font-size: 18px; }
+
+    /* Correction des Grilles (Validation & Stock) */
+    .form-grid-huit-colonnes {
+        grid-template-columns: repeat(2, 1fr) !important; /* Passe de 8 à 2 colonnes */
+        gap: 5px;
+    }
+
+    .dashboard-grid-2-col {
+        grid-template-columns: 1fr !important; /* Empile les graphiques */
+    }
+
+    .kpi-grid, .kpi-stock-grid, .cash-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+    }
+
+    /* Tableaux : force le défilement horizontal */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        display: block;
+    }
+    
+    table { min-width: 500px; } /* Empêche l'écrasement des colonnes */
+}
+
+/* ==========================================================================
+   4. AUTRES STYLES (DÉJÀ PRÉSENTS)
+   ========================================================================== */
+#caisseForm, .form-section {
     background-color: #fff; 
     padding: 10px; 
     border-radius: 6px;
@@ -71,198 +138,19 @@ h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 14px; }
 
 .form-grid-huit-colonnes {
     display: grid;
-    grid-template-columns: repeat(8, 1fr); /* Force l'alignement strict */
+    grid-template-columns: repeat(8, 1fr);
     gap: 8px;
-    align-items: start;
-}
-
-.input-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.stock-status {
-    font-size: 10px;
-    font-weight: bold;
-    height: 12px; /* Hauteur fixe pour empêcher le saut de ligne */
-    margin-top: 2px;
-    color: #1877f2;
-    overflow: hidden;
-    white-space: nowrap;
 }
 
 input, select {
     width: 100%; 
-    padding: 5px 8px; 
+    padding: 8px; 
     border: 1px solid #ccc;
     border-radius: 4px; 
-    font-size: 11px; 
-    box-sizing: border-box;
+    font-size: 12px; 
 }
 
-.form-buttons { 
-    display: flex; 
-    gap: 10px; 
-    margin-top: 10px; 
-    justify-content: center;
-}
-
-.form-buttons button {
-    width: auto;
-    min-width: 180px;
-    padding: 6px 15px; 
-    font-size: 13px; 
-    font-weight: bold;
-    cursor: pointer; 
-    border-radius: 4px;
-    border: 1px solid #333;
-    background-color: #f8f9fa;
-}
-
-.form-buttons button.primary { 
-    background-color: #28a745; 
-    color: white; 
-    border-color: #28a745; 
-}
-
-/* ==========================================================================
-   4. RÉSUMÉS ET CARTES (ALIGNEMENT HORIZONTAL)
-   ========================================================================== */
-
-/* Barre de Stock & Résumé Journalier */
-.stock-summary-bar, .daily-summary {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-    align-items: stretch;
-    gap: 8px;
-    margin: 10px 0;
-    padding: 8px;
-    background-color: #fff;
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.summary-item, .total-card {
-    flex: 1;
-    text-align: center;
-    padding: 5px;
-    border-right: 1px solid #eee;
-}
-
-.summary-item:last-child, .total-card:last-child { border-right: none; }
-
-.summary-item h4, .total-card h3 { 
-    margin: 0; 
-    font-size: 10px; 
-    color: #666; 
-    text-transform: uppercase;
-}
-
-.summary-item span, .total-card p { 
-    margin: 2px 0 0 0; 
-    font-size: 14px; 
-    font-weight: bold; 
-}
-
-/* Spécifique Stock : Recherche sur la même ligne */
-.search-container {
-    flex: 2 !important;
-    display: flex;
-    align-items: center;
-}
-
-/* ==========================================================================
-   5. TABLEAUX ET MODALES
-   ========================================================================== */
-table {
-    width: 100%; 
-    border-collapse: collapse; 
-    background-color: #fff;
-    font-size: 11px;
-}
-
-th, td { padding: 4px 8px; text-align: left; border-bottom: 1px solid #eee; }
-thead { background-color: #f5f6f7; }
-tbody tr:nth-child(even) { background-color: #f9f9f9; }
-
-/* Couleurs Paiement */
-td.paiement-espece { background-color: #d4edda; color: #155724; font-weight: bold; }
-td.paiement-virement { background-color: #e2e3e5; color: #383d41; font-weight: bold; }
-td.paiement-carte-bleue { background-color: #cce5ff; color: #004085; font-weight: bold; }
-
-/* Modale */
-.modal {
-    display: none; position: fixed; z-index: 1000; left: 0; top: 0;
-    width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
-}
 .modal-content {
-    background-color: #fff; margin: 5% auto; padding: 15px;
-    border-radius: 8px; width: 60%; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
-
-/* ==========================================================================
-   6. DASHBOARD (2 COLONNES & GRAPHES)
-   ========================================================================== */
-@media (min-width: 1000px) {
-    .dashboard-grid-2-col {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 15px; align-items: start;
-    }
-}
-
-canvas {
-    /* On augmente la hauteur pour laisser de la place à la légende */
-    max-height: 300px !important; 
-    max-width: 100%;
-    margin: 0 auto;
-    display: block;
-}
-
-/* Ajustement spécifique pour l'impression */
-@media print {
-    canvas {
-        max-height: 250px !important;
-    }
-}
-
-/* ==========================================================================
-   7. PAGE DE CONNEXION (NON CONDENSÉE)
-   ========================================================================== */
-.login-page {
-    display: flex; justify-content: center; align-items: center;
-    height: 100vh; background-color: #f0f2f5;
-}
-.login-container { width: 100%; max-width: 400px; padding: 20px; }
-.login-form {
-    background-color: #fff; padding: 30px; border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-.login-form h1 { font-size: 22px; margin-bottom: 20px; text-align: center; }
-.login-form input { margin-bottom: 15px; padding: 12px; font-size: 14px; }
-
-/* ==========================================================================
-   8. ALERTES ET IMPRESSION
-   ========================================================================== */
-.alert-success { color: #28a745; }
-.alert-warning { background-color: #fff3cd; color: #fd7e14; border: 1px solid #ffeeba; }
-.alert-danger { background-color: #f8d7da; color: #dc3545; border: 1px solid #f5c6cb; animation: blink 1s infinite; }
-
-@media print {
-    .navigation, .app-header, .filter-container, .logout-button, #printReinvestmentBtn { display: none !important; }
-    body { padding: 0; background-color: white; }
-    table { border: 1px solid #333; }
-}
-.btn-reset {
-    background-color: #ffc107;
-    color: #000;
-    border: none;
-    padding: 5px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 11px;
-    margin-right: 5px;
-    font-weight: bold;
-}
-.btn-reset:hover {
-    background-color: #e0a800;
+    background-color: #fff; margin: 10% auto; padding: 15px;
+    border-radius: 8px; width: 90%; max-width: 500px;
 }
