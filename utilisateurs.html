@@ -7,27 +7,6 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
-    <style>
-        .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1.5fr; gap: 20px; padding: 15px; }
-        .form-section { background: #f8fafc; padding: 20px; border-radius: 12px; border: 2px solid #e2e8f0; }
-        
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; background: white; font-size: 13px; min-width: 450px; }
-        th, td { padding: 12px; border-bottom: 1px solid #e2e8f0; text-align: left; }
-        th { background: #f1f5f9; color: #64748b; }
-
-        /* Style pour le sélecteur de rôle dans le tableau */
-        .select-role-table { padding: 5px; border-radius: 5px; border: 1px solid #cbd5e1; font-family: 'Comfortaa'; font-size: 11px; cursor: pointer; }
-
-        input, select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 10px; box-sizing: border-box; }
-
-        @media (max-width: 850px) {
-            .dashboard-grid-2-col { grid-template-columns: 1fr; }
-            .navigation { display: flex; flex-wrap: wrap; justify-content: center; gap: 5px; }
-            .navigation a { font-size: 11px; padding: 8px; }
-            h1 { font-size: 18px; text-align: center; }
-        }
-    </style>
 </head>
 <body>
     <header class="app-header">
@@ -42,6 +21,7 @@
         <a href="tresorerie.html">Trésorerie</a>
         <a href="history.html">Historique</a>
         <a href="utilisateurs.html" class="active">Utilisateurs</a>
+        <a href="recuperation.html">Récupération</a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 

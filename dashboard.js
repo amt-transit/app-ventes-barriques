@@ -167,17 +167,72 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
+    // --- OPTIMISATION DES GRAPHIQUES POUR LE MOBILE ---
+
     function updatePieChart(data) {
         const ctx = document.getElementById('salesPieChart');
         if (!ctx || Object.keys(data).length === 0) return;
+        
         if (salesChart) salesChart.destroy();
-        salesChart = new Chart(ctx.getContext('2d'), { type: 'doughnut', data: { labels: Object.keys(data), datasets: [{ data: Object.values(data).map(d => d.ca), backgroundColor: ['#1877f2', '#10b981', '#f59e0b', '#be123c', '#8b5cf6', '#701a75'] }] }, options: { maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } } } });
+        
+        salesChart = new Chart(ctx.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{ 
+                    data: Object.values(data).map(d => d.ca), 
+                    backgroundColor: ['#1877f2', '#10b981', '#f59e0b', '#be123c', '#8b5cf6', '#701a75'] 
+                }]
+            },
+            options: {
+                responsive: true,           // Permet au graphique de s'adapter à la taille du conteneur
+                maintainAspectRatio: false,  // INDISPENSABLE : permet au CSS de contrôler la hauteur (max-height)
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 10, family: 'Comfortaa' }
+                        }
+                    }
+                }
+            }
+        });
     }
+
     function updateBarChart(data) {
         const ctx = document.getElementById('agentBarChart');
         if (!ctx || Object.keys(data).length === 0) return;
+        
         if (agentChart) agentChart.destroy();
-        agentChart = new Chart(ctx.getContext('2d'), { type: 'bar', data: { labels: Object.keys(data), datasets: [{ label: 'CA Agence', data: Object.values(data).map(d => d.ca), backgroundColor: '#1877f2' }] }, options: { maintainAspectRatio: false, scales: { y: { beginAtZero: true } }, plugins: { legend: { display: false } } } });
+        
+        agentChart = new Chart(ctx.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: Object.keys(data),
+                datasets: [{ 
+                    label: 'CA Agence', 
+                    data: Object.values(data).map(d => d.ca), 
+                    backgroundColor: '#1877f2' 
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false, // INDISPENSABLE pour éviter que le graphique ne devienne géant
+                scales: {
+                    y: { 
+                        beginAtZero: true,
+                        ticks: { font: { size: 9 } }
+                    },
+                    x: {
+                        ticks: { font: { size: 9 } }
+                    }
+                },
+                plugins: {
+                    legend: { display: false } // On cache la légende pour gagner de la place sur mobile
+                }
+            }
+        });
     }
 
     db.collection("stocks").onSnapshot(snap => { allStocks = snap.docs.map(doc => doc.data()); updateDashboard(); });
