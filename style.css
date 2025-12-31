@@ -1,5 +1,5 @@
 /* ==========================================================================
-   1. STYLES DE BASE (ULTRA-COMPACTS)
+   1. STYLES DE BASE
    ========================================================================== */
 body {
     font-family: 'Comfortaa', sans-serif; 
@@ -7,7 +7,7 @@ body {
     background-color: #f0f2f5; 
     color: #333;
     margin: 0; 
-    padding: 0 5px 5px 5px;
+    padding: 0 0 20px 0;
 }
 
 .app-header {
@@ -22,33 +22,60 @@ body {
 
 .app-logo { height: 28px; margin-right: 10px; }
 .app-header h1 { margin: 0; font-size: 16px; }
-h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 14px; }
 
 /* ==========================================================================
-   2. NAVIGATION (VERSION BUREAU)
+   2. GRAPHIQUES (DASHBOARD) - FIX TAILLE EXCESSIVE
+   ========================================================================== */
+.chart-container {
+    background: white; 
+    padding: 15px; 
+    border-radius: 12px; 
+    border: 1px solid #e2e8f0;
+    margin-bottom: 15px;
+    position: relative;
+    overflow: hidden;
+}
+
+/* On force une hauteur maximale pour éviter que le graphique ne s'étende trop */
+canvas {
+    max-height: 220px !important; 
+    width: 100% !important;
+    margin: 0 auto;
+    display: block;
+}
+
+.dashboard-grid-2-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* ==========================================================================
+   3. NAVIGATION (BUREAU)
    ========================================================================== */
 .navigation {
     display: flex; 
     justify-content: center; 
     gap: 4px;
     margin-bottom: 12px;
-    flex-wrap: wrap;
+    background: white;
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .navigation a {
     text-decoration: none; 
     padding: 8px 12px; 
-    border-radius: 4px;
+    border-radius: 6px;
     background-color: #e9ecef; 
     color: #333; 
     font-weight: bold;
     font-size: 11px;
     transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 5px;
 }
-.navigation a:hover { background-color: #ced4da; }
 .navigation a.active { background-color: #1877f2; color: white; }
 
 .logout-button {
@@ -56,101 +83,94 @@ h2 { text-align: center; color: #1c1e21; margin: 8px 0; font-size: 14px; }
     color: white; 
     border: none; 
     padding: 8px 12px;
-    border-radius: 4px; 
+    border-radius: 6px; 
     font-weight: bold; 
     cursor: pointer; 
     font-size: 11px;
 }
 
 /* ==========================================================================
-   3. ADAPTATION MOBILE (ICÔNES ET GRILLES)
+   4. KPI & GRILLES
    ========================================================================== */
-@media (max-width: 768px) {
-    /* Header plus compact */
-    .app-header { padding: 5px; }
-    .app-header h1 { font-size: 14px; }
+.kpi-grid, .kpi-stock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 10px;
+    margin-bottom: 20px;
+}
 
-    /* Navigation en icônes */
+.kpi-card, .card-stock {
+    padding: 12px;
+    border-radius: 12px;
+    color: white;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+.bg-blue { background: #1877f2; }
+.bg-purple { background: #701a75; }
+.bg-green { background: #10b981; }
+.bg-red { background: #be123c; }
+.bg-orange { background: #f59e0b; }
+.bg-slate { background: #64748b; }
+.bg-dark { background: #1e293b; }
+
+/* ==========================================================================
+   5. ADAPTATION MOBILE (ICÔNES)
+   ========================================================================== */
+@media (max-width: 850px) {
     .navigation {
         gap: 2px;
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        background: #f0f2f5;
-        padding: 5px 0;
+        padding: 5px;
     }
 
     .navigation a {
-        font-size: 0; /* Cache le texte */
-        padding: 10px;
+        font-size: 0; /* On cache le texte */
+        padding: 12px 0;
         flex: 1;
-        justify-content: center;
-        border-radius: 8px;
+        text-align: center;
+        border-radius: 4px;
     }
 
-    /* Ajout des icônes via pseudo-éléments */
-    .navigation a::before { font-size: 18px; }
-    .navigation a[href*="validation"]::before { content: "📝"; }
-    .navigation a[href*="stock"]::before { content: "📦"; }
-    .navigation a[href*="dashboard"]::before { content: "📊"; }
-    .navigation a[href*="tresorerie"]::before { content: "💰"; }
-    .navigation a[href*="history"]::before { content: "📜"; }
-    .navigation a[href*="utilisateurs"]::before { content: "👥"; }
-    .navigation a[href*="recuperation"]::before { content: "🔄"; }
-    
-    .logout-button { font-size: 0; padding: 10px; }
+    /* Attribution des icônes selon le lien */
+    .navigation a[href*="validation"]::before { content: "📝"; font-size: 18px; }
+    .navigation a[href*="stock"]::before { content: "📦"; font-size: 18px; }
+    .navigation a[href*="dashboard"]::before { content: "📊"; font-size: 18px; }
+    .navigation a[href*="tresorerie"]::before { content: "💰"; font-size: 18px; }
+    .navigation a[href*="history"]::before { content: "📜"; font-size: 18px; }
+    .navigation a[href*="utilisateurs"]::before { content: "👥"; font-size: 18px; }
+    .navigation a[href*="recuperation"]::before { content: "🔄"; font-size: 18px; }
+
+    .logout-button { font-size: 0; flex: 0.5; }
     .logout-button::before { content: "🚪"; font-size: 18px; }
 
-    /* Correction des Grilles (Validation & Stock) */
-    .form-grid-huit-colonnes {
-        grid-template-columns: repeat(2, 1fr) !important; /* Passe de 8 à 2 colonnes */
-        gap: 5px;
-    }
-
     .dashboard-grid-2-col {
-        grid-template-columns: 1fr !important; /* Empile les graphiques */
+        grid-template-columns: 1fr !important; /* Un graphique par ligne sur mobile */
     }
 
-    .kpi-grid, .kpi-stock-grid, .cash-grid {
+    .kpi-grid {
         grid-template-columns: repeat(2, 1fr) !important;
     }
 
-    /* Tableaux : force le défilement horizontal */
-    .table-responsive {
-        width: 100%;
-        overflow-x: auto;
-        display: block;
+    canvas {
+        max-height: 180px !important; /* Graphiques encore plus petits sur mobile */
     }
-    
-    table { min-width: 500px; } /* Empêche l'écrasement des colonnes */
 }
 
 /* ==========================================================================
-   4. AUTRES STYLES (DÉJÀ PRÉSENTS)
+   6. TABLEAUX & FILTRES
    ========================================================================== */
-#caisseForm, .form-section {
-    background-color: #fff; 
-    padding: 10px; 
-    border-radius: 6px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.1); 
-    margin-bottom: 10px;
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    margin-top: 10px;
 }
 
-.form-grid-huit-colonnes {
-    display: grid;
-    grid-template-columns: repeat(8, 1fr);
-    gap: 8px;
-}
-
-input, select {
+table {
     width: 100%; 
-    padding: 8px; 
-    border: 1px solid #ccc;
-    border-radius: 4px; 
-    font-size: 12px; 
+    border-collapse: collapse; 
+    background-color: #fff;
+    min-width: 500px;
 }
 
-.modal-content {
-    background-color: #fff; margin: 10% auto; padding: 15px;
-    border-radius: 8px; width: 90%; max-width: 500px;
-}
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
