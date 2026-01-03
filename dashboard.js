@@ -24,7 +24,13 @@ document.addEventListener('DOMContentLoaded', () => {
         const filteredSales = allSales.filter(s => s.date >= start && s.date <= end);
         const filteredPayments = allPayments.filter(p => p.date >= start && p.date <= end);
         const filteredLosses = allLosses.filter(l => l.date >= start && l.date <= end);
-        const filteredRecups = allRecuperations.filter(r => r.date >= start && r.date <= end);
+        
+        // FILTRE DOUBLE VALIDATION : Seuls les retraits confirmés ou sans statut (anciens) sont comptés
+        const filteredRecups = allRecuperations.filter(r => 
+            r.date >= start && 
+            r.date <= end && 
+            (r.statut === "confirme" || !r.statut)
+        );
 
         calculateKPIs(filteredSales, filteredPayments, filteredLosses, filteredRecups);
         renderProductAnalysis(filteredSales);
@@ -53,6 +59,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (info && !info.isConso) coutAchatVendus += (parseInt(s.quantite) || 0) * info.pa;
         });
 
+        // Les quantités sorties respectent désormais le statut "confirme"
         let qtyVend = 0, qtyCons = 0;
         recups.forEach(r => {
             const info = productMap[r.produit.toUpperCase()];
@@ -90,9 +97,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = productData[p];
                 const stockInfo = allStocks.find(st => st.produit.toUpperCase() === p.toUpperCase());
                 const pa = stockInfo ? parseFloat(stockInfo.prixAchat) : 0;
-                const pv = stockInfo ? parseFloat(stockInfo.prixVente) : 0;
                 const profit = data.ca - (data.qte * pa);
-                const isConso = pv <= 0;
+                const isConso = stockInfo ? parseFloat(stockInfo.prixVente) <= 0 : false;
 
                 tbody.innerHTML += `
                     <tr>
@@ -167,12 +173,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
-    // --- OPTIMISATION DES GRAPHIQUES POUR LE MOBILE ---
 
+    // --- OPTIMISATION DES GRAPHIQUES POUR LE MOBILE ---
     function updatePieChart(data) {
         const ctx = document.getElementById('salesPieChart');
         if (!ctx || Object.keys(data).length === 0) return;
-        
         if (salesChart) salesChart.destroy();
         
         salesChart = new Chart(ctx.getContext('2d'), {
@@ -185,15 +190,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }]
             },
             options: {
-                responsive: true,           // Permet au graphique de s'adapter à la taille du conteneur
-                maintainAspectRatio: false,  // INDISPENSABLE : permet au CSS de contrôler la hauteur (max-height)
+                responsive: true,
+                maintainAspectRatio: false, // Permet au CSS de contrôler la hauteur
                 plugins: {
                     legend: {
                         position: 'bottom',
-                        labels: {
-                            boxWidth: 12,
-                            font: { size: 10, family: 'Comfortaa' }
-                        }
+                        labels: { boxWidth: 12, font: { size: 10, family: 'Comfortaa' } }
                     }
                 }
             }
@@ -203,7 +205,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateBarChart(data) {
         const ctx = document.getElementById('agentBarChart');
         if (!ctx || Object.keys(data).length === 0) return;
-        
         if (agentChart) agentChart.destroy();
         
         agentChart = new Chart(ctx.getContext('2d'), {
@@ -218,23 +219,17 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // INDISPENSABLE pour éviter que le graphique ne devienne géant
+                maintainAspectRatio: false, // Empêche le graphique de devenir géant
                 scales: {
-                    y: { 
-                        beginAtZero: true,
-                        ticks: { font: { size: 9 } }
-                    },
-                    x: {
-                        ticks: { font: { size: 9 } }
-                    }
+                    y: { beginAtZero: true, ticks: { font: { size: 9 } } },
+                    x: { ticks: { font: { size: 9 } } }
                 },
-                plugins: {
-                    legend: { display: false } // On cache la légende pour gagner de la place sur mobile
-                }
+                plugins: { legend: { display: false } }
             }
         });
     }
 
+    // --- ÉCOUTEURS FIRESTORE ---
     db.collection("stocks").onSnapshot(snap => { allStocks = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("ventes").onSnapshot(snap => { allSales = snap.docs.map(doc => doc.data()); updateDashboard(); });
     db.collection("recuperations").onSnapshot(snap => { allRecuperations = snap.docs.map(doc => doc.data()); updateDashboard(); });

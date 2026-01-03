@@ -19,7 +19,6 @@
         table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 400px; }
         th, td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
 
-        /* Styles pour les listes de session */
         .temp-list { margin-top: 10px; border: 1px dashed #64748b; border-radius: 8px; padding: 8px; background: #ffffff; display: none; }
         .btn-add-item { background: #1e293b; color: white; border: none; border-radius: 5px; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; font-size: 11px; }
         .btn-remove { color: #be123c; cursor: pointer; font-weight: bold; border: none; background: none; }
@@ -27,6 +26,11 @@
         .section-ventes { border-left: 5px solid #1877f2; padding-left: 10px; margin-bottom: 20px; }
         .section-consos { border-left: 5px solid #64748b; padding-left: 10px; margin-bottom: 20px; }
         .section-retours { border-left: 5px solid #f59e0b; padding-left: 10px; margin-bottom: 20px; }
+
+        /* Style pour le bouton Annuler */
+        .btn-cancel-all { background: #94a3b8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; height: 50px; flex: 1; transition: 0.3s; }
+        .btn-cancel-all:hover { background: #64748b; }
+        .btn-save-all { background: #1877f2; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; height: 50px; flex: 2; }
 
         @media (max-width: 850px) {
             .app-header { display: flex; flex-direction: column; align-items: center; }
@@ -109,7 +113,7 @@
                     <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 ÉTAPE 4 : ARGENT REÇU</p>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                         <input type="number" id="valAcompte" placeholder="Montant (€)" style="padding:10px;">
-                        <input type="number" id="valRemise" value="0" style="padding:10px;">
+                        <input type="number" id="valRemise" placeholder="Remise (€)" style="padding:10px; border: 1px solid #fb923c;">
                     </div>
                 </div>
 
@@ -121,7 +125,10 @@
                     <input type="text" id="valClientRef" placeholder="Nom/Référence Client" style="display:none; width:100%; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #f5d0fe;">
                 </div>
 
-                <button id="btnConfirmerVente" style="background:#1877f2; height:50px; border:none; border-radius:8px; color:white; font-weight:bold; cursor:pointer;">ENREGISTRER TOUTE LA SESSION</button>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button onclick="annulerTout()" class="btn-cancel-all">ANNULER TOUT</button>
+                    <button id="btnConfirmerVente" class="btn-save-all">ENREGISTRER LA SESSION</button>
+                </div>
             </div>
         </div>
 
@@ -158,17 +165,14 @@
         let inventoryData = {}; 
         let globalPrices = {};
         
-        // TABLEAUX DE SESSION (PANIER)
         let sessionVentes = [];
         let sessionConsos = [];
         let sessionRetours = [];
 
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
-        // --- GESTION DU PANIER MULTIPLE ---
         function ajouterItem(type) {
             let prod, qty, pu = 0;
-            
             if (type === 'ventes') {
                 prod = document.getElementById('valProduit').value;
                 qty = parseInt(document.getElementById('valQuantite').value);
@@ -183,41 +187,31 @@
 
             if (!prod || isNaN(qty) || qty <= 0) return alert("Saisie invalide.");
 
-            // Vérification du stock restant "En main"
             const it = inventoryData[prod];
             const enMain = it ? it.pT - it.vT - it.rT - it.cT : 0;
-            
-            // On calcule combien on a déjà ajouté au panier pour ce produit
             const dejaDansPanier = (sessionVentes.filter(v => v.p === prod).reduce((s,v)=>s+v.q,0)) + 
                                   (sessionConsos.filter(c => c.p === prod).reduce((s,c)=>s+c.q,0)) + 
                                   (sessionRetours.filter(r => r.p === prod).reduce((s,r)=>s+r.q,0));
 
-            if ((qty + dejaDansPanier) > enMain) return alert(`Action impossible. Le vendeur n'a que ${enMain} colis de ce type en main.`);
+            if ((qty + dejaDansPanier) > enMain) return alert(`Action impossible. Stock insuffisant.`);
 
             if (type === 'ventes') sessionVentes.push({ p: prod, q: qty, pu: pu, t: qty * pu });
             else if (type === 'consos') sessionConsos.push({ p: prod, q: qty });
             else sessionRetours.push({ p: prod, q: qty });
 
-            // Reset inputs
-            if (type === 'ventes') document.getElementById('valQuantite').value = "";
-            else if (type === 'consos') document.getElementById('valQuantiteConso').value = "";
-            else document.getElementById('valQuantiteRetour').value = "";
-
+            document.querySelectorAll('input[type="number"]').forEach(i => { if(i.id.includes('Quantite')) i.value = ""; });
             renderLists();
         }
 
         function renderLists() {
-            // Rendu Ventes
             const bV = document.getElementById('body-ventes'); bV.innerHTML = "";
             document.getElementById('list-ventes').style.display = sessionVentes.length > 0 ? "block" : "none";
             sessionVentes.forEach((v, i) => { bV.innerHTML += `<tr><td>${v.p}</td><td>${v.q}</td><td>${v.t}€</td><td><button class="btn-remove" onclick="supprSession('ventes', ${i})">❌</button></td></tr>`; });
 
-            // Rendu Consos
             const bC = document.getElementById('body-consos'); bC.innerHTML = "";
             document.getElementById('list-consos').style.display = sessionConsos.length > 0 ? "block" : "none";
             sessionConsos.forEach((c, i) => { bC.innerHTML += `<tr><td>${c.p}</td><td>${c.q}</td><td><button class="btn-remove" onclick="supprSession('consos', ${i})">❌</button></td></tr>`; });
 
-            // Rendu Retours
             const bR = document.getElementById('body-retours'); bR.innerHTML = "";
             document.getElementById('list-retours').style.display = sessionRetours.length > 0 ? "block" : "none";
             sessionRetours.forEach((r, i) => { bR.innerHTML += `<tr><td>${r.p}</td><td>${r.q}</td><td><button class="btn-remove" onclick="supprSession('retours', ${i})">❌</button></td></tr>`; });
@@ -230,7 +224,30 @@
             renderLists();
         };
 
-        // --- LOGIQUE FIRESTORE ET CALCULS ---
+        // --- FONCTION ANNULER TOUT ---
+        window.annulerTout = () => {
+            if (confirm("Voulez-vous vider toutes les listes en cours ?")) {
+                sessionVentes = []; sessionConsos = []; sessionRetours = [];
+                resetFormFields();
+                renderLists();
+            }
+        };
+
+        function resetFormFields() {
+            document.getElementById('valQuantite').value = "";
+            document.getElementById('valQuantiteConso').value = "";
+            document.getElementById('valQuantiteRetour').value = "";
+            document.getElementById('valAcompte').value = "";
+            document.getElementById('valRemise').value = "0";
+            document.getElementById('valClientRef').value = "";
+            document.getElementById('valClientRef').style.display = "none";
+            document.getElementById('valPayAbidjan').checked = false;
+            document.getElementById('valProduit').value = "";
+            document.getElementById('valProduitConso').value = "";
+            document.getElementById('valProduitRetour').value = "";
+            document.getElementById('sellerStockInfo').innerText = "";
+        }
+
         async function loadPrices() {
             const snap = await db.collection("stocks").get();
             snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
@@ -247,7 +264,13 @@
             ]);
             inventoryData = {};
             let hVendu = 0, hPaye = 0;
-            rSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].pT += d.quantite; });
+            rSnap.forEach(doc => { 
+                const d = doc.data(); 
+                if (d.statut === "confirme" || !d.statut) {
+                    if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; 
+                    inventoryData[d.produit].pT += d.quantite; 
+                }
+            });
             vSnap.forEach(doc => { 
                 const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].vT += d.quantite;
                 if (globalPrices[d.produit] > 0 && d.payeAbidjan !== true) hVendu += (d.total || 0);
@@ -262,7 +285,6 @@
 
         function renderUI() {
             document.querySelectorAll('select[id^="valProduit"]').forEach(s => s.innerHTML = '<option value="">-- Choisir --</option>');
-            const tbody = document.getElementById('sellerInventoryBody'); tbody.innerHTML = '';
             for (const p in inventoryData) {
                 const i = inventoryData[p]; const enMain = i.pT - i.vT - i.rT - i.cT;
                 if (enMain > 0) {
@@ -270,6 +292,10 @@
                     document.getElementById('valProduitRetour').innerHTML += `<option value="${p}">${p}</option>`;
                     document.getElementById('valProduitConso').innerHTML += `<option value="${p}">${p}</option>`;
                 }
+            }
+            const tbody = document.getElementById('sellerInventoryBody'); tbody.innerHTML = '';
+            for (const p in inventoryData) {
+                const i = inventoryData[p]; const enMain = i.pT - i.vT - i.rT - i.cT;
                 tbody.innerHTML += `<tr><td>${p} ${globalPrices[p] <= 0 ? '🛠️' : ''}</td><td>${i.pT}</td><td>${i.vT}</td><td>${i.cT}</td><td>${i.rT}</td><td><b>${enMain}</b></td></tr>`;
             }
         }
@@ -281,31 +307,17 @@
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
-            if (!name || !date) return alert("Choisissez un vendeur et une date.");
-            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && rem === 0) return alert("Aucune donnée saisie.");
-
+            if (!name || !date) return alert("Paramètres manquants.");
             btn.disabled = true;
             try {
-                // 1. Enregistrement des Ventes
-                for (let v of sessionVentes) {
-                    await db.collection("ventes").add({ date, vendeur: name, produit: v.p, quantite: v.q, prixUnitaire: v.pu, total: v.t, payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                }
-                // 2. Enregistrement des Consos
-                for (let c of sessionConsos) {
-                    await db.collection("consommations").add({ date, vendeur: name, produit: c.p, quantite: c.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                }
-                // 3. Enregistrement des Retours
-                for (let r of sessionRetours) {
-                    await db.collection("retours_vendeurs").add({ date, vendeur: name, produit: r.p, quantite: r.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                }
-                // 4. Enregistrement Argent
-                if (aco > 0 || rem > 0) {
-                    await db.collection("encaissements_vendeurs").add({ date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                }
+                for (let v of sessionVentes) { await db.collection("ventes").add({ date, vendeur: name, produit: v.p, quantite: v.q, prixUnitaire: v.pu, total: v.t, payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
+                for (let c of sessionConsos) { await db.collection("consommations").add({ date, vendeur: name, produit: c.p, quantite: c.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
+                for (let r of sessionRetours) { await db.collection("retours_vendeurs").add({ date, vendeur: name, produit: r.p, quantite: r.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
+                if (aco > 0 || rem > 0) { await db.collection("encaissements_vendeurs").add({ date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
 
-                alert("Tout a été enregistré avec succès !");
+                alert("Session enregistrée !");
                 sessionVentes = []; sessionConsos = []; sessionRetours = [];
-                document.getElementById('valAcompte').value = "";
+                resetFormFields();
                 renderLists(); loadSellerData();
             } catch (e) { alert("Erreur."); } finally { btn.disabled = false; }
         });

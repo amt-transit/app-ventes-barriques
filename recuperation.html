@@ -36,19 +36,34 @@
         .stat-item { padding: 10px; border-radius: 8px; text-align: center; }
         .stat-val { font-size: 16px; font-weight: bold; display: block; }
         .btn-pdf { background: #1e293b; color: white; border: none; padding: 12px; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 5px; font-weight: bold; }
+        /* Style spécifique pour le badge de notification */
+        .notification-badge {
+            background-color: #be123c;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 10px;
+            margin-left: 5px;
+            display: none; /* Caché par défaut */
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
     </style>
 </head>
 <body class="login-page">
 
     <nav class="navigation">
-        <a href="recuperation.html" class="active" style="text-decoration:none; color:#1877f2; font-weight:bold; margin-right:15px;">📦 Récupération</a>
-        <a href="validation.html" id="adminLink" style="background: #4b5563; color: white; margin: 0 10px; padding: 5px 15px; border-radius: 5px; text-decoration: none; display: none;">⚙️ Administration</a>
-        <button onclick="logout()" class="logout-button" style="margin-left:15px;">Déconnexion</button>
+        <a href="recuperation.html" class="active">Récupération</a>
+        <a href="validation.html" id="adminLink" style="display: none; background: #4b5563; color: white;">Administration</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
     <div class="tab-nav">
         <button class="tab-btn active" onclick="switchRecupTab('saisie')">Saisie Retrait</button>
         <button class="tab-btn" onclick="switchRecupTab('points')">Mes Points</button>
+        <button id="tabBtnConfirm" class="tab-btn" onclick="switchRecupTab('confirmations')" style="display:none; background:#701a75; color:white;">
+            🔔 Confirmations <span id="notifCount" class="notification-badge">0</span>
+        </button>
     </div>
 
     <div id="section-saisie" class="section-content active">
@@ -70,65 +85,83 @@
     </div>
 
     <div id="section-points" class="section-content">
-        <div class="points-card" style="display: flex; gap: 10px; justify-content: center; align-items: center; padding: 10px;">
+        <div class="points-card" style="display: flex; gap: 10px; justify-content: center; align-items: center; padding: 10px; background: white; border-radius: 12px;">
             <div style="display: flex; flex-direction: column;">
                 <label style="font-size: 10px; font-weight: bold; color: #64748b;">Du</label>
-                <input type="date" id="filterDateDebut" style="padding: 5px; border-radius: 5px; border: 1px solid #cbd5e1; font-family: 'Comfortaa';">
+                <input type="date" id="filterDateDebut" style="padding: 5px; border-radius: 5px; border: 1px solid #cbd5e1;">
             </div>
             <div style="display: flex; flex-direction: column;">
                 <label style="font-size: 10px; font-weight: bold; color: #64748b;">Au</label>
-                <input type="date" id="filterDateFin" style="padding: 5px; border-radius: 5px; border: 1px solid #cbd5e1; font-family: 'Comfortaa';">
+                <input type="date" id="filterDateFin" style="padding: 5px; border-radius: 5px; border: 1px solid #cbd5e1;">
             </div>
             <button onclick="loadSellerPersonalPoints(currentSellerName)" style="margin-top: 15px; background: #1877f2; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer;">🔍</button>
         </div>
+
         <div id="printableArea">
-            <div class="points-card">
+            <div class="points-card" style="background: white; padding: 15px; border-radius: 12px; margin-top: 10px;">
                 <h2 style="font-size: 14px; text-align: center; margin-bottom: 10px;">Point de situation : <span id="sellerDisplayName">...</span></h2>
-                <div class="balance-box">
-                    <div class="stat-item" style="background: #f8fafc;">
-                        <span style="font-size:9px;">Vendu (€)</span>
-                        <span id="myTotalVendu" class="stat-val">0,00 €</span>
+                <div class="balance-box" style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="stat-item" style="background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center;">
+                        <span style="font-size:9px; font-weight: bold;">Vendu (€)</span>
+                        <span id="myTotalVendu" class="stat-val" style="font-size: 16px; font-weight: bold; display: block;">0,00 €</span>
                     </div>
-                    <div class="stat-item" style="background: #f0fdf4;">
-                        <span style="font-size:9px;">Versé (€)</span>
-                        <span id="myTotalVerse" class="stat-val" style="color:#10b981;">0,00 €</span>
+                    <div class="stat-item" style="background: #f0fdf4; padding: 10px; border-radius: 8px; text-align: center;">
+                        <span style="font-size:9px; font-weight: bold;">Versé (€)</span>
+                        <span id="myTotalVerse" class="stat-val" style="color:#10b981; font-size: 16px; font-weight: bold; display: block;">0,00 €</span>
                     </div>
-                    <div class="stat-item" style="grid-column: span 2; background: #fff1f2;">
+                    <div class="stat-item" style="grid-column: span 2; background: #fff1f2; padding: 10px; border-radius: 8px; text-align: center;">
                         <span style="font-size:10px; font-weight:bold; color:#be123c;">Reste à payer</span>
-                        <span id="myReste" class="stat-val" style="color:#be123c; font-size:20px;">0,00 €</span>
+                        <span id="myReste" class="stat-val" style="color:#be123c; font-size:20px; font-weight: bold; display: block;">0,00 €</span>
                     </div>
                 </div>
             </div>
 
-            <div class="points-card">
+            <div class="points-card" style="background: white; padding: 15px; border-radius: 12px; margin-top: 10px;">
                 <h3 style="margin:0; font-size:13px; color:#1e293b;">📦 Suivi des Colis (Cliquer pour le détail)</h3>
-                <table class="points-table">
-                    <thead>
-                        <tr>
-                            <th style="text-align:left;">Produit</th>
-                            <th>Pris</th>
-                            <th>Vendus</th>
-                            <th style="color:#1877f2;">Stock</th>
-                        </tr>
-                    </thead>
-                    <tbody id="myStockBody"></tbody>
-                </table>
+                <div class="table-responsive">
+                    <table class="points-table">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;">Produit</th>
+                                <th>Pris (Confirmé)</th>
+                                <th>Vendus</th>
+                                <th style="color:#1877f2;">En Main</th>
+                            </tr>
+                        </thead>
+                        <tbody id="myStockBody"></tbody>
+                    </table>
+                </div>
             </div>
         </div>
         <button onclick="downloadPDF()" class="btn-pdf">📄 Télécharger mon point (PDF)</button>
+    </div>
+
+    <div id="section-confirmations" class="section-content">
+        <div class="points-card" style="background: white; padding: 15px; border-radius: 12px;">
+            <h2 style="font-size: 15px; color: #701a75;">📋 Retraits en attente de confirmation</h2>
+            <div class="table-responsive">
+                <table class="points-table">
+                    <thead>
+                        <tr>
+                            <th>Vendeur</th>
+                            <th>Produit</th>
+                            <th>Qté</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminConfirmBody"></tbody>
+                </table>
+            </div>
+        </div>
     </div>
 
     <div id="historyModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeHistoryModal()">&times;</span>
             <h2 id="modalProductName" style="font-size: 15px; color: #1877f2; margin-top: 0; margin-bottom:15px;">Détail Produit</h2>
-            <table class="points-table">
+            <table class="points-table" style="width:100%;">
                 <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Opération</th>
-                        <th>Quantité</th>
-                    </tr>
+                    <tr><th>Date</th><th>Opération</th><th>Quantité</th></tr>
                 </thead>
                 <tbody id="modalHistoryBody"></tbody>
             </table>
@@ -139,14 +172,7 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
     <script>
-        const firebaseConfig = {
-            apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M",
-            authDomain: "app-ventes-barriques.firebaseapp.com",
-            projectId: "app-ventes-barriques",
-            storageBucket: "app-ventes-barriques.appspot.com",
-            messagingSenderId: "615546459847",
-            appId: "1:615546459847:web:1b387b0b703b7a9a1210e2"
-        };
+        const firebaseConfig = { apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M", authDomain: "app-ventes-barriques.firebaseapp.com", projectId: "app-ventes-barriques", storageBucket: "app-ventes-barriques.appspot.com", messagingSenderId: "615546459847", appId: "1:615546459847:web:1b387b0b703b7a9a1210e2" };
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
         window.db = firebase.firestore();
     </script>
@@ -154,9 +180,10 @@
 
     <script>
         let currentSellerName = "";
-        let rawData = { recups: [], ventes: [] }; // Stockage unique en mémoire
-        const recupProduitSelect = document.getElementById('recupProduit');
+        let userRole = "";
+        let rawData = { recups: [], ventes: [] };
         let stockDisponibleMagasin = {};
+        const recupProduitSelect = document.getElementById('recupProduit');
 
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
@@ -164,142 +191,103 @@
                 if (!snap.empty) {
                     const userData = snap.docs[0].data();
                     currentSellerName = userData.nom;
+                    userRole = userData.role;
+                    
                     document.getElementById('sellerDisplayName').innerText = currentSellerName;
                     document.getElementById('recupVendeur').innerHTML = `<option value="${currentSellerName}">${currentSellerName}</option>`;
-                    if (userData.role === 'admin') document.getElementById('adminLink').style.display = 'inline-block';
                     
-                    // Initialiser les dates par défaut (semaine en cours)
+                    if (userRole === 'admin' || userRole === 'superadmin') {
+                        document.getElementById('adminLink').style.display = 'inline-block';
+                        document.getElementById('tabBtnConfirm').style.display = 'block';
+                        startRealTimeConfirmations(); // Lancer l'écouteur Admin
+                    }
+                    
                     setDatesSemaineEnCours();
+                    loadStockMagasin();
                     loadSellerPersonalPoints(currentSellerName);
                 }
             }
         });
 
-        // --- DANS LE SCRIPT DE recuperation.html ---
+        // ÉCOUTEUR EN TEMPS RÉEL (Badge + Tableau)
+        function startRealTimeConfirmations() {
+            // On écoute TOUTE la collection pour être sûr de ne rien rater
+            db.collection("recuperations").onSnapshot(snap => {
+                const tbody = document.getElementById('adminConfirmBody');
+                const badge = document.getElementById('notifCount');
+                
+                // On filtre manuellement pour trouver les nouveaux ET les anciens sans statut
+                const pendingDocs = snap.docs.filter(doc => {
+                    const data = doc.data();
+                    return data.statut === "en_attente" || !data.statut; 
+                });
 
-        // Modification de la fonction loadSellerPersonalPoints pour isoler les prix
-        async function loadSellerPersonalPoints(nom) {
-            if(!nom) return;
-            
-            const dateDebut = document.getElementById('filterDateDebut').value;
-            const dateFin = document.getElementById('filterDateFin').value;
+                const count = pendingDocs.length;
+                
+                // Mise à jour du badge
+                if (count > 0) {
+                    badge.innerText = count;
+                    badge.style.display = 'inline-block';
+                } else {
+                    badge.style.display = 'none';
+                }
 
-            // Récupérer aussi les prix pour savoir ce qui est un consommable
-            const [recupSnap, ventesSnap, encaissSnap, pricesSnap] = await Promise.all([
-                db.collection("recuperations").where("vendeur", "==", nom).get(),
-                db.collection("ventes").where("vendeur", "==", nom).get(),
-                db.collection("encaissements_vendeurs").where("vendeur", "==", nom).get(),
-                db.collection("stocks").get()
-            ]);
-
-            // Mapper les prix de vente
-            let pVenteMap = {};
-            pricesSnap.forEach(doc => { pVenteMap[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
-
-            rawData.recups = recupSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
-            rawData.ventes = ventesSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
-            const encaissementsFiltrés = encaissSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
-
-            let statsProduits = {};
-            rawData.recups.forEach(d => {
-                if (!statsProduits[d.produit]) statsProduits[d.produit] = { pris: 0, vendus: 0 };
-                statsProduits[d.produit].pris += (parseInt(d.quantite) || 0);
-            });
-            rawData.ventes.forEach(d => {
-                if (!statsProduits[d.produit]) statsProduits[d.produit] = { pris: 0, vendus: 0 };
-                statsProduits[d.produit].vendus += (parseInt(d.quantite) || 0);
-            });
-
-            const myStockBody = document.getElementById('myStockBody');
-            myStockBody.innerHTML = '';
-            for(const p in statsProduits) {
-                const item = statsProduits[p];
-                const isConsommable = pVenteMap[p] <= 0; //
-                myStockBody.innerHTML += `
-                    <tr class="clickable-row" onclick="openHistoryModal('${p}')">
-                        <td style="text-align:left;">${p} ${isConsommable ? '🛠️' : 'ℹ️'}</td>
-                        <td>${item.pris}</td>
-                        <td style="color:#ef4444;">${item.vendus}</td>
-                        <td style="font-weight:bold; color:#1877f2;">${item.pris - item.vendus}</td>
-                    </tr>`;
-            }
-
-            // CALCUL FINANCIER CORRIGÉ : On ignore les ventes de produits dont le PV est 0
-            let totalVenduArgent = 0;
-            rawData.ventes.forEach(d => { 
-                if (pVenteMap[d.produit] > 0) { // Uniquement si ce n'est pas un consommable
-                    totalVenduArgent += (parseFloat(d.total) || 0); 
+                // Mise à jour du tableau
+                if (tbody) {
+                    tbody.innerHTML = '';
+                    if (count === 0) {
+                        tbody.innerHTML = '<tr><td colspan="4">Aucun retrait en attente.</td></tr>';
+                        return;
+                    }
+                    
+                    pendingDocs.forEach(doc => {
+                        const d = doc.data();
+                        tbody.innerHTML += `
+                            <tr>
+                                <td><b>${d.vendeur}</b></td>
+                                <td>${d.produit}</td>
+                                <td>${d.quantite}</td>
+                                <td>
+                                    <button onclick="validerRetrait('${doc.id}')" style="background:#10b981; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer;">Confirmer ✅</button>
+                                    <button onclick="annulerRetrait('${doc.id}')" style="background:#be123c; color:white; border:none; padding:5px 10px; border-radius:5px; cursor:pointer; margin-left:5px;">Refuser ❌</button>
+                                </td>
+                            </tr>`;
+                    });
                 }
             });
-
-            let totalVerse = 0;
-            encaissementsFiltrés.forEach(d => { totalVerse += (parseFloat(d.montantRecu) || 0) + (parseFloat(d.remise) || 0); });
-            
-            const fmt = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
-            document.getElementById('myTotalVendu').innerText = fmt(totalVenduArgent);
-            document.getElementById('myTotalVerse').innerText = fmt(totalVerse);
-            document.getElementById('myReste').innerText = fmt(totalVenduArgent - totalVerse);
         }
 
-        // Système Modal : Affichage instantané via rawData
-        function openHistoryModal(produit) {
-            document.getElementById('modalProductName').innerText = `Historique : ${produit}`;
-            const body = document.getElementById('modalHistoryBody');
-            body.innerHTML = '';
-
-            let history = [];
-            rawData.recups.filter(r => r.produit === produit).forEach(r => history.push({...r, type: 'Retrait', color: '#1877f2'}));
-            rawData.ventes.filter(v => v.produit === produit).forEach(v => history.push({...v, type: 'Vente', color: '#ef4444'}));
-            
-            history.sort((a,b) => new Date(b.date) - new Date(a.date));
-
-            history.forEach(h => {
-                body.innerHTML += `
-                    <tr>
-                        <td>${h.date}</td>
-                        <td style="color: ${h.color}; font-weight:bold;">${h.type}</td>
-                        <td>${h.quantite}</td>
-                    </tr>`;
-            });
-            document.getElementById('historyModal').style.display = 'block';
-        }
-
-        function closeHistoryModal() { document.getElementById('historyModal').style.display = 'none'; }
-        window.onclick = (e) => { if(e.target == document.getElementById('historyModal')) closeHistoryModal(); }
-
-        // Navigation et PDF
-        function switchRecupTab(type) {
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
-            if(type === 'saisie') {
-                document.querySelector('.tab-btn:nth-child(1)').classList.add('active');
-                document.getElementById('section-saisie').classList.add('active');
-            } else {
-                document.querySelector('.tab-btn:nth-child(2)').classList.add('active');
-                document.getElementById('section-points').classList.add('active');
-                loadSellerPersonalPoints(currentSellerName);
-            }
-        }
-
-        function downloadPDF() {
-            const element = document.getElementById('printableArea');
-            html2pdf().set({ margin: 10, filename: `Point_${currentSellerName}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).save();
-        }
-
-        // Logique Saisie Magasin
         async function loadStockMagasin() {
-            const [stocksSnap, ventesSnap, recupSnap] = await Promise.all([
-                db.collection("stocks").get(), db.collection("ventes").get(), db.collection("recuperations").get()
+            const [stocksSnap, recupSnap, retoursSnap, pertesSnap, consosSnap] = await Promise.all([
+                db.collection("stocks").get(),
+                db.collection("recuperations").get(),
+                db.collection("retours_vendeurs").get(),
+                db.collection("pertes").get(),
+                db.collection("consommations").get()
             ]);
             const totals = {};
             stocksSnap.forEach(doc => {
                 const d = doc.data();
                 if (!totals[d.produit]) totals[d.produit] = { in: 0, out: 0 };
-                totals[d.produit].in += (d.quantite || 0);
+                totals[d.produit].in += (parseInt(d.quantite) || 0);
             });
-            [...ventesSnap.docs, ...recupSnap.docs].forEach(doc => {
+            retoursSnap.forEach(doc => {
                 const d = doc.data();
-                if (totals[d.produit]) totals[d.produit].out += (d.quantite || 0);
+                if (totals[d.produit]) totals[d.produit].in += (parseInt(d.quantite) || 0);
+            });
+            recupSnap.forEach(doc => {
+                const d = doc.data();
+                if (totals[d.produit] && d.statut === "confirme") totals[d.produit].out += (parseInt(d.quantite) || 0);
+            });
+            pertesSnap.forEach(doc => {
+                const d = doc.data();
+                if (totals[d.produit]) totals[d.produit].out += (parseInt(d.quantite) || 0);
+            });
+            consosSnap.forEach(doc => {
+                const d = doc.data();
+                if (!d.vendeur || d.vendeur === "MAGASIN") {
+                    if (totals[d.produit]) totals[d.produit].out += (parseInt(d.quantite) || 0);
+                }
             });
             recupProduitSelect.innerHTML = '<option value="">-- Sélectionner le Produit --</option>';
             for (const p in totals) {
@@ -307,48 +295,113 @@
                 stockDisponibleMagasin[p] = reste;
                 if (reste > 0) {
                     const opt = document.createElement('option');
-                    opt.value = p; opt.textContent = `${p} (${reste} dispos)`;
+                    opt.value = p; opt.textContent = `${p} (${reste} dispos au dépôt)`;
                     recupProduitSelect.appendChild(opt);
                 }
             }
         }
-        function setDatesSemaineEnCours() {
-            const today = new Date();
-            const day = today.getDay(); // 0 (dim) à 6 (sam)
-            const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Ajuster pour que la semaine commence le lundi
-            
-            const lundi = new Date(today.setDate(diff));
-            const dimanche = new Date(lundi);
-            dimanche.setDate(lundi.getDate() + 6);
-
-            document.getElementById('filterDateDebut').value = lundi.toISOString().split('T')[0];
-            document.getElementById('filterDateFin').value = dimanche.toISOString().split('T')[0];
-        }
-
-        recupProduitSelect.addEventListener('change', () => {
-            const p = recupProduitSelect.value;
-            document.getElementById('stockInfo').innerText = p ? `Maximum possible : ${stockDisponibleMagasin[p]} colis` : "";
-        });
 
         document.getElementById('btnValiderRecup').addEventListener('click', async () => {
             const btn = document.getElementById('btnValiderRecup');
             const produit = recupProduitSelect.value;
             const quantite = parseInt(document.getElementById('recupQuantite').value) || 0;
-            if (!produit || quantite <= 0) return alert("Invalide.");
+            const date = document.getElementById('recupDate').value;
+            if (!produit || quantite <= 0 || !date) return alert("Champs invalides.");
             if (quantite > stockDisponibleMagasin[produit]) return alert("Stock insuffisant.");
             btn.disabled = true;
             try {
-                await db.collection("recuperations").add({ date: document.getElementById('recupDate').value, vendeur: currentSellerName, produit: produit, quantite: quantite, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
-                document.getElementById('msgStatus').innerText = "✅ Succès !";
+                await db.collection("recuperations").add({ date: date, vendeur: currentSellerName, produit: produit, quantite: quantite, statut: "en_attente", timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                alert("Demande envoyée !");
                 document.getElementById('recupQuantite').value = "";
                 loadStockMagasin();
-                loadSellerPersonalPoints(currentSellerName);
             } catch (e) { alert("Erreur."); }
             finally { btn.disabled = false; }
         });
 
+        window.validerRetrait = async (id) => {
+            if(confirm("Confirmer ce retrait ?")) {
+                await db.collection("recuperations").doc(id).update({ statut: "confirme" });
+                alert("Validé !");
+                loadStockMagasin();
+            }
+        };
 
-        loadStockMagasin();
+        window.annulerRetrait = async (id) => {
+            if(confirm("Supprimer cette demande ?")) await db.collection("recuperations").doc(id).delete();
+        };
+
+        async function loadSellerPersonalPoints(nom) {
+            const dateDebut = document.getElementById('filterDateDebut').value;
+            const dateFin = document.getElementById('filterDateFin').value;
+            const [recupSnap, ventesSnap, encaissSnap, pricesSnap] = await Promise.all([
+                db.collection("recuperations").where("vendeur", "==", nom).get(),
+                db.collection("ventes").where("vendeur", "==", nom).get(),
+                db.collection("encaissements_vendeurs").where("vendeur", "==", nom).get(),
+                db.collection("stocks").get()
+            ]);
+            let pVenteMap = {};
+            pricesSnap.forEach(doc => { pVenteMap[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
+            rawData.recups = recupSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin && d.statut === "confirme");
+            rawData.ventes = ventesSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
+            const encaiss = encaissSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
+            let stats = {};
+            rawData.recups.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0,v:0}; stats[d.produit].p += d.quantite; });
+            rawData.ventes.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0,v:0}; stats[d.produit].v += d.quantite; });
+            const tbody = document.getElementById('myStockBody');
+            tbody.innerHTML = '';
+            for(let p in stats) {
+                tbody.innerHTML += `
+                    <tr class="clickable-row" onclick="openHistoryModal('${p}')">
+                        <td style="text-align:left;">${p} ${pVenteMap[p] <= 0 ? '🛠️' : 'ℹ️'}</td>
+                        <td>${stats[p].p}</td>
+                        <td style="color:#ef4444;">${stats[p].v}</td>
+                        <td style="font-weight:bold; color:#1877f2;">${stats[p].p - stats[p].v}</td>
+                    </tr>`;
+            }
+            let totalVenduArgent = rawData.ventes.filter(d => pVenteMap[d.produit] > 0).reduce((s,d) => s + (parseFloat(d.total)||0), 0);
+            let totalVerse = encaiss.reduce((s,d) => s + (parseFloat(d.montantRecu)||0) + (parseFloat(d.remise)||0), 0);
+            const fmt = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+            document.getElementById('myTotalVendu').innerText = fmt(totalVenduArgent);
+            document.getElementById('myTotalVerse').innerText = fmt(totalVerse);
+            document.getElementById('myReste').innerText = fmt(totalVenduArgent - totalVerse);
+        }
+
+        function switchRecupTab(type) {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
+            if(type === 'confirmations') {
+                document.getElementById('tabBtnConfirm').classList.add('active');
+                document.getElementById('section-confirmations').classList.add('active');
+            } else if(type === 'points') {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('section-points').classList.add('active');
+            } else {
+                document.querySelectorAll('.tab-btn')[0].classList.add('active');
+                document.getElementById('section-saisie').classList.add('active');
+            }
+        }
+
+        function setDatesSemaineEnCours() {
+            const now = new Date();
+            const start = new Date(now.setDate(now.getDate() - now.getDay() + 1)).toISOString().split('T')[0];
+            const end = new Date(now.setDate(now.getDate() + 6)).toISOString().split('T')[0];
+            document.getElementById('filterDateDebut').value = start;
+            document.getElementById('filterDateFin').value = end;
+            document.getElementById('recupDate').value = new Date().toISOString().split('T')[0];
+        }
+
+        function openHistoryModal(p) {
+            document.getElementById('modalProductName').innerText = `Détail : ${p}`;
+            const b = document.getElementById('modalHistoryBody'); b.innerHTML = '';
+            let h = [];
+            rawData.recups.filter(r => r.produit === p).forEach(r => h.push({d:r.date, t:'Retrait', q:r.quantite, c:'#1877f2'}));
+            rawData.ventes.filter(v => v.produit === p).forEach(v => h.push({d:v.date, t:'Vente', q:v.quantite, c:'#ef4444'}));
+            h.sort((a,b) => new Date(b.d) - new Date(a.d));
+            h.forEach(x => { b.innerHTML += `<tr><td>${x.d}</td><td style="color:${x.c}; font-weight:bold;">${x.t}</td><td>${x.q}</td></tr>`; });
+            document.getElementById('historyModal').style.display = 'block';
+        }
+        function closeHistoryModal() { document.getElementById('historyModal').style.display = 'none'; }
+        function downloadPDF() { const e = document.getElementById('printableArea'); html2pdf().set({ margin: 10, filename: `Point_${currentSellerName}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { format: 'a4' } }).from(e).save(); }
     </script>
 </body>
 </html>
