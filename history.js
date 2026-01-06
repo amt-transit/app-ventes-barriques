@@ -12,11 +12,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- ÉTAT ---
     let usersData = []; 
-    let salesData = []; // Pour l'affichage filtré
+    let salesData = []; 
     let recupsDataAll = []; // TOUT l'historique pour le calcul "En main"
-    let salesDataAll = [];  // TOUT l'historique pour le calcul "En main"
-    let retoursDataAll = []; // TOUT l'historique pour le calcul "En main"
+    let salesDataAll = [];  
+    let retoursDataAll = []; 
     let consommationsData = []; 
+    let currentModalSeller = ""; // Pour nommer le PDF
     
     async function init() {
         setDefaultDates();
@@ -49,19 +50,16 @@ document.addEventListener('DOMContentLoaded', () => {
         startDataListeners(); 
     };
 
-    // --- ÉCOUTEURS : CALCUL GLOBAL VS AFFICHAGE PÉRIODIQUE ---
     function startDataListeners() {
         const start = dateStartInput.value; 
         const end = dateEndInput.value;
 
-        // 1. Écouteur pour l'affichage du tableau "Ventes" (Filtré par date)
         db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
             .onSnapshot(snap => {
                 salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 renderVentes();
             });
 
-        // 2. Écouteurs globaux pour le calcul "En main" (On ignore la date de début)
         db.collection("recuperations").onSnapshot(snap => {
             recupsDataAll = snap.docs.map(doc => doc.data());
             renderInvendus();
@@ -81,7 +79,6 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).onSnapshot(s => { renderPaiements(s.docs.map(d => ({id: d.id, ...d.data()}))); });
     }
 
-    // --- RENDU DES INVENDUS (LOGIQUE DE STOCK RÉEL) ---
     function renderInvendus() {
         if (!tableBodyInvendus) return;
         tableBodyInvendus.innerHTML = '';
@@ -89,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const filteredUsers = selVendeur ? usersData.filter(u => u.nom === selVendeur) : usersData;
 
         filteredUsers.forEach(user => {
-            // Filtrage sur la totalité de la base pour ce vendeur
             const uRecups = recupsDataAll.filter(r => r.vendeur === user.nom && (r.statut === "confirme" || !r.statut));
             const uSales = salesDataAll.filter(s => s.vendeur === user.nom);
             const uRetours = retoursDataAll.filter(ret => ret.vendeur === user.nom);
@@ -123,39 +119,74 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- MODALE (Utilise aussi les données globales) ---
+    // --- MODALE TRIÉE PAR DATE AVEC NOUVELLES COLONNES ---
     window.openInvendusModal = (vendeur) => {
-        document.getElementById('modalInvendusTitle').innerText = `Bilan Total : ${vendeur}`;
+        currentModalSeller = vendeur;
+        document.getElementById('modalInvendusTitle').innerText = `Bilan de ${vendeur}`;
+        // Injection des données pour le PDF
+        document.getElementById('pdfSellerName').innerText = vendeur;
+        document.getElementById('pdfDate').innerText = new Date().toLocaleDateString('fr-FR');
         const sumBody = document.getElementById('modalSummaryBody');
         const histBody = document.getElementById('modalHistoryBody');
         sumBody.innerHTML = ''; histBody.innerHTML = '';
 
-        const uRecups = recupsDataAll.filter(r => r.vendeur === vendeur && (r.statut === "confirme" || !r.statut));
-        const uSales = salesDataAll.filter(s => s.vendeur === vendeur);
-        const uRetours = retoursDataAll.filter(ret => ret.vendeur === vendeur);
-        const prods = [...new Set([...uRecups.map(r=>r.produit), ...uSales.map(s=>s.produit), ...uRetours.map(ret=>ret.produit)])];
+        const start = dateStartInput.value;
+        const end = dateEndInput.value;
+
+        // Données globales pour le résumé
+        const uRecupsAll = recupsDataAll.filter(r => r.vendeur === vendeur && (r.statut === "confirme" || !r.statut));
+        const uSalesAll = salesDataAll.filter(s => s.vendeur === vendeur);
+        const uRetoursAll = retoursDataAll.filter(ret => ret.vendeur === vendeur);
+        
+        const prods = [...new Set([...uRecupsAll.map(r=>r.produit), ...uSalesAll.map(s=>s.produit), ...uRetoursAll.map(ret=>ret.produit)])];
 
         prods.forEach(p => {
-            const pPris = uRecups.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
-            const pAg = uSales.filter(s => s.produit === p && !s.payeAbidjan).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
-            const pAbi = uSales.filter(s => s.produit === p && s.payeAbidjan === true).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
-            const pRendu = uRetours.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pPris = uRecupsAll.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pAg = uSalesAll.filter(s => s.produit === p && !s.payeAbidjan).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pAbi = uSalesAll.filter(s => s.produit === p && s.payeAbidjan === true).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pRendu = uRetoursAll.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
             const pReste = pPris - (pAg + pAbi + pRendu);
             sumBody.innerHTML += `<tr><td><b>${p}</b></td><td>${pPris}</td><td>${pAg}</td><td>${pAbi}</td><td>${pRendu}</td><td style="font-weight:bold; color:${pReste < 0 ? '#be123c' : '#1877f2'};">${pReste}</td></tr>`;
         });
 
+        // Données de la période pour l'historique chronologique
         let logs = [];
-        uRecups.forEach(d => logs.push({d: d.date, t: '📦 Récupération', p: d.produit, q: d.quantite, n: '-' , c: '#1877f2'}));
-        uSales.forEach(d => logs.push({d: d.date, t: d.payeAbidjan ? '📍 Vente Abidjan' : '🏠 Vente Agence', p: d.produit, q: d.quantite, n: d.clientRef || '-', c: d.payeAbidjan ? '#701a75' : '#10b981'}));
-        uRetours.forEach(d => logs.push({d: d.date, t: '🔄 Retour Colis', p: d.produit, q: d.quantite, n: '-', c: '#f59e0b'}));
+        uRecupsAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '📦 Récupération', v: '-', q: d.quantite, n: '-', c: '#1877f2'}));
+        uSalesAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '🏠 Vente', v: d.payeAbidjan ? 'Abidjan' : 'Agence', q: d.quantite, n: d.clientRef || '-', c: '#10b981'}));
+        uRetoursAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, n: '-', c: '#f59e0b'}));
         
-        logs.sort((a,b) => new Date(b.d) - new Date(a.d));
-        logs.forEach(l => { histBody.innerHTML += `<tr><td>${l.d}</td><td style="color:${l.c}; font-weight:bold;">${l.t}</td><td>${l.p}</td><td>${l.q}</td><td>${l.n}</td></tr>`; });
+        // TRI PAR DATE (Le plus récent en haut)
+        logs.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+        logs.forEach(l => {
+            histBody.innerHTML += `
+                <tr>
+                    <td>${l.date}</td>
+                    <td><b>${l.produit}</b></td>
+                    <td style="color:${l.c}; font-weight:bold;">${l.op}</td>
+                    <td><small>${l.v}</small></td>
+                    <td>${l.q}</td>
+                    <td style="color:#64748b; font-style:italic;">${l.n}</td>
+                </tr>`;
+        });
 
         document.getElementById('invendusModal').style.display = 'block';
     };
 
     window.closeInvendusModal = () => document.getElementById('invendusModal').style.display = 'none';
+
+    // --- FONCTION PDF VENDEUR ---
+    window.downloadSellerHistoryPDF = () => {
+        const element = document.getElementById('sellerPdfArea');
+        const opt = {
+            margin: [10, 10, 10, 10], // Marges haut, gauche, bas, droite
+            filename: `Bilan_${currentModalSeller}_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3, useCORS: true }, // scale: 3 pour une meilleure netteté du logo
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    };
 
     function renderVentes() {
         const selV = filterVendeur.value; const selC = filterClientRef.value.toLowerCase();
@@ -184,10 +215,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     window.deleteDocument = async (c, i) => { 
         if (window.userRole !== 'superadmin') return alert("Super Admin requis pour supprimer.");
-        if(confirm("Supprimer définitivement cet enregistrement ?")) {
-            await db.collection(c).doc(i).delete(); 
-            alert("Supprimé.");
-        }
+        if(confirm("Supprimer définitivement cet enregistrement ?")) { await db.collection(c).doc(i).delete(); alert("Supprimé."); }
     };
     
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
