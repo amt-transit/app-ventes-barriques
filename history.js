@@ -188,16 +188,89 @@ document.addEventListener('DOMContentLoaded', () => {
         html2pdf().set(opt).from(element).save();
     };
 
+    // --- MISE À JOUR DU RENDU DES VENTES (AVEC MODIF RÉFÉRENCE) ---
     function renderVentes() {
-        const selV = filterVendeur.value; const selC = filterClientRef.value.toLowerCase();
+        const selV = filterVendeur.value; 
+        const selC = filterClientRef.value.toLowerCase();
         let filtered = selV ? salesData.filter(d => d.vendeur === selV) : salesData;
+        
         if(selC) filtered = filtered.filter(d => (d.clientRef && d.clientRef.toLowerCase().includes(selC)) || d.produit.toLowerCase().includes(selC));
+        
         tableBodyVentes.innerHTML = '';
         filtered.forEach(d => {
-            const tag = d.payeAbidjan ? `<br><span style="background:#701a75; color:white; font-size:9px; padding:2px 4px; border-radius:4px;">📍 ABIDJAN</span>` : `<br><span style="background:#1877f2; color:white; font-size:9px; padding:2px 4px; border-radius:4px;">🏠 AGENCE</span>`;
-            tableBodyVentes.innerHTML += `<tr><td>${d.date}</td><td><b>${d.produit}</b><br><small>Ref: ${d.clientRef||'-'}</small></td><td>${d.quantite}</td><td style="font-weight:bold;">${formatEUR(d.total)}${tag}</td><td>${d.vendeur}</td><td><button class="deleteBtn" onclick="deleteDocument('ventes','${d.id}')">Suppr.</button></td></tr>`;
+            const isAbi = d.payeAbidjan === true;
+            const tag = isAbi 
+                ? `<br><span style="background:#701a75; color:white; font-size:9px; padding:2px 4px; border-radius:4px;">📍 ABIDJAN</span>` 
+                : `<br><span style="background:#1877f2; color:white; font-size:9px; padding:2px 4px; border-radius:4px;">🏠 AGENCE</span>`;
+            
+            tableBodyVentes.innerHTML += `
+                <tr>
+                    <td>${d.date}</td>
+                    <td><b>${d.produit}</b><br><small>Ref: ${d.clientRef||'-'}</small></td>
+                    <td>${d.quantite}</td>
+                    <td style="font-weight:bold;">${formatEUR(d.total)}${tag}</td>
+                    <td>${d.vendeur}</td>
+                    <td>
+                        <button onclick="editSaleQuantity('${d.id}', ${d.quantite}, ${d.prixUnitaire})" style="background:#10b981; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer; font-size:10px; margin-right:5px;" title="Modifier Quantité">✏️</button>
+                        
+                        <button onclick="editSaleReference('${d.id}', '${d.clientRef || ''}')" style="background:#6366f1; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer; font-size:10px; margin-right:5px;" title="Modifier Référence Client">📝</button>
+
+                        <button onclick="toggleSaleStatus('${d.id}', ${isAbi})" style="background:#f59e0b; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer; font-size:10px; margin-right:5px;" title="Changer Agence/Abidjan">🔄</button>
+                        
+                        <button class="deleteBtn" onclick="deleteDocument('ventes','${d.id}')">Suppr.</button>
+                    </td>
+                </tr>`;
         });
     }
+
+    // --- FONCTION DE MODIFICATION DE RÉFÉRENCE ---
+    window.editSaleReference = async (docId, currentRef) => {
+        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
+
+        const newRef = prompt("Entrez le nom ou la référence du client :", currentRef);
+        
+        // On autorise une valeur vide si l'utilisateur veut supprimer la note
+        if (newRef !== null) {
+            try {
+                await db.collection("ventes").doc(docId).update({
+                    clientRef: newRef.trim()
+                });
+                alert("Référence mise à jour !");
+            } catch (e) {
+                alert("Erreur lors de la modification.");
+            }
+        }
+    };
+
+    // --- NOUVELLE FONCTION DE MODIFICATION DE STATUT ---
+    window.toggleSaleStatus = async (docId, currentlyAbidjan) => {
+        // Seul le superadmin peut modifier un statut validé
+        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
+
+        const newStatus = !currentlyAbidjan;
+        const confirmMsg = newStatus 
+            ? "Passer cette vente en 'Payé à Abidjan' ?" 
+            : "Passer cette vente en 'Vente Agence' ?";
+
+        if(confirm(confirmMsg)) {
+            try {
+                let updateData = { payeAbidjan: newStatus };
+                
+                // Si on passe à Abidjan et qu'il n'y a pas de réf client, on en demande une
+                if (newStatus === true) {
+                    const ref = prompt("Référence ou nom du client à Abidjan :");
+                    if (ref) updateData.clientRef = ref;
+                }
+
+                await db.collection("ventes").doc(docId).update(updateData);
+                alert("Statut mis à jour avec succès !");
+                // Le tableau se rafraîchira automatiquement grâce au snapshot
+            } catch (e) {
+                console.error("Erreur de mise à jour:", e);
+                alert("Erreur lors de la modification.");
+            }
+        }
+    };
 
     function renderConsommables() {
         tableBodyConsommables.innerHTML = '';
