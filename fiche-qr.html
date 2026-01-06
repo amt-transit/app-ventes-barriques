@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Fiche Accès Vendeurs - AMT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        body { font-family: 'Comfortaa', sans-serif; background: #f0f2f5; display: flex; justify-content: center; padding: 40px; }
+        .fiche { background: white; width: 210mm; height: 297mm; padding: 20mm; box-shadow: 0 0 10px rgba(0,0,0,0.1); text-align: center; border-radius: 15px; position: relative; }
+        .header { display: flex; align-items: center; justify-content: space-between; border-bottom: 3px solid #1877f2; padding-bottom: 20px; margin-bottom: 50px; }
+        .logo { width: 120px; }
+        .title { color: #1e293b; font-size: 32px; margin: 0; text-align: right; }
+        .instructions { text-align: left; margin: 40px 0; font-size: 18px; line-height: 1.6; color: #334155; }
+        .qr-container { background: #f8fafc; padding: 40px; border-radius: 20px; display: inline-block; margin: 20px 0; border: 2px solid #e2e8f0; }
+        #qrcode { margin: 0 auto; }
+        .footer { position: absolute; bottom: 40px; left: 0; width: 100%; font-size: 14px; color: #64748b; }
+        .step-num { background: #1877f2; color: white; border-radius: 50%; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; margin-right: 10px; font-size: 16px; }
+        @media print { .no-print { display: none; } body { padding: 0; background: white; } .fiche { box-shadow: none; border: none; } }
+    </style>
+</head>
+<body>
+
+    <div class="fiche">
+        <div class="header">
+            <img src="logo.png" alt="AMT Logo" class="logo">
+            <h1 class="title">SORTIE DE STOCK<br><span style="font-size: 20px; color: #1877f2;">Interface Vendeurs</span></h1>
+        </div>
+
+        <div class="instructions">
+            <p><span class="step-num">1</span> <strong>Scannez</strong> le QR Code ci-dessous avec votre téléphone.</p>
+            <p><span class="step-num">2</span> <strong>Connectez-vous</strong> avec vos identifiants AMT.</p>
+            <p><span class="step-num">3</span> <strong>Saisissez</strong> la quantité récupérée et validez.</p>
+            <p><span class="step-num">4</span> <strong>Attendez</strong> la confirmation de l'administrateur au dépôt.</p>
+        </div>
+
+        <div class="qr-container">
+            <div id="qrcode"></div>
+            <p style="margin-top: 20px; font-weight: bold; color: #1e293b;">SCANNRE POUR ACCÉDER</p>
+        </div>
+
+        <div style="margin-top: 50px; padding: 20px; border: 2px dashed #cbd5e1; border-radius: 10px;">
+            <p style="margin: 0; color: #be123c; font-weight: bold;">⚠️ RAPPEL : Aucune marchandise ne doit quitter le dépôt sans validation de la demande sur l'application.</p>
+        </div>
+
+        <div class="footer">
+            <p>AMT Transit - Système de Gestion Intégré v2.0</p>
+        </div>
+
+        <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 10px 20px; background: #1877f2; color: white; border: none; border-radius: 5px; cursor: pointer;">🖨️ Imprimer la fiche</button>
+    </div>
+
+    <script>
+        new QRCode(document.getElementById("qrcode"), {
+            text: "https://app-ventes-barriques.vercel.app/recuperation.html",
+            width: 250,
+            height: 250,
+            colorDark : "#1e293b",
+            colorLight : "#f8fafc",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    </script>
+</body>
+</html>
