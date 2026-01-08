@@ -163,8 +163,17 @@ document.addEventListener('DOMContentLoaded', () => {
         uRetoursAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, n: '-', c: '#f59e0b'}));
         // NOUVEAU : Ajouter les lignes de remise/paiement
         paymentsDataAll.filter(p => p.vendeur === vendeur && p.date >= start && p.date <= end).forEach(p => {
+            // Log pour le Cash
+            if (p.montantRecu > 0) {
+                logs.push({date: p.date, produit: 'Versement Cash', op: '💰 Espèces', v: '-', q: formatEUR(p.montantRecu), n: '-', c: '#10b981'});
+            }
+            // Log pour la CB
+            if (p.montantCB > 0) {
+                logs.push({date: p.date, produit: 'Paiement Carte', op: '💳 CB', v: '-', q: formatEUR(p.montantCB), n: '-', c: '#6366f1'});
+            }
+            // Log pour la Remise
             if (p.remise > 0) {
-                logs.push({date: p.date, produit: 'Remise Accordée', op: '💰 Remise', v: '-', q: formatEUR(p.remise), n: p.note || 'Remise session', c: '#be123c'});
+                logs.push({date: p.date, produit: 'Remise Accordée', op: '🎁 Remise', v: '-', q: formatEUR(p.remise), n: p.note || '-', c: '#f59e0b'});
             }
         });
         // TRI PAR DATE (Le plus récent en haut)
@@ -295,7 +304,24 @@ document.addEventListener('DOMContentLoaded', () => {
         const selV = filterVendeur.value;
         let filtered = selV ? data.filter(d => d.vendeur === selV) : data;
         tableBodyPaiements.innerHTML = '';
-        filtered.forEach(d => { tableBodyPaiements.innerHTML += `<tr><td>${d.date}</td><td>${d.vendeur}</td><td>${formatEUR(d.montantRecu)}</td><td>${formatEUR(d.remise)}</td><td style="font-weight:bold;">${formatEUR((parseFloat(d.montantRecu)||0)+(parseFloat(d.remise)||0))}</td><td><button class="deleteBtn" onclick="deleteDocument('encaissements_vendeurs','${d.id}')">Suppr.</button></td></tr>`; });
+        
+        filtered.forEach(d => {
+            const cash = parseFloat(d.montantRecu) || 0;
+            const cb = parseFloat(d.montantCB) || 0;
+            const rem = parseFloat(d.remise) || 0;
+            const total = cash + cb + rem;
+
+            tableBodyPaiements.innerHTML += `
+                <tr>
+                    <td>${d.date}</td>
+                    <td>${d.vendeur}</td>
+                    <td>${formatEUR(cash)}</td>
+                    <td style="color:#6366f1; font-weight:bold;">${cb > 0 ? formatEUR(cb) + ' 💳' : '-'}</td>
+                    <td>${formatEUR(rem)}</td>
+                    <td style="font-weight:bold;">${formatEUR(total)}</td>
+                    <td><button class="deleteBtn" onclick="deleteDocument('encaissements_vendeurs','${d.id}')">Suppr.</button></td>
+                </tr>`;
+        });
     }
 
     function loadAuditLogs() { db.collection("audit_logs").orderBy("timestamp", "desc").limit(50).onSnapshot(s => { const auditLogBody = document.getElementById('auditLogBody'); if(auditLogBody) { auditLogBody.innerHTML = ''; s.forEach(doc => { const l = doc.data(); auditLogBody.innerHTML += `<tr><td><small>${l.dateAction}</small></td><td>${l.auteur}</td><td>${l.module}</td><td>${l.type}</td><td>${l.details}</td></tr>`; }); } }); }
