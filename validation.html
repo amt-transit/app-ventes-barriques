@@ -138,8 +138,9 @@
 
                 <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
                     <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 ÉTAPE 4 : ARGENT REÇU</p>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                        <input type="number" id="valAcompte" placeholder="Montant (€)" style="padding:10px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px;">
+                        <input type="number" id="valAcompte" placeholder="Cash (€)" style="padding:10px;">
+                        <input type="number" id="valCB" placeholder="CB (€)" style="padding:10px; border: 1px solid #6366f1;">
                         <input type="number" id="valRemise" placeholder="Remise (€)" style="padding:10px; border: 1px solid #fb923c;">
                     </div>
                 </div>
@@ -161,30 +162,12 @@
 
         <div>
             <div class="kpi-stock-grid">
-                <div class="card-stock bg-blue">
-                    <span class="stock-label">Vendu Agence</span>
-                    <span id="totalDu" class="stock-number">0€</span>
-                </div>
-                
-                <div class="card-stock" style="background: #701a75;">
-                    <span class="stock-label">Vendu Abidjan</span>
-                    <span id="totalVenduAbidjan" class="stock-number">0€</span>
-                </div>
-
-                <div class="card-stock bg-green">
-                    <span class="stock-label">Réglé Cash</span>
-                    <span id="totalPayeCash" class="stock-number">0€</span>
-                </div>
-
-                <div class="card-stock" style="background: #f59e0b;">
-                    <span class="stock-label">Total Remises (Mois)</span>
-                    <span id="totalRemiseMois" class="stock-number">0€</span>
-                </div>
-
-                <div class="card-stock bg-red">
-                    <span class="stock-label">Dette Vendeur</span>
-                    <span id="resteAPayer" class="stock-number">0€</span>
-                </div>
+                <div class="card-stock bg-blue"><span class="stock-label">Vendu Agence</span><span id="totalDu" class="stock-number">0€</span></div>
+                <div class="card-stock" style="background: #701a75;"><span class="stock-label">Vendu Abidjan</span><span id="totalVenduAbidjan" class="stock-number">0€</span></div>
+                <div class="card-stock bg-green"><span class="stock-label">Total Cash</span><span id="totalPayeCash" class="stock-number">0€</span></div>
+                <div class="card-stock" style="background: #6366f1;"><span class="stock-label">Total CB</span><span id="totalPayeCB" class="stock-number">0€</span></div>
+                <div class="card-stock" style="background: #f59e0b;"><span class="stock-label">Remises (Mois)</span><span id="totalRemiseMois" class="stock-number">0€</span></div>
+                <div class="card-stock bg-red"><span class="stock-label">Dette Vendeur</span><span id="resteAPayer" class="stock-number">0€</span></div>
             </div>
             <div class="table-responsive">
                 <table id="sellerInventoryTable">
@@ -326,29 +309,20 @@
             }
 
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
+            const cb = parseFloat(document.getElementById('valCB').value) || 0;
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
             if (!name || !date) return alert("Choisissez un vendeur et une date.");
             
-            // Vérification finale si tout est vide
-            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && rem === 0) {
-                return alert("Aucune donnée saisie. Veuillez ajouter un produit ou un montant.");
-            }
+            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && cb === 0 && rem === 0) return alert("Aucune donnée saisie.");
 
             // Calcul des totaux pour le récapitulatif
             const totalVentes = sessionVentes.reduce((sum, v) => sum + v.q, 0);
             const totalConsos = sessionConsos.reduce((sum, c) => sum + c.q, 0);
             const totalRetours = sessionRetours.reduce((sum, r) => sum + r.q, 0);
 
-            const recapMessage = `RÉCAPITULATIF DE LA SESSION :\n\n` +
-                `- Vendeur : ${name}\n` +
-                `- Ventes : ${totalVentes} colis\n` +
-                `- Usage interne : ${totalConsos} colis\n` +
-                `- Retours : ${totalRetours} colis\n` +
-                `- Argent reçu : ${formatEUR(aco)}\n` +
-                `- Remise accordée : ${formatEUR(rem)}\n\n` +
-                `Confirmez-vous l'enregistrement ?`;
-
+            // Récapitulatif avec CB
+            const recapMessage = `RÉCAPITULATIF :\n- Cash : ${formatEUR(aco)}\n- CB : ${formatEUR(cb)}\n- Remise : ${formatEUR(rem)}\nConfirmez-vous ?`;
             if (!confirm(recapMessage)) return;
 
             btn.disabled = true;
@@ -376,9 +350,16 @@
                 });
 
                 // 4. Préparation de l'Argent (Paiement)
-                if (aco > 0 || rem > 0) {
+                if (aco > 0 || cb > 0 || rem > 0) {
                     const ref = db.collection("encaissements_vendeurs").doc();
-                    batch.set(ref, { date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                    batch.set(ref, { 
+                        date, 
+                        vendeur: name, 
+                        montantRecu: aco, 
+                        montantCB: cb, // Nouveau champ
+                        remise: rem, 
+                        timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+                    });
                 }
 
                 // Exécution atomique de tout le paquet
@@ -415,7 +396,7 @@
                 db.collection("consommations").where("vendeur", "==", name).get()
             ]);
             inventoryData = {};
-            let hVenduAg = 0, hVenduAbi = 0, hRegleCash = 0, hRemiseMois = 0, hRemiseTotal = 0;
+            let hVenduAg = 0, hVenduAbi = 0, hRegleCash = 0, hRegleCB = 0, hRemiseMois = 0, hRemiseTotal = 0;
             rSnap.forEach(doc => { 
                 const d = doc.data(); 
                 if (d.statut === "confirme" || !d.statut) {
@@ -439,21 +420,20 @@
             // Calcul des encaissements et remises
             eSnap.forEach(doc => {
                 const d = doc.data();
-                hRegleCash += (parseFloat(d.montantRecu) || 0); // Uniquement l'argent liquide
-                hRemiseTotal += (parseFloat(d.remise) || 0);   // Pour le calcul de la dette
-                
-                if (d.date && d.date.startsWith(currentMonth)) {
-                    hRemiseMois += (parseFloat(d.remise) || 0); // Affichage mensuel
-                }
+                hRegleCash += (parseFloat(d.montantRecu) || 0);
+                hRegleCB += (parseFloat(d.montantCB) || 0); // Nouveau
+                hRemiseTotal += (parseFloat(d.remise) || 0);
+                if (d.date && d.date.startsWith(currentMonth)) hRemiseMois += (parseFloat(d.remise) || 0);
             });
 
             document.getElementById('totalDu').innerText = formatEUR(hVenduAg);
             document.getElementById('totalVenduAbidjan').innerText = formatEUR(hVenduAbi);
             document.getElementById('totalPayeCash').innerText = formatEUR(hRegleCash);
+            document.getElementById('totalPayeCB').innerText = formatEUR(hRegleCB); // Nouveau
             document.getElementById('totalRemiseMois').innerText = formatEUR(hRemiseMois);
             
-            // La dette = Ventes Agence - (Argent Cash + Toutes les remises enregistrées)
-            document.getElementById('resteAPayer').innerText = formatEUR(hVenduAg - (hRegleCash + hRemiseTotal));
+            // La dette déduit désormais le Cash ET la CB
+            document.getElementById('resteAPayer').innerText = formatEUR(hVenduAg - (hRegleCash + hRegleCB + hRemiseTotal));
             renderUI();
         }
 
