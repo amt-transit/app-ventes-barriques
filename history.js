@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let retoursDataAll = []; 
     let consommationsData = []; 
     let currentModalSeller = ""; // Pour nommer le PDF
+    let paymentsDataAll = [];
     
     async function init() {
         setDefaultDates();
@@ -76,7 +77,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         db.collection("consommations").where("date", ">=", start).where("date", "<=", end).onSnapshot(s => { consommationsData = s.docs.map(d => d.data()); renderConsommables(); });
-        db.collection("encaissements_vendeurs").where("date", ">=", start).where("date", "<=", end).onSnapshot(s => { renderPaiements(s.docs.map(d => ({id: d.id, ...d.data()}))); });
+        db.collection("encaissements_vendeurs")
+            .where("date", ">=", start)
+            .where("date", "<=", end)
+            .onSnapshot(s => { 
+                paymentsDataAll = s.docs.map(d => ({id: d.id, ...d.data()})); // Stockage global
+                renderPaiements(paymentsDataAll); 
+            });
     }
 
     function renderInvendus() {
@@ -154,7 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
         uRecupsAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '📦 Récupération', v: '-', q: d.quantite, n: '-', c: '#1877f2'}));
         uSalesAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '🏠 Vente', v: d.payeAbidjan ? 'Abidjan' : 'Agence', q: d.quantite, n: d.clientRef || '-', c: '#10b981'}));
         uRetoursAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, n: '-', c: '#f59e0b'}));
-        
+        // NOUVEAU : Ajouter les lignes de remise/paiement
+        paymentsDataAll.filter(p => p.vendeur === vendeur && p.date >= start && p.date <= end).forEach(p => {
+            if (p.remise > 0) {
+                logs.push({date: p.date, produit: 'Remise Accordée', op: '💰 Remise', v: '-', q: formatEUR(p.remise), n: p.note || 'Remise session', c: '#be123c'});
+            }
+        });
         // TRI PAR DATE (Le plus récent en haut)
         logs.sort((a,b) => new Date(b.date) - new Date(a.date));
 
@@ -166,6 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td style="color:${l.c}; font-weight:bold;">${l.op}</td>
                     <td><small>${l.v}</small></td>
                     <td>${l.q}</td>
+                    <td style="${l.op === '💰 Remise' ? 'color:#be123c; font-weight:bold;' : ''}">${l.q}</td>
                     <td style="color:#64748b; font-style:italic;">${l.n}</td>
                 </tr>`;
         });
@@ -209,6 +222,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td><b>${d.produit}</b><br><small>Ref: ${d.clientRef||'-'}</small></td>
                     <td>${d.quantite}</td>
                     <td style="font-weight:bold;">${formatEUR(d.total)}${tag}</td>
+                    <td style="color:#be123c;">${d.remise ? formatEUR(d.remise) : '-'}</td>
                     <td>${d.vendeur}</td>
                     <td>
                         <button onclick="editSaleQuantity('${d.id}', ${d.quantite}, ${d.prixUnitaire})" style="background:#10b981; color:white; border:none; padding:5px; border-radius:4px; cursor:pointer; font-size:10px; margin-right:5px;" title="Modifier Quantité">✏️</button>

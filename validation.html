@@ -8,11 +8,38 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        .kpi-stock-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .card-stock { border-radius: 12px; padding: 12px; text-align: center; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        /* Optimisation de la grille pour 5 compteurs */
+        .kpi-stock-grid { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); /* Largeur réduite pour tenir à 5 */
+            gap: 8px; 
+            margin-bottom: 20px; 
+        }
+
+        .card-stock { 
+            border-radius: 10px; 
+            padding: 10px 5px; /* Padding réduit sur les côtés */
+            text-align: center; 
+            color: white; 
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
+        }
+
+        .stock-label { 
+            font-size: 8px; /* Taille légèrement réduite */
+            text-transform: uppercase; 
+            font-weight: bold; 
+            opacity: 0.9; 
+            display: block;
+            line-height: 1.1;
+        }
+
+        .stock-number { 
+            font-size: 13px; /* Taille ajustée pour éviter les débordements */
+            font-weight: bold; 
+            display: block; 
+            margin-top: 5px; 
+        }
         .bg-blue { background: #1877f2; } .bg-green { background: #10b981; } .bg-red { background: #be123c; }
-        .stock-label { font-size: 9px; text-transform: uppercase; font-weight: bold; opacity: 0.9; }
-        .stock-number { font-size: 16px; font-weight: bold; display: block; margin-top: 5px; }
         .form-section { background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0; margin-bottom: 20px; }
         .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
         .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
@@ -134,9 +161,30 @@
 
         <div>
             <div class="kpi-stock-grid">
-                <div class="card-stock bg-blue"><span class="stock-label">Vendu Agence</span><span id="totalDu" class="stock-number">0€</span></div>
-                <div class="card-stock bg-green"><span class="stock-label">Encaissé</span><span id="totalPaye" class="stock-number">0€</span></div>
-                <div class="card-stock bg-red" style="grid-column: span 2;"><span class="stock-label">Dette Vendeur</span><span id="resteAPayer" class="stock-number">0€</span></div>
+                <div class="card-stock bg-blue">
+                    <span class="stock-label">Vendu Agence</span>
+                    <span id="totalDu" class="stock-number">0€</span>
+                </div>
+                
+                <div class="card-stock" style="background: #701a75;">
+                    <span class="stock-label">Vendu Abidjan</span>
+                    <span id="totalVenduAbidjan" class="stock-number">0€</span>
+                </div>
+
+                <div class="card-stock bg-green">
+                    <span class="stock-label">Réglé Cash</span>
+                    <span id="totalPayeCash" class="stock-number">0€</span>
+                </div>
+
+                <div class="card-stock" style="background: #f59e0b;">
+                    <span class="stock-label">Total Remises (Mois)</span>
+                    <span id="totalRemiseMois" class="stock-number">0€</span>
+                </div>
+
+                <div class="card-stock bg-red">
+                    <span class="stock-label">Dette Vendeur</span>
+                    <span id="resteAPayer" class="stock-number">0€</span>
+                </div>
             </div>
             <div class="table-responsive">
                 <table id="sellerInventoryTable">
@@ -253,11 +301,55 @@
             const btn = document.getElementById('btnConfirmerVente');
             const name = valVendeur.value;
             const date = document.getElementById('valDate').value;
+
+            // --- SÉCURITÉ : AJOUT AUTOMATIQUE SI OUBLI DANS N'IMPORTE QUELLE SECTION ---
+            
+            // 1. Pour les Ventes
+            const vProd = document.getElementById('valProduit').value;
+            const vQty = parseInt(document.getElementById('valQuantite').value);
+            if (vProd && vQty > 0 && sessionVentes.length === 0) {
+                ajouterItem('ventes'); 
+            }
+
+            // 2. Pour l'Usage Interne (Consos)
+            const cProd = document.getElementById('valProduitConso').value;
+            const cQty = parseInt(document.getElementById('valQuantiteConso').value);
+            if (cProd && cQty > 0 && sessionConsos.length === 0) {
+                ajouterItem('consos');
+            }
+
+            // 3. Pour les Retours
+            const rProd = document.getElementById('valProduitRetour').value;
+            const rQty = parseInt(document.getElementById('valQuantiteRetour').value);
+            if (rProd && rQty > 0 && sessionRetours.length === 0) {
+                ajouterItem('retours');
+            }
+
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
             if (!name || !date) return alert("Choisissez un vendeur et une date.");
-            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && rem === 0) return alert("Aucune donnée saisie.");
+            
+            // Vérification finale si tout est vide
+            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && rem === 0) {
+                return alert("Aucune donnée saisie. Veuillez ajouter un produit ou un montant.");
+            }
+
+            // Calcul des totaux pour le récapitulatif
+            const totalVentes = sessionVentes.reduce((sum, v) => sum + v.q, 0);
+            const totalConsos = sessionConsos.reduce((sum, c) => sum + c.q, 0);
+            const totalRetours = sessionRetours.reduce((sum, r) => sum + r.q, 0);
+
+            const recapMessage = `RÉCAPITULATIF DE LA SESSION :\n\n` +
+                `- Vendeur : ${name}\n` +
+                `- Ventes : ${totalVentes} colis\n` +
+                `- Usage interne : ${totalConsos} colis\n` +
+                `- Retours : ${totalRetours} colis\n` +
+                `- Argent reçu : ${formatEUR(aco)}\n` +
+                `- Remise accordée : ${formatEUR(rem)}\n\n` +
+                `Confirmez-vous l'enregistrement ?`;
+
+            if (!confirm(recapMessage)) return;
 
             btn.disabled = true;
             
@@ -314,6 +406,7 @@
 
         async function loadSellerData() {
             const name = valVendeur.value; if (!name) return;
+            const currentMonth = new Date().toISOString().slice(0, 7); // Format "2026-01"
             const [rSnap, vSnap, eSnap, retSnap, cSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", name).get(),
                 db.collection("ventes").where("vendeur", "==", name).get(),
@@ -322,7 +415,7 @@
                 db.collection("consommations").where("vendeur", "==", name).get()
             ]);
             inventoryData = {};
-            let hVendu = 0, hPaye = 0;
+            let hVenduAg = 0, hVenduAbi = 0, hRegleCash = 0, hRemiseMois = 0, hRemiseTotal = 0;
             rSnap.forEach(doc => { 
                 const d = doc.data(); 
                 if (d.statut === "confirme" || !d.statut) {
@@ -330,15 +423,37 @@
                     inventoryData[d.produit].pT += d.quantite; 
                 }
             });
-            vSnap.forEach(doc => { 
-                const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].vT += d.quantite;
-                if (globalPrices[d.produit] > 0 && d.payeAbidjan !== true) hVendu += (d.total || 0);
+            vSnap.forEach(doc => {
+                const d = doc.data();
+                if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; 
+                inventoryData[d.produit].vT += d.quantite;
+
+                if (d.payeAbidjan === true) {
+                    hVenduAbi += (parseFloat(d.total) || 0); // Cumul Abidjan
+                } else {
+                    hVenduAg += (parseFloat(d.total) || 0); // Cumul Agence (Dette)
+                }
             });
             cSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].cT += d.quantite; });
             retSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].rT += d.quantite; });
-            eSnap.forEach(doc => { const d = doc.data(); hPaye += (d.montantRecu || 0) + (d.remise || 0); });
+            // Calcul des encaissements et remises
+            eSnap.forEach(doc => {
+                const d = doc.data();
+                hRegleCash += (parseFloat(d.montantRecu) || 0); // Uniquement l'argent liquide
+                hRemiseTotal += (parseFloat(d.remise) || 0);   // Pour le calcul de la dette
+                
+                if (d.date && d.date.startsWith(currentMonth)) {
+                    hRemiseMois += (parseFloat(d.remise) || 0); // Affichage mensuel
+                }
+            });
 
-            document.getElementById('resteAPayer').innerText = (hVendu - hPaye).toFixed(2) + "€";
+            document.getElementById('totalDu').innerText = formatEUR(hVenduAg);
+            document.getElementById('totalVenduAbidjan').innerText = formatEUR(hVenduAbi);
+            document.getElementById('totalPayeCash').innerText = formatEUR(hRegleCash);
+            document.getElementById('totalRemiseMois').innerText = formatEUR(hRemiseMois);
+            
+            // La dette = Ventes Agence - (Argent Cash + Toutes les remises enregistrées)
+            document.getElementById('resteAPayer').innerText = formatEUR(hVenduAg - (hRegleCash + hRemiseTotal));
             renderUI();
         }
 
