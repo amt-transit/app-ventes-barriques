@@ -171,6 +171,7 @@
 
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
+        // --- GESTION DU PANIER ---
         function ajouterItem(type) {
             let prod, qty, pu = 0;
             if (type === 'ventes') {
@@ -190,8 +191,8 @@
             const it = inventoryData[prod];
             const enMain = it ? it.pT - it.vT - it.rT - it.cT : 0;
             const dejaDansPanier = (sessionVentes.filter(v => v.p === prod).reduce((s,v)=>s+v.q,0)) + 
-                                  (sessionConsos.filter(c => c.p === prod).reduce((s,c)=>s+c.q,0)) + 
-                                  (sessionRetours.filter(r => r.p === prod).reduce((s,r)=>s+r.q,0));
+                                (sessionConsos.filter(c => c.p === prod).reduce((s,c)=>s+c.q,0)) + 
+                                (sessionRetours.filter(r => r.p === prod).reduce((s,r)=>s+r.q,0));
 
             if ((qty + dejaDansPanier) > enMain) return alert(`Action impossible. Stock insuffisant.`);
 
@@ -224,7 +225,6 @@
             renderLists();
         };
 
-        // --- FONCTION ANNULER TOUT ---
         window.annulerTout = () => {
             if (confirm("Voulez-vous vider toutes les listes en cours ?")) {
                 sessionVentes = []; sessionConsos = []; sessionRetours = [];
@@ -238,7 +238,7 @@
             document.getElementById('valQuantiteConso').value = "";
             document.getElementById('valQuantiteRetour').value = "";
             document.getElementById('valAcompte').value = "";
-            document.getElementById('valRemise').value = "0";
+            document.getElementById('valRemise').value = ""; // Placeholder "Remise (€)" redeviendra visible
             document.getElementById('valClientRef').value = "";
             document.getElementById('valClientRef').style.display = "none";
             document.getElementById('valPayAbidjan').checked = false;
@@ -248,6 +248,65 @@
             document.getElementById('sellerStockInfo').innerText = "";
         }
 
+        // --- ENREGISTREMENT SÉCURISÉ (BATCH) ---
+        document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
+            const btn = document.getElementById('btnConfirmerVente');
+            const name = valVendeur.value;
+            const date = document.getElementById('valDate').value;
+            const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
+            const rem = parseFloat(document.getElementById('valRemise').value) || 0;
+
+            if (!name || !date) return alert("Choisissez un vendeur et une date.");
+            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && rem === 0) return alert("Aucune donnée saisie.");
+
+            btn.disabled = true;
+            
+            // Utilisation d'un Batch pour garantir l'atomicité
+            const batch = db.batch();
+
+            try {
+                // 1. Préparation des Ventes
+                sessionVentes.forEach(v => {
+                    const ref = db.collection("ventes").doc();
+                    batch.set(ref, { date, vendeur: name, produit: v.p, quantite: v.q, prixUnitaire: v.pu, total: v.t, payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                });
+
+                // 2. Préparation des Consos
+                sessionConsos.forEach(c => {
+                    const ref = db.collection("consommations").doc();
+                    batch.set(ref, { date, vendeur: name, produit: c.p, quantite: c.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                });
+
+                // 3. Préparation des Retours
+                sessionRetours.forEach(r => {
+                    const ref = db.collection("retours_vendeurs").doc();
+                    batch.set(ref, { date, vendeur: name, produit: r.p, quantite: r.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                });
+
+                // 4. Préparation de l'Argent (Paiement)
+                if (aco > 0 || rem > 0) {
+                    const ref = db.collection("encaissements_vendeurs").doc();
+                    batch.set(ref, { date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+
+                // Exécution atomique de tout le paquet
+                await batch.commit();
+
+                alert("Session enregistrée avec succès !");
+                sessionVentes = []; sessionConsos = []; sessionRetours = [];
+                resetFormFields();
+                renderLists(); 
+                loadSellerData();
+
+            } catch (e) {
+                console.error("Erreur d'enregistrement:", e);
+                alert("Une erreur est survenue. Rien n'a été enregistré.");
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // --- CHARGEMENT DONNÉES FIRESTORE ---
         async function loadPrices() {
             const snap = await db.collection("stocks").get();
             snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
@@ -288,9 +347,10 @@
             for (const p in inventoryData) {
                 const i = inventoryData[p]; const enMain = i.pT - i.vT - i.rT - i.cT;
                 if (enMain > 0) {
-                    document.getElementById('valProduit').innerHTML += `<option value="${p}">${p}</option>`;
-                    document.getElementById('valProduitRetour').innerHTML += `<option value="${p}">${p}</option>`;
-                    document.getElementById('valProduitConso').innerHTML += `<option value="${p}">${p}</option>`;
+                    const opt = `<option value="${p}">${p}</option>`;
+                    document.getElementById('valProduit').innerHTML += opt;
+                    document.getElementById('valProduitRetour').innerHTML += opt;
+                    document.getElementById('valProduitConso').innerHTML += opt;
                 }
             }
             const tbody = document.getElementById('sellerInventoryBody'); tbody.innerHTML = '';
@@ -299,28 +359,6 @@
                 tbody.innerHTML += `<tr><td>${p} ${globalPrices[p] <= 0 ? '🛠️' : ''}</td><td>${i.pT}</td><td>${i.vT}</td><td>${i.cT}</td><td>${i.rT}</td><td><b>${enMain}</b></td></tr>`;
             }
         }
-
-        document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
-            const btn = document.getElementById('btnConfirmerVente');
-            const name = valVendeur.value;
-            const date = document.getElementById('valDate').value;
-            const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
-            const rem = parseFloat(document.getElementById('valRemise').value) || 0;
-
-            if (!name || !date) return alert("Paramètres manquants.");
-            btn.disabled = true;
-            try {
-                for (let v of sessionVentes) { await db.collection("ventes").add({ date, vendeur: name, produit: v.p, quantite: v.q, prixUnitaire: v.pu, total: v.t, payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
-                for (let c of sessionConsos) { await db.collection("consommations").add({ date, vendeur: name, produit: c.p, quantite: c.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
-                for (let r of sessionRetours) { await db.collection("retours_vendeurs").add({ date, vendeur: name, produit: r.p, quantite: r.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
-                if (aco > 0 || rem > 0) { await db.collection("encaissements_vendeurs").add({ date, vendeur: name, montantRecu: aco, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() }); }
-
-                alert("Session enregistrée !");
-                sessionVentes = []; sessionConsos = []; sessionRetours = [];
-                resetFormFields();
-                renderLists(); loadSellerData();
-            } catch (e) { alert("Erreur."); } finally { btn.disabled = false; }
-        });
 
         valPayAbidjan.addEventListener('change', (e) => { valClientRef.style.display = e.target.checked ? 'block' : 'none'; });
         valVendeur.addEventListener('change', loadSellerData);

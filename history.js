@@ -307,62 +307,71 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     // --- FONCTION DE REMISE À ZÉRO DE LA DETTE ---
     window.resetSellerDebt = async () => {
-        const vendeur = currentModalSeller; // Utilise le vendeur actuellement ouvert dans le modal
+        const vendeur = currentModalSeller;
         if (!vendeur) return;
 
         if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
 
+        // On récupère les dates saisies dans les filtres de l'historique
+        const start = document.getElementById('mainFilterDateStart').value;
+        const end = document.getElementById('mainFilterDateEnd').value;
+
         try {
-            // 1. Récupérer TOUTES les ventes et TOUS les paiements du vendeur
-            const [vSnap, pSnap, sSnap] = await Promise.all([
-                db.collection("ventes").where("vendeur", "==", vendeur).get(),
-                db.collection("encaissements_vendeurs").where("vendeur", "==", vendeur).get(),
-                db.collection("stocks").get()
+            // On récupère les données UNIQUEMENT pour la période sélectionnée
+            const [vSnap, pSnap] = await Promise.all([
+                db.collection("ventes")
+                    .where("vendeur", "==", vendeur)
+                    .where("date", ">=", start)
+                    .where("date", "<=", end).get(),
+                db.collection("encaissements_vendeurs")
+                    .where("vendeur", "==", vendeur)
+                    .where("date", ">=", start)
+                    .where("date", "<=", end).get()
             ]);
 
-            // Cartographie des prix pour identifier les produits vendables
-            let prices = {};
-            sSnap.forEach(doc => { prices[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
-
-            // 2. Calculer le Chiffre d'Affaires Agence Total
-            let totalVendu = 0;
+            // Calcul du CA Agence sur la période
+            let totalVenduPériode = 0;
             vSnap.forEach(doc => {
                 const d = doc.data();
-                if (prices[d.produit] > 0 && d.payeAbidjan !== true) {
-                    totalVendu += (parseFloat(d.total) || 0);
+                if (d.payeAbidjan !== true) {
+                    totalVenduPériode += (parseFloat(d.total) || 0);
                 }
             });
 
-            // 3. Calculer le Total déjà perçu
-            let totalEncaisse = 0;
+            // Calcul des encaissements sur la période
+            let totalEncaissePériode = 0;
             pSnap.forEach(doc => {
                 const d = doc.data();
-                totalEncaisse += (parseFloat(d.montantRecu) || 0) + (parseFloat(d.remise) || 0);
+                totalEncaissePériode += (parseFloat(d.montantRecu) || 0) + (parseFloat(d.remise) || 0);
             });
 
-            const detteActuelle = totalVendu - totalEncaisse;
+            const balancePériode = totalVenduPériode - totalEncaissePériode;
 
-            if (detteActuelle <= 0) {
-                return alert("Ce vendeur n'a aucune dette à solder.");
+            if (Math.abs(balancePériode) < 0.01) {
+                return alert(`Le compte de ${vendeur} est déjà équilibré pour la période du ${start} au ${end}.`);
             }
 
-            // 4. Confirmation et Action
-            if (confirm(`La dette actuelle de ${vendeur} est de ${formatEUR(detteActuelle)}. Voulez-vous la remettre à zéro en créant une régularisation ?`)) {
+            const msg = balancePériode > 0 
+                ? `Dette de ${formatEUR(balancePériode)}` 
+                : `Surplus de ${formatEUR(Math.abs(balancePériode))}`;
+
+            if (confirm(`Période du ${start} au ${end} :\n${msg}\n\nVoulez-vous créer une régularisation pour ramener cette période à 0,00 € ?`)) {
+                
                 await db.collection("encaissements_vendeurs").add({
-                    date: new Date().toISOString().split('T')[0],
+                    date: new Date().toISOString().split('T')[0], // Date du jour pour l'écriture comptable
                     vendeur: vendeur,
-                    montantRecu: detteActuelle,
+                    montantRecu: balancePériode, // Compense exactement l'écart de la période
                     remise: 0,
-                    note: "Régularisation : Remise à zéro de la dette",
+                    note: `Régularisation période ${start} au ${end}`,
                     timestamp: firebase.firestore.FieldValue.serverTimestamp()
                 });
 
-                alert("Dette soldée avec succès ! Les tableaux se mettent à jour.");
-                closeInvendusModal(); // Ferme le modal pour forcer le rafraîchissement
+                alert("Régularisation effectuée ! Le Tableau de Bord sera mis à jour.");
+                closeInvendusModal();
             }
         } catch (e) {
             console.error(e);
-            alert("Erreur lors de la remise à zéro.");
+            alert("Erreur lors de la régularisation.");
         }
     };
 
