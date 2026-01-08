@@ -121,9 +121,10 @@
         <div class="modal-content">
             <span class="close-modal" onclick="closeInvendusModal()">&times;</span>
             <h2 id="modalInvendusTitle" style="font-size:18px; color:#1877f2; margin-top:0;">Détails du Compte</h2>
-            
-            <button onclick="downloadSellerHistoryPDF()" class="btn-modal-pdf">📄 Télécharger le Bilan PDF</button>
-            
+            <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button onclick="downloadSellerHistoryPDF()" class="btn-modal-pdf">📄 Bilan PDF</button>
+                <button onclick="resetSellerDebt()" id="btnResetDebt" style="background: #be123c; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 11px;">💰 Solder la Dette (Mise à zéro)</button>
+            </div>
             <div id="sellerPdfArea" style="padding: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #1877f2; padding-bottom: 10px;">
                     <img src="logo.png" alt="Logo" style="width: 80px; height: auto;">

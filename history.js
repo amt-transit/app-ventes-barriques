@@ -305,6 +305,66 @@ document.addEventListener('DOMContentLoaded', () => {
     [filterVendeur, filterClientRef, dateStartInput, dateEndInput].forEach(el => {
         if(el) el.addEventListener('input', () => { renderVentes(); renderInvendus(); });
     });
+    // --- FONCTION DE REMISE À ZÉRO DE LA DETTE ---
+    window.resetSellerDebt = async () => {
+        const vendeur = currentModalSeller; // Utilise le vendeur actuellement ouvert dans le modal
+        if (!vendeur) return;
+
+        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
+
+        try {
+            // 1. Récupérer TOUTES les ventes et TOUS les paiements du vendeur
+            const [vSnap, pSnap, sSnap] = await Promise.all([
+                db.collection("ventes").where("vendeur", "==", vendeur).get(),
+                db.collection("encaissements_vendeurs").where("vendeur", "==", vendeur).get(),
+                db.collection("stocks").get()
+            ]);
+
+            // Cartographie des prix pour identifier les produits vendables
+            let prices = {};
+            sSnap.forEach(doc => { prices[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
+
+            // 2. Calculer le Chiffre d'Affaires Agence Total
+            let totalVendu = 0;
+            vSnap.forEach(doc => {
+                const d = doc.data();
+                if (prices[d.produit] > 0 && d.payeAbidjan !== true) {
+                    totalVendu += (parseFloat(d.total) || 0);
+                }
+            });
+
+            // 3. Calculer le Total déjà perçu
+            let totalEncaisse = 0;
+            pSnap.forEach(doc => {
+                const d = doc.data();
+                totalEncaisse += (parseFloat(d.montantRecu) || 0) + (parseFloat(d.remise) || 0);
+            });
+
+            const detteActuelle = totalVendu - totalEncaisse;
+
+            if (detteActuelle <= 0) {
+                return alert("Ce vendeur n'a aucune dette à solder.");
+            }
+
+            // 4. Confirmation et Action
+            if (confirm(`La dette actuelle de ${vendeur} est de ${formatEUR(detteActuelle)}. Voulez-vous la remettre à zéro en créant une régularisation ?`)) {
+                await db.collection("encaissements_vendeurs").add({
+                    date: new Date().toISOString().split('T')[0],
+                    vendeur: vendeur,
+                    montantRecu: detteActuelle,
+                    remise: 0,
+                    note: "Régularisation : Remise à zéro de la dette",
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                alert("Dette soldée avec succès ! Les tableaux se mettent à jour.");
+                closeInvendusModal(); // Ferme le modal pour forcer le rafraîchissement
+            }
+        } catch (e) {
+            console.error(e);
+            alert("Erreur lors de la remise à zéro.");
+        }
+    };
 
     init();
 });
