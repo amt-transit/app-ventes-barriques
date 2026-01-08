@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if (info && !info.isConso) coutAchatVendus += (parseInt(s.quantite) || 0) * info.pa;
         });
 
-        // Les quantités sorties respectent désormais le statut "confirme"
         let qtyVend = 0, qtyCons = 0;
         recups.forEach(r => {
             const info = productMap[r.produit.toUpperCase()];
@@ -67,15 +66,22 @@ document.addEventListener('DOMContentLoaded', () => {
             else qtyVend += (parseInt(r.quantite) || 0);
         });
 
-        const totalCaisse = payments.reduce((sum, p) => sum + (parseFloat(p.montantRecu) || 0), 0);
-        const totalRemises = payments.reduce((sum, p) => sum + (parseFloat(p.remise) || 0), 0);
+        // --- NOUVEAUX CALCULS FINANCIERS ---
+        const totalCash = payments.reduce((sum, p) => sum + (parseFloat(p.montantRecu) || 0), 0);
+        const totalCB = payments.reduce((sum, p) => sum + (parseFloat(p.montantCB) || 0), 0); // Champ CB
+        const totalRemises = payments.reduce((sum, p) => sum + (parseFloat(p.remise) || 0), 0); // Champ Remise
         const totalPertes = losses.reduce((sum, l) => sum + (parseInt(l.quantite) || 0), 0);
 
         updateText('grandTotalVentes', formatEUR(caAgence + caAbidjan));
         updateText('totalValeurStock', formatEUR(investTotal));
         updateText('totalVenduAbidjan', formatEUR(caAbidjan));
-        updateText('grandTotalCaisse', formatEUR(totalCaisse));
-        updateText('totalDues', formatEUR(caAgence - (totalCaisse + totalRemises)));
+        updateText('grandTotalCaisse', formatEUR(totalCash)); // Case Verte
+        updateText('grandTotalCB', formatEUR(totalCB));       // Case Indigo
+        updateText('totalRemises', formatEUR(totalRemises));   // Case Orange
+        
+        // Dette = Ventes Agence - (Cash + CB + Remises)
+        updateText('totalDues', formatEUR(caAgence - (totalCash + totalCB + totalRemises)));
+        
         updateText('qtyVendablesSortis', qtyVend);
         updateText('qtyConsosSortis', qtyCons);
         updateText('totalPertes', totalPertes);
