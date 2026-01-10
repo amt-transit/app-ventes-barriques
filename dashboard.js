@@ -118,24 +118,40 @@ document.addEventListener('DOMContentLoaded', () => {
         updatePieChart(productData);
     }
 
+    // --- FONCTION CORRIGÉE ---
     function renderSellerAnalysis(sales, payments) {
         const sellers = {};
+        
+        // 1. On cumule le CA Agence par vendeur
         sales.forEach(s => {
             if(!sellers[s.vendeur]) sellers[s.vendeur] = { qte: 0, ca: 0, recu: 0 };
             sellers[s.vendeur].qte += (parseInt(s.quantite) || 0);
             if (!s.payeAbidjan) sellers[s.vendeur].ca += (parseFloat(s.total) || 0);
         });
+
+        // 2. On cumule TOUS les types de paiements (Cash + CB + Remise)
         payments.forEach(p => {
             if(!sellers[p.vendeur]) sellers[p.vendeur] = { qte: 0, ca: 0, recu: 0 };
-            sellers[p.vendeur].recu += (parseFloat(p.montantRecu) || 0) + (parseFloat(p.remise) || 0);
+            
+            // CORRECTION ICI : On ajoute montantCB au total reçu du vendeur
+            sellers[p.vendeur].recu += (parseFloat(p.montantRecu) || 0) + 
+                                    (parseFloat(p.montantCB) || 0) + 
+                                    (parseFloat(p.remise) || 0);
         });
+
         const tbody = document.getElementById('agentSummaryTableBody');
         if(tbody) {
             tbody.innerHTML = '';
             for (const name in sellers) {
                 const s = sellers[name];
-                const dette = s.ca - s.recu;
-                tbody.innerHTML += `<tr><td>${name}</td><td style="text-align:center;">${s.qte}</td><td>${formatEUR(s.ca)}</td><td style="color:${dette > 0 ? '#be123c' : '#10b981'}; font-weight:bold;">${formatEUR(dette)}</td></tr>`;
+                const dette = s.ca - s.recu; // Maintenant cohérent avec le KPI du haut
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${name}</td>
+                        <td style="text-align:center;">${s.qte}</td>
+                        <td>${formatEUR(s.ca)}</td>
+                        <td style="color:${dette > 0 ? '#be123c' : '#10b981'}; font-weight:bold;">${formatEUR(dette)}</td>
+                    </tr>`;
             }
         }
         updateBarChart(sellers);

@@ -80,9 +80,9 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection("encaissements_vendeurs")
             .where("date", ">=", start)
             .where("date", "<=", end)
+            .orderBy("date", "desc") 
             .onSnapshot(s => { 
-                paymentsDataAll = s.docs.map(d => ({id: d.id, ...d.data()})); // Stockage global
-                renderPaiements(paymentsDataAll); 
+                renderPaiements(s.docs.map(d => ({id: d.id, ...d.data()}))); 
             });
     }
 
@@ -130,7 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.openInvendusModal = (vendeur) => {
         currentModalSeller = vendeur;
         document.getElementById('modalInvendusTitle').innerText = `Bilan de ${vendeur}`;
-        // Injection des données pour le PDF
+        
+        // 1. Initialisation des en-têtes et PDF
         document.getElementById('pdfSellerName').innerText = vendeur;
         document.getElementById('pdfDate').innerText = new Date().toLocaleDateString('fr-FR');
         const sumBody = document.getElementById('modalSummaryBody');
@@ -140,7 +141,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const start = dateStartInput.value;
         const end = dateEndInput.value;
 
-        // Données globales pour le résumé
+        // 2. Filtrage des données globales pour le résumé par produit
         const uRecupsAll = recupsDataAll.filter(r => r.vendeur === vendeur && (r.statut === "confirme" || !r.statut));
         const uSalesAll = salesDataAll.filter(s => s.vendeur === vendeur);
         const uRetoursAll = retoursDataAll.filter(ret => ret.vendeur === vendeur);
@@ -156,39 +157,55 @@ document.addEventListener('DOMContentLoaded', () => {
             sumBody.innerHTML += `<tr><td><b>${p}</b></td><td>${pPris}</td><td>${pAg}</td><td>${pAbi}</td><td>${pRendu}</td><td style="font-weight:bold; color:${pReste < 0 ? '#be123c' : '#1877f2'};">${pReste}</td></tr>`;
         });
 
-        // Données de la période pour l'historique chronologique
+        // 3. Construction de l'historique financier et matériel
         let logs = [];
-        uRecupsAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '📦 Récupération', v: '-', q: d.quantite, n: '-', c: '#1877f2'}));
-        uSalesAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '🏠 Vente', v: d.payeAbidjan ? 'Abidjan' : 'Agence', q: d.quantite, n: d.clientRef || '-', c: '#10b981'}));
-        uRetoursAll.filter(d => d.date >= start && d.date <= end).forEach(d => logs.push({date: d.date, produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, n: '-', c: '#f59e0b'}));
-        // NOUVEAU : Ajouter les lignes de remise/paiement
-        paymentsDataAll.filter(p => p.vendeur === vendeur && p.date >= start && p.date <= end).forEach(p => {
-            // Log pour le Cash
-            if (p.montantRecu > 0) {
-                logs.push({date: p.date, produit: 'Versement Cash', op: '💰 Espèces', v: '-', q: formatEUR(p.montantRecu), n: '-', c: '#10b981'});
-            }
-            // Log pour la CB
-            if (p.montantCB > 0) {
-                logs.push({date: p.date, produit: 'Paiement Carte', op: '💳 CB', v: '-', q: formatEUR(p.montantCB), n: '-', c: '#6366f1'});
-            }
-            // Log pour la Remise
-            if (p.remise > 0) {
-                logs.push({date: p.date, produit: 'Remise Accordée', op: '🎁 Remise', v: '-', q: formatEUR(p.remise), n: p.note || '-', c: '#f59e0b'});
-            }
-        });
-        // TRI PAR DATE (Le plus récent en haut)
-        logs.sort((a,b) => new Date(b.date) - new Date(a.date));
 
+        // Mouvements de stock (impact financier = 0)
+        uRecupsAll.forEach(d => logs.push({date: d.date, produit: d.produit, op: '📦 Récup.', v: '-', q: d.quantite, m: 0, n: '-', c: '#1877f2'}));
+        uRetoursAll.forEach(d => logs.push({date: d.date, produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, m: 0, n: '-', c: '#f59e0b'}));
+        
+        // Ventes (impact financier si Agence)
+        uSalesAll.forEach(d => {
+            const impact = (d.payeAbidjan !== true) ? (parseFloat(d.total) || 0) : 0;
+            logs.push({date: d.date, produit: d.produit, op: '🏠 Vente', v: d.payeAbidjan ? 'Abidjan' : 'Agence', q: d.quantite, m: impact, n: d.clientRef || '-', c: '#10b981'});
+        });
+
+        // Paiements et Remises (impact financier négatif sur la dette)
+        paymentsDataAll.filter(p => p.vendeur === vendeur).forEach(p => {
+            if (p.montantRecu > 0) logs.push({date: p.date, produit: 'Versement', op: '💰 Cash', v: '-', q: '-', m: -(parseFloat(p.montantRecu)), n: '-', c: '#10b981'});
+            if (p.montantCB > 0) logs.push({date: p.date, produit: 'Paiement', op: '💳 CB', v: '-', q: '-', m: -(parseFloat(p.montantCB)), n: '-', c: '#6366f1'});
+            if (p.remise > 0) logs.push({date: p.date, produit: 'Remise', op: '🎁 Remise', v: '-', q: '-', m: -(parseFloat(p.remise)), n: p.note || 'Remise accordée', c: '#be123c'});
+        });
+
+        // 4. CALCUL DU SOLDE PROGRESSIF (Chronologique)
+        // On trie du plus ancien au plus récent pour calculer le cumul
+        logs.sort((a, b) => new Date(a.date) - new Date(b.date));
+        
+        let currentBalance = 0;
         logs.forEach(l => {
+            currentBalance += l.m;
+            l.runningBalance = currentBalance;
+        });
+
+        // 5. AFFICHAGE FINAL (Inversé pour avoir le plus récent en haut)
+        logs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        // Filtrage par la période sélectionnée pour l'affichage
+        logs.filter(l => l.date >= start && l.date <= end).forEach(l => {
+            // Affichage de la quantité ou du montant de l'opération
+            const opValue = l.m !== 0 ? formatEUR(l.m) : l.q;
+            
             histBody.innerHTML += `
                 <tr>
                     <td>${l.date}</td>
                     <td><b>${l.produit}</b></td>
                     <td style="color:${l.c}; font-weight:bold;">${l.op}</td>
                     <td><small>${l.v}</small></td>
-                    <td>${l.q}</td>
-                    <td style="${l.op === '💰 Remise' ? 'color:#be123c; font-weight:bold;' : ''}">${l.q}</td>
-                    <td style="color:#64748b; font-style:italic;">${l.n}</td>
+                    <td style="font-weight:bold; color:${l.m < 0 ? '#be123c' : 'inherit'};">${opValue}</td>
+                    <td style="background:#f8fafc; font-weight:bold; color:${l.runningBalance > 0 ? '#be123c' : '#10b981'};">
+                        ${formatEUR(l.runningBalance)}
+                    </td>
+                    <td style="color:#64748b; font-style:italic; font-size:10px;">${l.n}</td>
                 </tr>`;
         });
 
@@ -303,6 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderPaiements(data) {
         const selV = filterVendeur.value;
         let filtered = selV ? data.filter(d => d.vendeur === selV) : data;
+        // --- AJOUT DU TRI CÔTÉ NAVIGATEUR (Sécurité) ---
+        filtered.sort((a, b) => new Date(b.date) - new Date(a.date));
         tableBodyPaiements.innerHTML = '';
         
         filtered.forEach(d => {
