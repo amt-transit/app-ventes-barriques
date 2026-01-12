@@ -52,6 +52,50 @@
 
         .table-responsive { flex-grow: 1; overflow-y: auto; font-size: 10px; }
         h2 { font-size: 13px; margin: 0 0 10px 0; }
+
+        /* --- Optimisation des tableaux du Dashboard --- */
+        .chart-container table {
+            width: 100% !important;
+            min-width: 100% !important; /* Force l'étirement sur toute la largeur */
+            border-collapse: collapse;
+            margin-top: 15px;
+            table-layout: fixed; /* Colonnes alignées proprement */
+        }
+
+        .chart-container th {
+            background-color: #f1f5f9; /* Fond d'en-tête légèrement grisé */
+            color: #475569;
+            font-size: 10px;
+            padding: 10px 5px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .chart-container td {
+            padding: 10px 5px;
+            font-size: 11px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        /* --- Alternance de couleurs (Effet Zebra) --- */
+        .chart-container tbody tr:nth-child(even) {
+            background-color: #f8fafc; /* Une ligne sur deux en gris très clair */
+        }
+
+        .chart-container tbody tr:hover {
+            background-color: #f0f7ff; /* Effet de surbrillance au passage de la souris */
+            transition: background 0.2s;
+        }
+
+        /* --- Ajustement Mobile --- */
+        @media (max-width: 850px) {
+            .chart-container table {
+                table-layout: auto; /* Permet au tableau de s'adapter au contenu sur mobile */
+            }
+            .chart-container td, .chart-container th {
+                padding: 8px 3px;
+                font-size: 10px;
+            }
+        }
     </style>
 </head>
 <body>
