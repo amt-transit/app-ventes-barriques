@@ -77,6 +77,12 @@ body {
         min-width: auto !important; 
         font-size: 10px;
     }
+    /* Ajustement de la grille pour les 6 compteurs */
+    .kpi-stock-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* 2 colonnes bien nettes */
+        gap: 5px !important;
+        padding: 0;
+    }
     /* Passage en une seule colonne */
     .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 10px !important; }
 
@@ -93,7 +99,7 @@ body {
     .logout-button::before { content: "🚪"; font-size: 20px; }
 
     /* Grille KPI en 2 colonnes sur mobile */
-    .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
+    .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 5px !important;  }
 
     /* Inputs plus grands pour les doigts */
     input, select { font-size: 16px !important; padding: 12px !important; }
@@ -168,5 +174,43 @@ body {
     .section-ventes, .section-consos, .section-retours {
         padding: 10px; /* Plus d'espace interne sur mobile */
         border-left-width: 8px !important; /* Bordure plus épaisse pour être bien visible */
+    }
+}
+/* ==========================================================================
+   2. GRAPHIQUES (DASHBOARD) - OPTIMISATION DE LA TAILLE
+   ========================================================================== */
+.chart-container {
+    background: white; 
+    padding: 10px; /* Réduit de 15px à 10px pour gagner de l'espace */
+    border-radius: 12px; 
+    border: 1px solid #e2e8f0;
+    margin-bottom: 15px;
+    max-height: 350px; /* Limite la hauteur totale du bloc */
+    display: flex;
+    flex-direction: column;
+}
+
+.chart-container h2 {
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 12px; /* Titres plus discrets */
+}
+
+/* On force une taille plus petite pour les graphiques eux-mêmes */
+canvas {
+    max-height: 160px !important; /* Réduit de 220px à 160px sur ordinateur */
+    width: 100% !important;
+    margin: 0 auto 10px auto;
+    display: block;
+}
+
+/* --- Adaptation Mobile --- */
+@media (max-width: 850px) {
+    canvas {
+        max-height: 140px !important; /* Encore plus compact sur téléphone */
+    }
+    
+    .chart-container {
+        max-height: none; /* Laisse le contenu respirer sur mobile car empilé verticalement */
     }
 }

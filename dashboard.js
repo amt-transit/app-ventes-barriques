@@ -213,11 +213,11 @@ document.addEventListener('DOMContentLoaded', () => {
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: false, // Permet au CSS de contrôler la hauteur
+                maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: { boxWidth: 12, font: { size: 10, family: 'Comfortaa' } }
+                        position: window.innerWidth > 850 ? 'right' : 'bottom', // Légende à droite sur PC
+                        labels: { boxWidth: 10, font: { size: 9 } }
                     }
                 }
             }

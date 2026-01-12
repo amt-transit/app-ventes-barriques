@@ -8,16 +8,50 @@
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
-        .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin-bottom: 20px; }
-        .kpi-card { padding: 12px; border-radius: 12px; color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .kpi-card h3 { font-size: 8px; margin: 0; opacity: 0.8; text-transform: uppercase; }
-        .kpi-card p { font-size: 15px; margin: 5px 0 0; font-weight: bold; }
-        .bg-blue { background: #1877f2; } .bg-purple { background: #701a75; } .bg-green { background: #10b981; }
-        .bg-red { background: #be123c; } .bg-orange { background: #f59e0b; } .bg-slate { background: #64748b; } .bg-dark { background: #1e293b; }
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-top: 10px; }
-        .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .chart-container { background: white; padding: 15px; border-radius: 12px; border: 1px solid #e2e8f0; }
-        h2 { font-size: 14px; color: #1e293b; border-left: 4px solid #1877f2; padding-left: 10px; margin-bottom: 10px; }
+        /* Grille KPI : 2 colonnes sur mobile, auto-fit sur PC */
+        .kpi-grid { 
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr); 
+            gap: 8px; 
+            margin-bottom: 20px; 
+        }
+        @media (min-width: 850px) {
+            .kpi-grid { grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); }
+        }
+
+        .kpi-card { padding: 10px; border-radius: 12px; color: white; text-align: center; }
+        .kpi-card h3 { font-size: 8px; margin: 0; text-transform: uppercase; }
+        .kpi-card p { font-size: 14px; margin: 5px 0 0; font-weight: bold; }
+
+        /* Layout : 1 colonne mobile, 2 colonnes PC */
+        .dashboard-grid-2-col { 
+            display: grid; 
+            grid-template-columns: 1fr; 
+            gap: 15px; 
+        }
+        @media (min-width: 850px) {
+            .dashboard-grid-2-col { grid-template-columns: 1fr 1fr; }
+        }
+
+        /* FIX TAILLE GRAPHIQUES */
+        .chart-container { 
+            background: white; 
+            padding: 12px; 
+            border-radius: 12px; 
+            border: 1px solid #e2e8f0; 
+            height: 400px; /* Hauteur fixe pour éviter le surdimensionnement */
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* On force le canvas à prendre l'espace restant sans déborder */
+        canvas { 
+            max-height: 180px !important; 
+            margin-bottom: 10px;
+        }
+
+        .table-responsive { flex-grow: 1; overflow-y: auto; font-size: 10px; }
+        h2 { font-size: 13px; margin: 0 0 10px 0; }
     </style>
 </head>
 <body>
