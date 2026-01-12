@@ -48,6 +48,12 @@ body {
     padding: 0 15px !important; /* Aligné sur la navigation */
 }
 
+/* Conteneur spécifique pour la page Validation (Alignement identique) */
+.validation-container {
+    padding: 15px !important; /* Ajout du padding vertical pour descendre le contenu */
+    width: 100%;
+}
+
 /* ==========================================================================
    2. COMPTEURS KPI & CARTES (FIX CHEVAUCHEMENT)
    ========================================================================== */
@@ -118,6 +124,7 @@ canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10
     /* Alignement Parfait Onglets / Formulaire */
     .navigation { padding: 5px 10px !important; gap: 2px; }
     .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 0 10px !important; }
+    .validation-container { padding: 10px !important; }
 
     /* Navigation Icônes */
     .navigation a { font-size: 0; padding: 15px 0; flex: 1; text-align: center; }
@@ -153,3 +160,17 @@ canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10
 .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
 table { width: 100%; border-collapse: collapse; background-color: #fff; min-width: 500px; }
 th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+
+/* --- Correction de l'alignement du formulaire --- */
+.form-section {
+    margin-top: 0;
+    margin-left: 0; /* Assure que le bloc blanc démarre au bord du padding */
+}
+
+@media (max-width: 850px) {
+    /* On s'assure que le conteneur n'a pas de marge parasite sur mobile */
+    .dashboard-grid-2-col {
+        padding: 0 10px !important; /* Aligné sur le padding 10px de la nav mobile */
+        width: 100%; /* Correction : 100% au lieu de 100vw pour éviter le scroll horizontal */
+    }
+}
