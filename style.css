@@ -92,12 +92,53 @@ canvas {
 /* ==========================================================================
    4. KPI & GRILLES
    ========================================================================== */
-.kpi-grid, .kpi-stock-grid {
+/* --- Optimisation de la grille KPI pour mobile --- */
+.kpi-stock-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 10px;
+    grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    gap: 8px;
     margin-bottom: 20px;
 }
+
+.btn-add-item {
+    background: #1e293b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 12px; /* Plus grand pour le tactile */
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 5px;
+    font-size: 13px;
+}
+
+/* --- Ajustements spécifiques au Mobile (< 850px) --- */
+@media (max-width: 850px) {
+    .dashboard-grid-2-col {
+        grid-template-columns: 1fr !important; /* Empilage vertical */
+        padding: 10px !important;
+    }
+
+    .kpi-stock-grid {
+        grid-template-columns: repeat(2, 1fr) !important; /* 2 colonnes sur mobile */
+    }
+
+    .stock-number {
+        font-size: 14px !important;
+    }
+
+    input, select {
+        font-size: 14px !important; /* Évite le zoom automatique iOS */
+        padding: 12px !important;
+    }
+
+    .btn-save-all, .btn-cancel-all {
+        height: 60px !important; /* Plus facile à cliquer en bas d'écran */
+        font-size: 14px;
+    }
+}
+
 
 .kpi-card, .card-stock {
     padding: 12px;
@@ -155,6 +196,10 @@ canvas {
     canvas {
         max-height: 180px !important; /* Graphiques encore plus petits sur mobile */
     }
+    .btn-cancel-all, .btn-save-all {
+        height: 65px !important; /* Boutons très larges pour éviter les erreurs */
+        font-size: 14px !important; /* Texte plus lisible */
+    }
 }
 
 /* ==========================================================================
@@ -174,3 +219,48 @@ table {
 }
 
 th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+
+/* --- Bouton ANNULER TOUT (Gris) --- */
+.btn-cancel-all { 
+    background-color: #94a3b8 !important; /* Gris ardoise */
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    height: 55px; /* Légèrement plus haut pour le mobile */
+    flex: 1; 
+    transition: 0.3s;
+    font-family: 'Comfortaa', sans-serif;
+    font-size: 12px;
+}
+
+.btn-cancel-all:hover { 
+    background-color: #64748b !important; /* Gris plus foncé au survol */
+}
+
+/* --- Bouton ENREGISTRER LA SESSION (Bleu) --- */
+.btn-save-all { 
+    background-color: #1877f2 !important; /* Bleu vif */
+    color: white; 
+    border: none; 
+    border-radius: 8px; 
+    font-weight: bold; 
+    cursor: pointer; 
+    height: 55px; /* Alignement avec le bouton annuler */
+    flex: 2; /* Plus large que le bouton annuler pour être prioritaire */
+    transition: 0.3s;
+    font-family: 'Comfortaa', sans-serif;
+    font-size: 13px;
+    box-shadow: 0 4px 6px rgba(24, 119, 242, 0.2); /* Ombre pour faire ressortir le bleu */
+}
+
+.btn-save-all:hover { 
+    background-color: #1565c0 !important; 
+    box-shadow: 0 6px 12px rgba(24, 119, 242, 0.3);
+}
+
+.btn-save-all:disabled {
+    background-color: #cbd5e1 !important;
+    cursor: not-allowed;
+}

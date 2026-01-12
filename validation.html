@@ -7,63 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
-    <style>
-        /* Optimisation de la grille pour 5 compteurs */
-        .kpi-stock-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); /* Largeur réduite pour tenir à 5 */
-            gap: 8px; 
-            margin-bottom: 20px; 
-        }
-
-        .card-stock { 
-            border-radius: 10px; 
-            padding: 10px 5px; /* Padding réduit sur les côtés */
-            text-align: center; 
-            color: white; 
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1); 
-        }
-
-        .stock-label { 
-            font-size: 8px; /* Taille légèrement réduite */
-            text-transform: uppercase; 
-            font-weight: bold; 
-            opacity: 0.9; 
-            display: block;
-            line-height: 1.1;
-        }
-
-        .stock-number { 
-            font-size: 13px; /* Taille ajustée pour éviter les débordements */
-            font-weight: bold; 
-            display: block; 
-            margin-top: 5px; 
-        }
-        .bg-blue { background: #1877f2; } .bg-green { background: #10b981; } .bg-red { background: #be123c; }
-        .form-section { background: #f8fafc; padding: 15px; border-radius: 10px; border: 2px solid #e2e8f0; margin-bottom: 20px; }
-        .dashboard-grid-2-col { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .table-responsive { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; background: white; font-size: 12px; min-width: 400px; }
-        th, td { padding: 10px; border: 1px solid #e2e8f0; text-align: left; }
-
-        .temp-list { margin-top: 10px; border: 1px dashed #64748b; border-radius: 8px; padding: 8px; background: #ffffff; display: none; }
-        .btn-add-item { background: #1e293b; color: white; border: none; border-radius: 5px; padding: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 5px; font-size: 11px; }
-        .btn-remove { color: #be123c; cursor: pointer; font-weight: bold; border: none; background: none; }
-        
-        .section-ventes { border-left: 5px solid #1877f2; padding-left: 10px; margin-bottom: 20px; }
-        .section-consos { border-left: 5px solid #64748b; padding-left: 10px; margin-bottom: 20px; }
-        .section-retours { border-left: 5px solid #f59e0b; padding-left: 10px; margin-bottom: 20px; }
-
-        /* Style pour le bouton Annuler */
-        .btn-cancel-all { background: #94a3b8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; height: 50px; flex: 1; transition: 0.3s; }
-        .btn-cancel-all:hover { background: #64748b; }
-        .btn-save-all { background: #1877f2; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; height: 50px; flex: 2; }
-
-        @media (max-width: 850px) {
-            .app-header { display: flex; flex-direction: column; align-items: center; }
-            .dashboard-grid-2-col { grid-template-columns: 1fr; }
-        }
-    </style>
+    
 </head>
 <body>
     <header class="app-header">
