@@ -41,7 +41,7 @@
                         <input type="number" id="valQuantite" placeholder="Qté">
                         <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background:#f1f5f9; padding:10px;">
                     </div>
-                    <button class="btn-add-item" onclick="ajouterItem('ventes')">Ajouter Vente ➕</button>
+                    <button class="btn-add-item btn-ventes" onclick="ajouterItem('ventes')">Ajouter Vente ➕</button>
                     <div id="list-ventes" class="temp-list">
                         <table style="width:100%; font-size:10px; margin:0;">
                             <thead><tr style="background:#e0efff;"><th>Produit</th><th>Qté</th><th>Total</th><th></th></tr></thead>
@@ -56,7 +56,7 @@
                         <select id="valProduitConso" style="padding:10px;"></select>
                         <input type="number" id="valQuantiteConso" placeholder="Qté">
                     </div>
-                    <button class="btn-add-item" onclick="ajouterItem('consos')">Ajouter Usage ➕</button>
+                    <button class="btn-add-item btn-consos" onclick="ajouterItem('consos')">Ajouter Usage ➕</button>
                     <div id="list-consos" class="temp-list">
                         <table style="width:100%; font-size:10px; margin:0;">
                             <thead><tr style="background:#f1f5f9;"><th>Fourniture</th><th>Qté</th><th></th></tr></thead>
@@ -71,7 +71,7 @@
                         <select id="valProduitRetour" style="padding:10px;"></select>
                         <input type="number" id="valQuantiteRetour" placeholder="Qté">
                     </div>
-                    <button class="btn-add-item" onclick="ajouterItem('retours')">Ajouter Retour ➕</button>
+                    <button class="btn-add-item btn-retours" onclick="ajouterItem('retours')">Ajouter Retour ➕</button>
                     <div id="list-retours" class="temp-list">
                         <table style="width:100%; font-size:10px; margin:0;">
                             <thead><tr style="background:#fff7ed;"><th>Produit</th><th>Qté</th><th></th></tr></thead>
@@ -83,9 +83,9 @@
                 <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
                     <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 ÉTAPE 4 : ARGENT REÇU</p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
-                        <input type="number" id="valAcompte" placeholder="Cash (€)" style="padding:10px;">
-                        <input type="number" id="valCB" placeholder="CB (€)" style="padding:10px; border: 1px solid #6366f1;">
-                        <input type="number" id="valRemise" placeholder="Remise (€)" style="padding:10px; border: 1px solid #fb923c;">
+                        <input type="number" id="valAcompte" placeholder="Cash (€)">
+                        <input type="number" id="valCB" placeholder="CB (€)">
+                        <input type="number" id="valRemise" placeholder="Remise (€)">
                     </div>
                 </div>
 

@@ -1,9 +1,7 @@
 /* ==========================================================================
-   1. STYLES DE BASE & RESET
+   1. STYLES GÉNÉRAUX (ORDINATEUR PAR DÉFAUT)
    ========================================================================== */
-* {
-    box-sizing: border-box; /* Empêche les paddings de faire déborder les éléments  */
-}
+* { box-sizing: border-box; } /* Empêche le débordement horizontal */
 
 body {
     font-family: 'Comfortaa', sans-serif; 
@@ -12,145 +10,72 @@ body {
     color: #333;
     margin: 0; 
     padding: 0 0 20px 0;
-    overflow-x: hidden; /* Sécurité anti-débordement horizontal  */
+    overflow-x: hidden; /* Supprime le défilement horizontal parasite */
 }
 
+/* Header & Logo */
 .app-header {
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
-    padding: 10px 15px;
-    background-color: #fff;
-    border-bottom: 1px solid #e0e0e0; 
+    display: flex; align-items: center; justify-content: center;
+    padding: 10px 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0; 
     margin-bottom: 8px;
 }
-
 .app-logo { height: 28px; margin-right: 10px; }
 .app-header h1 { margin: 0; font-size: 16px; }
 
-/* ==========================================================================
-   2. NAVIGATION (STICKY)
-   ========================================================================== */
+/* Navigation Bureau */
 .navigation {
-    display: flex; 
-    justify-content: center; 
-    gap: 4px;
-    margin-bottom: 12px;
-    background: white;
-    padding: 10px;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    display: flex; justify-content: center; gap: 4px;
+    margin-bottom: 12px; background: white; padding: 10px;
+    position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
-
 .navigation a {
-    text-decoration: none; 
-    padding: 8px 12px; 
-    border-radius: 6px;
-    background-color: #e9ecef; 
-    color: #333; 
-    font-weight: bold;
-    font-size: 11px;
-    transition: all 0.2s;
+    text-decoration: none; padding: 8px 12px; border-radius: 6px;
+    background-color: #e9ecef; color: #333; font-weight: bold; font-size: 11px;
 }
 .navigation a.active { background-color: #1877f2; color: white; }
 
-.logout-button {
-    background-color: #6c757d; 
-    color: white; 
-    border: none; 
-    padding: 8px 12px;
-    border-radius: 6px; 
-    font-weight: bold; 
-    cursor: pointer; 
-    font-size: 11px;
+/* Mise en page 2 colonnes Bureau */
+.dashboard-grid-2-col {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
 }
 
 /* ==========================================================================
-   3. KPI & CARTES (FIX CHEVAUCHEMENT)
+   2. COMPTEURS KPI & CARTES
    ========================================================================== */
-.kpi-grid, .kpi-stock-grid {
+.kpi-stock-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 10px;
-    margin-bottom: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 10px; margin-bottom: 20px;
 }
 
-.kpi-card, .card-stock {
-    padding: 10px 5px;
-    border-radius: 12px;
-    color: white;
-    text-align: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    min-height: 55px; /* Hauteur minimale pour l'alignement  */
+.card-stock {
+    padding: 10px 5px; border-radius: 12px; color: white; text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column;
+    justify-content: center; min-height: 60px;
 }
 
-.stock-label {
-    display: block; 
-    font-size: 9px;
-    text-transform: uppercase;
-    font-weight: bold;
-    opacity: 0.9;
-    margin-bottom: 2px;
-    white-space: nowrap; /* Évite les coupures de mots  */
-}
+.stock-label { display: block; font-size: 9px; font-weight: bold; margin-bottom: 2px; }
+.stock-number { display: block; font-size: 14px; font-weight: bold; }
 
-.stock-number {
-    display: block; 
-    font-size: 14px;
-    font-weight: bold;
-}
-
-/* Couleurs des cartes  */
-.bg-blue { background: #1877f2; }
-.bg-purple { background: #701a75; }
-.bg-green { background: #10b981; }
-.bg-red { background: #be123c; }
-.bg-orange { background: #f59e0b; }
-.bg-slate { background: #64748b; }
-.bg-dark { background: #1e293b; }
+/* Couleurs */
+.bg-blue { background: #1877f2; } .bg-purple { background: #701a75; }
+.bg-green { background: #10b981; } .bg-red { background: #be123c; }
+.bg-orange { background: #f59e0b; } .bg-dark { background: #1e293b; }
 
 /* ==========================================================================
-   4. FORMULAIRES & BOUTONS
+   3. BOUTONS & FORMULAIRES
    ========================================================================== */
-.form-section { background: #fff; padding: 15px; border-radius: 10px; margin-bottom: 20px; }
-
-input, select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-family: inherit;
-}
-
-.btn-add-item {
-    background: #1e293b; color: white; border: none; border-radius: 8px;
-    padding: 12px; cursor: pointer; font-weight: bold; width: 100%;
-    margin-top: 5px; font-size: 13px;
-}
-
-.btn-cancel-all { background-color: #94a3b8 !important; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; height: 55px; flex: 1; transition: 0.3s; }
-.btn-save-all { background-color: #1877f2 !important; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; height: 55px; flex: 2; transition: 0.3s; box-shadow: 0 4px 6px rgba(24, 119, 242, 0.2); }
+.btn-cancel-all { background-color: #94a3b8 !important; color: white; border: none; border-radius: 8px; font-weight: bold; height: 55px; flex: 1; cursor: pointer; }
+.btn-save-all { background-color: #1877f2 !important; color: white; border: none; border-radius: 8px; font-weight: bold; height: 55px; flex: 2; cursor: pointer; }
 
 /* ==========================================================================
-   5. TABLEAUX
-   ========================================================================== */
-.table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
-table { width: 100%; border-collapse: collapse; background-color: #fff; min-width: 500px; }
-th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
-
-/* ==========================================================================
-   6. OPTIMISATION MOBILE (MEDIA QUERIES)
+   4. ADAPTATION MOBILE (ÉCRANS < 850PX)
    ========================================================================== */
 @media (max-width: 850px) {
-    /* Mise en page globale  */
-    .dashboard-grid-2-col { grid-template-columns: 1fr !important; gap: 10px; }
+    /* Passage en une seule colonne */
+    .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 10px !important; }
 
-    /* Navigation avec icônes  */
+    /* Navigation Icônes uniquement */
     .navigation a { font-size: 0; padding: 15px 0; flex: 1; text-align: center; }
     .navigation a[href*="validation"]::before { content: "📝"; font-size: 20px; }
     .navigation a[href*="stock"]::before { content: "📦"; font-size: 20px; }
@@ -162,17 +87,49 @@ th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
     .logout-button { font-size: 0; flex: 0.5; }
     .logout-button::before { content: "🚪"; font-size: 20px; }
 
-    /* Grilles KPI Mobile (2 colonnes)  */
-    .kpi-grid, .kpi-stock-grid {
-        grid-template-columns: repeat(2, 1fr) !important;
-        gap: 6px !important;
-    }
+    /* Grille KPI en 2 colonnes sur mobile */
+    .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 6px !important; }
 
-    /* Tableaux Mobile  */
-    table { min-width: 100% !important; font-size: 11px; }
-    th, td { padding: 8px 5px; }
-
-    /* Formulaire Tactile  */
+    /* Inputs plus grands pour les doigts */
     input, select { font-size: 16px !important; padding: 12px !important; }
-    .btn-cancel-all, .btn-save-all { height: 60px !important; font-size: 14px !important; }
+    .btn-cancel-all, .btn-save-all { height: 65px !important; font-size: 14px !important; }
+
+    /* Tableaux flexibles */
+    table { min-width: 100% !important; font-size: 10px; }
+    th, td { padding: 8px 4px; }
+    .btn-add-item {
+        padding: 15px !important; /* Zone de clic plus large pour les doigts */
+        font-size: 14px !important;
+        margin-bottom: 10px;
+    }
+}
+/* --- Base commune pour tous les boutons Ajouter --- */
+.btn-add-item {
+    color: white !important;
+    border: none;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    font-weight: bold;
+    width: 100%;
+    margin-top: 5px;
+    font-size: 13px;
+    transition: transform 0.2s, opacity 0.3s;
+    font-family: 'Comfortaa', sans-serif;
+}
+
+.btn-add-item:active { transform: scale(0.98); }
+
+/* --- Couleurs spécifiques par catégorie --- */
+.btn-ventes { background-color: #1877f2 !important; } /* Bleu (Ventes) */
+.btn-consos { background-color: #64748b !important; } /* Gris (Usage Interne) */
+.btn-retours { background-color: #f59e0b !important; } /* Orange (Retours) */
+
+/* --- Adaptation Mobile --- */
+@media (max-width: 850px) {
+    .btn-add-item {
+        padding: 15px !important;
+        font-size: 14px !important;
+        margin-bottom: 10px;
+    }
 }
