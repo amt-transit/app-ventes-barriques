@@ -4,10 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tableau de Bord - AMT</title>
+    <!-- Importation des polices et styles globaux -->
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
     <style>
+        /* --- STYLES SPÉCIFIQUES AU DASHBOARD --- */
+
         /* Grille KPI : 2 colonnes sur mobile, auto-fit sur PC */
         .kpi-grid { 
             display: grid; 
@@ -99,11 +102,13 @@
     </style>
 </head>
 <body>
+    <!-- En-tête avec Logo et Titre -->
     <header class="app-header">
         <img src="logo.png" alt="Logo" class="app-logo">
         <h1>Tableau de Bord Stratégique</h1>
     </header>
 
+    <!-- Menu de Navigation -->
     <nav class="navigation">
         <a href="validation.html">Validation</a>
         <a href="stock.html">Stock</a>
@@ -116,6 +121,7 @@
     </nav>
 
     <div style="padding: 15px;">
+        <!-- Barre de Filtres (Dates) -->
         <div class="filter-container" style="background: white; padding: 8px 12px; border-radius: 10px; margin-bottom: 15px; display: flex; align-items: center; justify-content: space-between; border: 1px solid #e2e8f0;">
             <div style="display: flex; gap: 4px; align-items: center;">
                 <label style="font-size: 11px; font-weight: bold;">Du:</label>
@@ -126,6 +132,7 @@
             <p id="reportDate" style="font-size: 9px; color: #64748b; margin: 0;"></p>
         </div>
 
+        <!-- Grille des Indicateurs Clés (KPIs) -->
         <div class="kpi-grid">
             <div class="kpi-card bg-blue"><h3>Chiffre d'Affaires</h3><p id="grandTotalVentes">0,00 €</p></div>
             <div class="kpi-card bg-purple"><h3>📍 Abidjan</h3><p id="totalVenduAbidjan">0,00 €</p></div>
@@ -137,6 +144,7 @@
             <div class="kpi-card bg-dark"><h3>Pertes</h3><p id="totalPertes">0</p></div>
         </div>
 
+        <!-- Résumé Flash (Stats du jour et Top Vendeur) -->
         <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
             <div style="flex: 1; background: #f8fafc; padding: 10px; border-radius: 8px; text-align: center; border: 1px solid #e2e8f0;">
                 <span style="font-size: 9px; font-weight: bold;">JOUR (VENDABLES)</span><br>
@@ -152,7 +160,9 @@
             </div>
         </div>
 
+        <!-- Section Graphiques et Tableaux Détaillés -->
         <div class="dashboard-grid-2-col">
+            <!-- Colonne 1 : Analyse Produits (Camembert + Tableau) -->
             <div class="chart-container">
                 <h2>Performance Produits</h2>
                 <canvas id="salesPieChart"></canvas>
@@ -163,6 +173,7 @@
                     </table>
                 </div>
             </div>
+            <!-- Colonne 2 : Analyse Vendeurs (Barres + Tableau) -->
             <div class="chart-container">
                 <h2>Suivi Vendeurs</h2>
                 <canvas id="agentBarChart"></canvas>
@@ -175,6 +186,7 @@
             </div>
         </div>
 
+        <!-- Section Suggestions de Réapprovisionnement -->
         <div class="chart-container" style="margin-top: 15px;">
             <h2>🛒 Réapprovisionnement</h2>
             <div class="table-responsive">
@@ -186,6 +198,7 @@
         </div>
     </div>
 
+    <!-- Scripts : Firebase, Chart.js et Logique Métier -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>

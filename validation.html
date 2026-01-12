@@ -4,17 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Validation des Ventes - AMT</title>
+    <!-- Importation des styles globaux et polices -->
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
     
 </head>
 <body>
+    <!-- En-tête avec Logo -->
     <header class="app-header">
         <img src="logo.png" alt="Logo" class="app-logo">
         <h1>Validation & Encaissement</h1>
     </header>
 
+    <!-- Menu de Navigation -->
     <nav class="navigation">
         <a href="validation.html" class="active">Validation</a>
         <a href="stock.html">Stock</a>
@@ -26,13 +29,16 @@
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
+    <!-- Conteneur Principal : 2 Colonnes (Formulaire à gauche, État du vendeur à droite) -->
     <div class="dashboard-grid-2-col">
+        <!-- COLONNE GAUCHE : Formulaire de Saisie -->
         <div class="form-section">
             <h2 style="color: #1877f2; font-size: 15px; margin: 0 0 15px 0;">📝 Saisie groupée des données</h2>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <input type="date" id="valDate" style="padding:10px; width:100%; box-sizing:border-box;">
                 <select id="valVendeur" style="padding:10px; width:100%;"></select>
 
+                <!-- Étape 1 : Ventes (Sorties facturables) -->
                 <div class="section-ventes step-box">
                     <p style="font-size: 11px; font-weight: bold; color: #1877f2;">📦 ÉTAPE 1 : VENTES CLIENTS</p>
                     <select id="valProduit" style="padding:10px; width:100%; margin-bottom:5px;"></select>
@@ -50,6 +56,7 @@
                     </div>
                 </div>
 
+                <!-- Étape 2 : Consommations (Usage interne / Pertes) -->
                 <div class="section-consos step-box">
                     <p style="font-size: 11px; font-weight: bold; color: #64748b;">🛠️ ÉTAPE 2 : USAGE INTERNE (FOURNITURES)</p>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
@@ -65,6 +72,7 @@
                     </div>
                 </div>
 
+                <!-- Étape 3 : Retours (Marchandise rendue au dépôt) -->
                 <div class="section-retours step-box">
                     <p style="font-size: 11px; font-weight: bold; color: #f59e0b;">🔄 ÉTAPE 3 : RETOURS DE COLIS</p>
                     <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
@@ -80,6 +88,7 @@
                     </div>
                 </div>
 
+                <!-- Étape 4 : Encaissement (Cash, CB, Remises) -->
                 <div style="background: #f0fdf4; padding: 10px; border-radius: 8px; border: 1px solid #bbf7d0;">
                     <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 ÉTAPE 4 : ARGENT REÇU</p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
@@ -89,6 +98,7 @@
                     </div>
                 </div>
 
+                <!-- Option : Paiement déporté (Abidjan) -->
                 <div style="background: #fdf4ff; padding: 10px; border-radius: 8px; border: 1px solid #f5d0fe;">
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="valPayAbidjan" style="width: 18px; height: 18px; cursor: pointer;">
@@ -97,6 +107,7 @@
                     <input type="text" id="valClientRef" placeholder="Nom/Référence Client" style="display:none; width:100%; padding:10px; margin-top:5px; border-radius:5px; border:1px solid #f5d0fe;">
                 </div>
 
+                <!-- Actions Globales -->
                 <div style="display: flex; gap: 10px; margin-top: 10px;">
                     <button onclick="annulerTout()" class="btn-cancel-all">ANNULER TOUT</button>
                     <button id="btnConfirmerVente" class="btn-save-all">ENREGISTRER LA SESSION</button>
@@ -104,6 +115,7 @@
             </div>
         </div>
 
+        <!-- COLONNE DROITE : État du Vendeur (Stock, Dette, KPI) -->
         <div>
             <div class="kpi-stock-grid">
                 <div class="card-stock bg-blue"><span class="stock-label">Vendu Agence</span><span id="totalDu" class="stock-number">0€</span></div>
@@ -123,6 +135,7 @@
     </div>
     </div>
 
+    <!-- Scripts : Firebase et Logique de Validation -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -134,22 +147,28 @@
     <script src="auth-guard.js"></script>
 
     <script>
+        // Références aux éléments du DOM principaux
         const valVendeur = document.getElementById('valVendeur');
         const valPayAbidjan = document.getElementById('valPayAbidjan');
         const valClientRef = document.getElementById('valClientRef');
         
+        // Variables globales pour stocker les données chargées
         let inventoryData = {}; 
         let globalPrices = {};
         
+        // Tableaux temporaires pour la session de saisie (Panier)
         let sessionVentes = [];
         let sessionConsos = [];
         let sessionRetours = [];
 
+        // Utilitaire de formatage monétaire
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
-        // --- GESTION DU PANIER ---
+        // --- GESTION DU PANIER (AJOUT D'ITEMS) ---
         function ajouterItem(type) {
             let prod, qty, pu = 0;
+            
+            // Récupération des valeurs selon le type d'opération (Vente, Conso, Retour)
             if (type === 'ventes') {
                 prod = document.getElementById('valProduit').value;
                 qty = parseInt(document.getElementById('valQuantite').value);
@@ -162,38 +181,49 @@
                 qty = parseInt(document.getElementById('valQuantiteRetour').value);
             }
 
+            // Validation basique
             if (!prod || isNaN(qty) || qty <= 0) return alert("Saisie invalide.");
 
+            // Vérification du stock disponible "En main" chez le vendeur
             const it = inventoryData[prod];
             const enMain = it ? it.pT - it.vT - it.rT - it.cT : 0;
+            
+            // Calcul de la quantité déjà engagée dans le panier actuel pour ce produit
             const dejaDansPanier = (sessionVentes.filter(v => v.p === prod).reduce((s,v)=>s+v.q,0)) + 
                                 (sessionConsos.filter(c => c.p === prod).reduce((s,c)=>s+c.q,0)) + 
                                 (sessionRetours.filter(r => r.p === prod).reduce((s,r)=>s+r.q,0));
 
             if ((qty + dejaDansPanier) > enMain) return alert(`Action impossible. Stock insuffisant.`);
 
+            // Ajout au tableau correspondant
             if (type === 'ventes') sessionVentes.push({ p: prod, q: qty, pu: pu, t: qty * pu });
             else if (type === 'consos') sessionConsos.push({ p: prod, q: qty });
             else sessionRetours.push({ p: prod, q: qty });
 
+            // Reset des champs de quantité pour permettre une nouvelle saisie rapide
             document.querySelectorAll('input[type="number"]').forEach(i => { if(i.id.includes('Quantite')) i.value = ""; });
-            renderLists();
+            renderLists(); // Mise à jour de l'affichage
         }
 
+        // --- RENDU VISUEL DES LISTES TEMPORAIRES ---
         function renderLists() {
+            // Affichage des ventes en cours
             const bV = document.getElementById('body-ventes'); bV.innerHTML = "";
             document.getElementById('list-ventes').style.display = sessionVentes.length > 0 ? "block" : "none";
             sessionVentes.forEach((v, i) => { bV.innerHTML += `<tr><td>${v.p}</td><td>${v.q}</td><td>${v.t}€</td><td><button class="btn-remove" onclick="supprSession('ventes', ${i})">❌</button></td></tr>`; });
 
+            // Affichage des consommations
             const bC = document.getElementById('body-consos'); bC.innerHTML = "";
             document.getElementById('list-consos').style.display = sessionConsos.length > 0 ? "block" : "none";
             sessionConsos.forEach((c, i) => { bC.innerHTML += `<tr><td>${c.p}</td><td>${c.q}</td><td><button class="btn-remove" onclick="supprSession('consos', ${i})">❌</button></td></tr>`; });
 
+            // Affichage des retours
             const bR = document.getElementById('body-retours'); bR.innerHTML = "";
             document.getElementById('list-retours').style.display = sessionRetours.length > 0 ? "block" : "none";
             sessionRetours.forEach((r, i) => { bR.innerHTML += `<tr><td>${r.p}</td><td>${r.q}</td><td><button class="btn-remove" onclick="supprSession('retours', ${i})">❌</button></td></tr>`; });
         }
 
+        // Suppression d'un item du panier
         window.supprSession = (type, index) => {
             if (type === 'ventes') sessionVentes.splice(index, 1);
             else if (type === 'consos') sessionConsos.splice(index, 1);
@@ -201,6 +231,7 @@
             renderLists();
         };
 
+        // Annulation complète de la session en cours
         window.annulerTout = () => {
             if (confirm("Voulez-vous vider toutes les listes en cours ?")) {
                 sessionVentes = []; sessionConsos = []; sessionRetours = [];
@@ -224,13 +255,14 @@
             document.getElementById('sellerStockInfo').innerText = "";
         }
 
-        // --- ENREGISTREMENT SÉCURISÉ (BATCH) ---
+        // --- ENREGISTREMENT SÉCURISÉ (BATCH TRANSACTION) ---
         document.getElementById('btnConfirmerVente').addEventListener('click', async () => {
             const btn = document.getElementById('btnConfirmerVente');
             const name = valVendeur.value;
             const date = document.getElementById('valDate').value;
 
             // --- SÉCURITÉ : AJOUT AUTOMATIQUE SI OUBLI DANS N'IMPORTE QUELLE SECTION ---
+            // Si l'utilisateur a rempli les champs mais oublié de cliquer sur "Ajouter", on le fait pour lui.
             
             // 1. Pour les Ventes
             const vProd = document.getElementById('valProduit').value;
@@ -253,6 +285,7 @@
                 ajouterItem('retours');
             }
 
+            // Récupération des montants financiers
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
             const cb = parseFloat(document.getElementById('valCB').value) || 0;
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
@@ -266,35 +299,35 @@
             const totalConsos = sessionConsos.reduce((sum, c) => sum + c.q, 0);
             const totalRetours = sessionRetours.reduce((sum, r) => sum + r.q, 0);
 
-            // Récapitulatif avec CB
+            // Récapitulatif avec CB avant validation finale
             const recapMessage = `RÉCAPITULATIF :\n- Cash : ${formatEUR(aco)}\n- CB : ${formatEUR(cb)}\n- Remise : ${formatEUR(rem)}\nConfirmez-vous ?`;
             if (!confirm(recapMessage)) return;
 
             btn.disabled = true;
             
-            // Utilisation d'un Batch pour garantir l'atomicité
+            // Utilisation d'un Batch Firestore pour garantir l'atomicité (Tout réussit ou tout échoue)
             const batch = db.batch();
 
             try {
-                // 1. Préparation des Ventes
+                // 1. Préparation des documents de Ventes
                 sessionVentes.forEach(v => {
                     const ref = db.collection("ventes").doc();
                     batch.set(ref, { date, vendeur: name, produit: v.p, quantite: v.q, prixUnitaire: v.pu, total: v.t, payeAbidjan: valPayAbidjan.checked, abidjanRegle: false, clientRef: valClientRef.value, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 });
 
-                // 2. Préparation des Consos
+                // 2. Préparation des documents de Consommations
                 sessionConsos.forEach(c => {
                     const ref = db.collection("consommations").doc();
                     batch.set(ref, { date, vendeur: name, produit: c.p, quantite: c.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 });
 
-                // 3. Préparation des Retours
+                // 3. Préparation des documents de Retours
                 sessionRetours.forEach(r => {
                     const ref = db.collection("retours_vendeurs").doc();
                     batch.set(ref, { date, vendeur: name, produit: r.p, quantite: r.q, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 });
 
-                // 4. Préparation de l'Argent (Paiement)
+                // 4. Préparation du document d'Encaissement (si mouvement d'argent)
                 if (aco > 0 || cb > 0 || rem > 0) {
                     const ref = db.collection("encaissements_vendeurs").doc();
                     batch.set(ref, { 
@@ -314,7 +347,7 @@
                 sessionVentes = []; sessionConsos = []; sessionRetours = [];
                 resetFormFields();
                 renderLists(); 
-                loadSellerData();
+                loadSellerData(); // Rechargement des données du vendeur
 
             } catch (e) {
                 console.error("Erreur d'enregistrement:", e);
@@ -325,14 +358,19 @@
         });
 
         // --- CHARGEMENT DONNÉES FIRESTORE ---
+        
+        // Charge les prix de vente de référence depuis le stock
         async function loadPrices() {
             const snap = await db.collection("stocks").get();
             snap.forEach(doc => { if (doc.data().produit) globalPrices[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
         }
 
+        // Charge et calcule l'état complet du vendeur (Stock, Ventes, Dette)
         async function loadSellerData() {
             const name = valVendeur.value; if (!name) return;
             const currentMonth = new Date().toISOString().slice(0, 7); // Format "2026-01"
+            
+            // Chargement parallèle de toutes les collections nécessaires
             const [rSnap, vSnap, eSnap, retSnap, cSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", name).get(),
                 db.collection("ventes").where("vendeur", "==", name).get(),
@@ -342,6 +380,8 @@
             ]);
             inventoryData = {};
             let hVenduAg = 0, hVenduAbi = 0, hRegleCash = 0, hRegleCB = 0, hRemiseMois = 0, hRemiseTotal = 0;
+            
+            // Calcul des entrées (Récupérations validées)
             rSnap.forEach(doc => { 
                 const d = doc.data(); 
                 if (d.statut === "confirme" || !d.statut) {
@@ -349,6 +389,8 @@
                     inventoryData[d.produit].pT += d.quantite; 
                 }
             });
+            
+            // Calcul des sorties (Ventes) et du CA
             vSnap.forEach(doc => {
                 const d = doc.data();
                 if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; 
@@ -357,11 +399,14 @@
                 if (d.payeAbidjan === true) {
                     hVenduAbi += (parseFloat(d.total) || 0); // Cumul Abidjan
                 } else {
-                    hVenduAg += (parseFloat(d.total) || 0); // Cumul Agence (Dette)
+                    hVenduAg += (parseFloat(d.total) || 0); // Cumul Agence (Dette potentielle)
                 }
             });
+            
+            // Autres sorties (Consos et Retours)
             cSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].cT += d.quantite; });
             retSnap.forEach(doc => { const d = doc.data(); if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; inventoryData[d.produit].rT += d.quantite; });
+            
             // Calcul des encaissements et remises
             eSnap.forEach(doc => {
                 const d = doc.data();
@@ -371,10 +416,11 @@
                 if (d.date && d.date.startsWith(currentMonth)) hRemiseMois += (parseFloat(d.remise) || 0);
             });
 
+            // Mise à jour des KPI (Indicateurs Clés)
             document.getElementById('totalDu').innerText = formatEUR(hVenduAg);
             document.getElementById('totalVenduAbidjan').innerText = formatEUR(hVenduAbi);
             document.getElementById('totalPayeCash').innerText = formatEUR(hRegleCash);
-            document.getElementById('totalPayeCB').innerText = formatEUR(hRegleCB); // Nouveau
+            document.getElementById('totalPayeCB').innerText = formatEUR(hRegleCB); 
             document.getElementById('totalRemiseMois').innerText = formatEUR(hRemiseMois);
             
             // La dette déduit désormais le Cash ET la CB
@@ -382,10 +428,12 @@
             renderUI();
         }
 
+        // Mise à jour de l'interface utilisateur (Selects et Tableaux)
         function renderUI() {
             document.querySelectorAll('select[id^="valProduit"]').forEach(s => s.innerHTML = '<option value="">-- Choisir --</option>');
             for (const p in inventoryData) {
                 const i = inventoryData[p]; const enMain = i.pT - i.vT - i.rT - i.cT;
+                // On affiche le produit dans les listes seulement s'il en reste en main
                 if (enMain > 0) {
                     const opt = `<option value="${p}">${p}</option>`;
                     document.getElementById('valProduit').innerHTML += opt;
@@ -400,14 +448,18 @@
             }
         }
 
+        // --- INITIALISATION ET ÉCOUTEURS D'ÉVÉNEMENTS ---
         valPayAbidjan.addEventListener('change', (e) => { valClientRef.style.display = e.target.checked ? 'block' : 'none'; });
         valVendeur.addEventListener('change', loadSellerData);
+        
+        // Mise à jour automatique du prix et de l'info stock lors du choix produit
         document.getElementById('valProduit').addEventListener('change', () => {
             valPrixUnit.value = globalPrices[document.getElementById('valProduit').value] || 0;
             const it = inventoryData[document.getElementById('valProduit').value];
             document.getElementById('sellerStockInfo').innerText = `En main : ${it ? it.pT - it.vT - it.rT - it.cT : 0}`;
         });
 
+        // Initialisation de la date et chargement de la liste des vendeurs
         document.getElementById('valDate').value = new Date().toISOString().split('T')[0];
         db.collection("users").orderBy("nom", "asc").get().then(snap => {
             valVendeur.innerHTML = '<option value="">-- Choisir un compte --</option>';

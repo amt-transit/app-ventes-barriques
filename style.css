@@ -1,10 +1,11 @@
 /* ==========================================================================
    1. STYLES GÉNÉRAUX & ALIGNEMENT GLOBAL
    ========================================================================== */
-* { box-sizing: border-box; } /* Empêche le débordement horizontal */
+/* Réinitialisation pour inclure le padding dans la largeur des éléments */
+* { box-sizing: border-box; } 
 
 body {
-    font-family: 'Comfortaa', sans-serif; 
+    font-family: 'Comfortaa', sans-serif; /* Police arrondie moderne */
     font-size: 12px; 
     background-color: #f0f2f5; 
     color: #333;
@@ -13,7 +14,7 @@ body {
     overflow-x: hidden; /* Supprime le défilement horizontal */
 }
 
-/* Header & Logo */
+/* --- EN-TÊTE (HEADER) --- */
 .app-header {
     display: flex; align-items: center; justify-content: center;
     padding: 10px 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0; 
@@ -22,7 +23,7 @@ body {
 .app-logo { height: 28px; margin-right: 10px; }
 .app-header h1 { margin: 0; font-size: 16px; }
 
-/* Navigation & Conteneur : Alignement Synchrone */
+/* --- NAVIGATION PRINCIPALE (STICKY) --- */
 .navigation {
     display: flex; justify-content: center; gap: 4px;
     margin-bottom: 12px; background: white; 
@@ -35,6 +36,7 @@ body {
     background-color: #e9ecef; color: #333; font-weight: bold; font-size: 11px;
     transition: all 0.2s;
 }
+/* État actif (page courante) */
 .navigation a.active { background-color: #1877f2; color: white; }
 
 .logout-button {
@@ -42,7 +44,7 @@ body {
     border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
 }
 
-/* Mise en page Bureau (2 colonnes) */
+/* --- MISE EN PAGE (LAYOUT) --- */
 .dashboard-grid-2-col {
     display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
     padding: 0 10px !important; /* Aligné sur la navigation */
@@ -52,6 +54,7 @@ body {
 /* ==========================================================================
    2. COMPTEURS KPI & CARTES (FIX CHEVAUCHEMENT)
    ========================================================================== */
+/* Grille responsive pour les indicateurs clés */
 .kpi-stock-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
@@ -68,6 +71,7 @@ body {
 .stock-label { display: block; font-size: 9px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; opacity: 0.9; }
 .stock-number { display: block; font-size: 14px; font-weight: bold; }
 
+/* Palette de couleurs pour les statuts */
 .bg-blue { background: #1877f2; } .bg-purple { background: #701a75; }
 .bg-green { background: #10b981; } .bg-red { background: #be123c; }
 .bg-orange { background: #f59e0b; } .bg-dark { background: #1e293b; }
@@ -76,9 +80,10 @@ body {
 /* ==========================================================================
    3. BOUTONS, FORMULAIRES & SECTIONS COLORÉES
    ========================================================================== */
+/* Conteneur blanc pour les formulaires */
 .form-section { background: white; border-radius: 10px; padding: 15px; }
 
-/* Sections avec bordures thématiques */
+/* Sections avec bordures thématiques (Code couleur par étape) */
 .section-ventes { border-left: 5px solid #1877f2 !important; padding-left: 12px; margin-bottom: 20px; background-color: #f8fbff; border-radius: 4px; }
 .section-consos { border-left: 5px solid #64748b !important; padding-left: 12px; margin-bottom: 20px; background-color: #f8fafc; border-radius: 4px; }
 .section-retours { border-left: 5px solid #f59e0b !important; padding-left: 12px; margin-bottom: 20px; background-color: #fffcf8; border-radius: 4px; }
@@ -94,13 +99,14 @@ body {
 .btn-consos { background-color: #64748b !important; }
 .btn-retours { background-color: #f59e0b !important; }
 
-/* Boutons de session */
+/* Boutons d'action globale (Bas de page validation) */
 .btn-cancel-all { background-color: #94a3b8 !important; color: white; border: none; border-radius: 8px; font-weight: bold; height: 55px; flex: 1; cursor: pointer; }
 .btn-save-all { background-color: #1877f2 !important; color: white; border: none; border-radius: 8px; font-weight: bold; height: 55px; flex: 2; cursor: pointer; box-shadow: 0 4px 6px rgba(24, 119, 242, 0.2); }
 
 /* ==========================================================================
    4. GRAPHIQUES & TABLEAUX ZEBRA (DASHBOARD)
    ========================================================================== */
+/* Conteneur pour Chart.js et tableaux associés */
 .chart-container {
     background: white; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;
     margin-bottom: 15px; max-height: 350px; display: flex; flex-direction: column;
@@ -115,10 +121,11 @@ canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10
 /* ==========================================================================
    5. ADAPTATION MOBILE (ÉCRANS < 850PX)
    ========================================================================== */
+/* Media Query pour smartphones et tablettes */
 @media (max-width: 850px) {
     /* Alignement Parfait Onglets / Formulaire */
     .navigation { padding: 5px 10px !important; gap: 2px; }
-    .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 0 10px !important; }
+    .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 0 10px !important; } /* Passage en 1 colonne */
     .validation-container { padding: 10px !important; }
 
     /* Navigation Icônes */
@@ -133,7 +140,7 @@ canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10
     .logout-button { font-size: 0; flex: 0.5; }
     .logout-button::before { content: "🚪"; font-size: 20px; }
 
-    /* KPI en 2 colonnes sans chevauchement */
+    /* KPI en 2 colonnes forcées sur mobile */
     .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 5px !important; padding: 0; }
     .stock-number { font-size: 13px; }
 
@@ -152,6 +159,7 @@ canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10
 /* ==========================================================================
    6. TABLEAUX STANDARDS
    ========================================================================== */
+/* Scroll horizontal pour les tableaux larges */
 .table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
 table { width: 100%; border-collapse: collapse; background-color: #fff; min-width: 500px; }
 th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
