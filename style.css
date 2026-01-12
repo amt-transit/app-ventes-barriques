@@ -1,7 +1,7 @@
 /* ==========================================================================
-   1. STYLES GÉNÉRAUX & ALIGNEMENT (FIX ALIGNEMENT)
+   1. STYLES GÉNÉRAUX & ALIGNEMENT GLOBAL
    ========================================================================== */
-* { box-sizing: border-box; }
+* { box-sizing: border-box; } /* Empêche le débordement horizontal */
 
 body {
     font-family: 'Comfortaa', sans-serif; 
@@ -10,32 +10,30 @@ body {
     color: #333;
     margin: 0; 
     padding: 0 0 20px 0;
-    overflow-x: hidden;
+    overflow-x: hidden; /* Supprime le défilement horizontal */
 }
 
-/* Header */
+/* Header & Logo */
 .app-header {
     display: flex; align-items: center; justify-content: center;
     padding: 10px 15px; background-color: #fff; border-bottom: 1px solid #e0e0e0; 
+    margin-bottom: 8px;
 }
 .app-logo { height: 28px; margin-right: 10px; }
 .app-header h1 { margin: 0; font-size: 16px; }
 
-/* NAVIGATION & GRILLE : Valeurs identiques pour l'alignement */
-.navigation, .dashboard-grid-2-col {
-    padding-left: 15px !important; 
-    padding-right: 15px !important;
-}
-
+/* Navigation & Conteneur : Alignement Synchrone */
 .navigation {
     display: flex; justify-content: center; gap: 4px;
-    margin-bottom: 12px; background: white; padding-top: 10px; padding-bottom: 10px;
+    margin-bottom: 12px; background: white; 
+    padding: 10px 15px; /* Aligné sur le padding du contenu */
     position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
 }
 
 .navigation a {
     text-decoration: none; padding: 8px 12px; border-radius: 6px;
     background-color: #e9ecef; color: #333; font-weight: bold; font-size: 11px;
+    transition: all 0.2s;
 }
 .navigation a.active { background-color: #1877f2; color: white; }
 
@@ -44,24 +42,30 @@ body {
     border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
 }
 
-/* Grille Bureau */
+/* Mise en page Bureau (2 colonnes) */
 .dashboard-grid-2-col {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 15px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 0 10px !important; /* Aligné sur la navigation */
 }
 
+
 /* ==========================================================================
-   2. COMPTEURS KPI & CARTES
+   2. COMPTEURS KPI & CARTES (FIX CHEVAUCHEMENT)
    ========================================================================== */
 .kpi-stock-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
     gap: 10px; margin-bottom: 20px;
 }
+
 .card-stock {
     padding: 10px 5px; border-radius: 12px; color: white; text-align: center;
     box-shadow: 0 4px 10px rgba(0,0,0,0.1); display: flex; flex-direction: column;
     justify-content: center; min-height: 60px;
 }
-.stock-label { display: block; font-size: 9px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; }
+
+/* Évite que le texte et le chiffre se collent */
+.stock-label { display: block; font-size: 9px; font-weight: bold; margin-bottom: 2px; text-transform: uppercase; opacity: 0.9; }
 .stock-number { display: block; font-size: 14px; font-weight: bold; }
 
 .bg-blue { background: #1877f2; } .bg-purple { background: #701a75; }
@@ -70,38 +74,54 @@ body {
 .bg-slate { background: #64748b; }
 
 /* ==========================================================================
-   3. SECTIONS & BOUTONS
+   3. BOUTONS, FORMULAIRES & SECTIONS COLORÉES
    ========================================================================== */
-.form-section { background: white; border-radius: 10px; padding: 15px; margin: 0; }
+.form-section { background: white; border-radius: 10px; padding: 15px; }
 
-.section-ventes { border-left: 5px solid #1877f2; padding-left: 12px; margin-bottom: 20px; background: #f8fbff; }
-.section-consos { border-left: 5px solid #64748b; padding-left: 12px; margin-bottom: 20px; background: #f8fafc; }
-.section-retours { border-left: 5px solid #f59e0b; padding-left: 12px; margin-bottom: 20px; background: #fffcf8; }
+/* Sections avec bordures thématiques */
+.section-ventes { border-left: 5px solid #1877f2 !important; padding-left: 12px; margin-bottom: 20px; background-color: #f8fbff; border-radius: 4px; }
+.section-consos { border-left: 5px solid #64748b !important; padding-left: 12px; margin-bottom: 20px; background-color: #f8fafc; border-radius: 4px; }
+.section-retours { border-left: 5px solid #f59e0b !important; padding-left: 12px; margin-bottom: 20px; background-color: #fffcf8; border-radius: 4px; }
 
+/* Boutons Ajouter */
 .btn-add-item {
-    color: white; border: none; border-radius: 8px; padding: 12px; font-weight: bold; 
-    width: 100%; margin-top: 5px; cursor: pointer; font-family: inherit;
+    color: white !important; border: none; border-radius: 8px; padding: 12px;
+    font-weight: bold; width: 100%; margin-top: 5px; cursor: pointer; font-size: 13px;
+    transition: transform 0.2s; font-family: 'Comfortaa', sans-serif;
 }
-.btn-ventes { background-color: #1877f2; }
-.btn-consos { background-color: #64748b; }
-.btn-retours { background-color: #f59e0b; }
+.btn-add-item:active { transform: scale(0.98); }
+.btn-ventes { background-color: #1877f2 !important; }
+.btn-consos { background-color: #64748b !important; }
+.btn-retours { background-color: #f59e0b !important; }
 
-.btn-cancel-all { background-color: #94a3b8 !important; color: white; border-radius: 8px; height: 55px; flex: 1; border: none; font-weight: bold; cursor: pointer; }
-.btn-save-all { background-color: #1877f2 !important; color: white; border-radius: 8px; height: 55px; flex: 2; border: none; font-weight: bold; cursor: pointer; }
+/* Boutons de session */
+.btn-cancel-all { background-color: #94a3b8 !important; color: white; border: none; border-radius: 8px; font-weight: bold; height: 55px; flex: 1; cursor: pointer; }
+.btn-save-all { background-color: #1877f2 !important; color: white; border: none; border-radius: 8px; font-weight: bold; height: 55px; flex: 2; cursor: pointer; box-shadow: 0 4px 6px rgba(24, 119, 242, 0.2); }
 
 /* ==========================================================================
-   4. ADAPTATION MOBILE (UN SEUL BLOC PROPRE)
+   4. GRAPHIQUES & TABLEAUX ZEBRA (DASHBOARD)
+   ========================================================================== */
+.chart-container {
+    background: white; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0;
+    margin-bottom: 15px; max-height: 350px; display: flex; flex-direction: column;
+}
+canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10px auto; display: block; }
+
+/* Tableaux Zebra et Pleine Largeur */
+.chart-container table { width: 100% !important; min-width: 100% !important; border-collapse: collapse; table-layout: fixed; }
+.chart-container tbody tr:nth-child(even) { background-color: #f8fafc; }
+.chart-container tbody tr:hover { background-color: #f0f7ff; }
+
+/* ==========================================================================
+   5. ADAPTATION MOBILE (ÉCRANS < 850PX)
    ========================================================================== */
 @media (max-width: 850px) {
-    /* Alignement parfait sur 10px pour mobile */
-    .navigation, .dashboard-grid-2-col {
-        padding-left: 10px !important; 
-        padding-right: 10px !important;
-    }
+    /* Alignement Parfait Onglets / Formulaire */
+    .navigation { padding: 5px 10px !important; gap: 2px; }
+    .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 0 10px !important; }
+    .validation-container { padding: 10px !important; }
 
-    .dashboard-grid-2-col { grid-template-columns: 1fr !important; }
-
-    /* Nav Icônes */
+    /* Navigation Icônes */
     .navigation a { font-size: 0; padding: 15px 0; flex: 1; text-align: center; }
     .navigation a[href*="validation"]::before { content: "📝"; font-size: 20px; }
     .navigation a[href*="stock"]::before { content: "📦"; font-size: 20px; }
@@ -113,17 +133,39 @@ body {
     .logout-button { font-size: 0; flex: 0.5; }
     .logout-button::before { content: "🚪"; font-size: 20px; }
 
-    .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 5px; }
-    input, select { font-size: 16px !important; padding: 12px !important; }
-    .btn-add-item { padding: 15px !important; margin-bottom: 10px; }
-    .btn-cancel-all, .btn-save-all { height: 65px !important; }
+    /* KPI en 2 colonnes sans chevauchement */
+    .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 5px !important; padding: 0; }
+    .stock-number { font-size: 13px; }
 
+    /* Éléments tactiles */
+    input, select { font-size: 16px !important; padding: 12px !important; }
+    .btn-add-item { padding: 15px !important; font-size: 14px !important; margin-bottom: 10px; }
+    .btn-cancel-all, .btn-save-all { height: 65px !important; font-size: 14px !important; }
+
+    /* Tableaux Mobile */
     table { min-width: 100% !important; font-size: 10px; }
     th, td { padding: 8px 4px; }
+    .chart-container table { table-layout: auto; }
+    canvas { max-height: 140px !important; }
 }
 
-/* Tableaux Zebra */
-.chart-container { background: white; padding: 10px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 15px; }
-canvas { max-height: 160px !important; width: 100% !important; display: block; }
-.chart-container table { width: 100% !important; border-collapse: collapse; table-layout: fixed; }
-.chart-container tbody tr:nth-child(even) { background-color: #f8fafc; }
+/* ==========================================================================
+   6. TABLEAUX STANDARDS
+   ========================================================================== */
+.table-responsive { width: 100%; overflow-x: auto; margin-top: 10px; }
+table { width: 100%; border-collapse: collapse; background-color: #fff; min-width: 500px; }
+th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
+
+/* --- Correction de l'alignement du formulaire --- */
+.form-section {
+    margin-top: 0;
+    margin-left: 0; /* Assure que le bloc blanc démarre au bord du padding */
+}
+
+@media (max-width: 850px) {
+    /* On s'assure que le conteneur n'a pas de marge parasite sur mobile */
+    .dashboard-grid-2-col {
+        padding: 0 10px !important; /* Aligné sur le padding 10px de la nav mobile */
+        width: 100%; /* Correction : 100% au lieu de 100vw pour éviter le scroll horizontal */
+    }
+}
