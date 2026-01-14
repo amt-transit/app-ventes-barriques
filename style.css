@@ -177,3 +177,30 @@ th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
         width: 100%; /* Correction : 100% au lieu de 100vw pour éviter le scroll horizontal */
     }
 }
+/* --- Style de l'ancre de remontée --- */
+#btnBackToTop {
+    transition: transform 0.3s, opacity 0.3s;
+    display: flex !important; /* On force le flex pour l'alignement de la flèche */
+    opacity: 0; /* Caché par défaut */
+    pointer-events: none; /* Inactif quand invisible */
+}
+
+#btnBackToTop.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0);
+}
+
+#btnBackToTop:hover {
+    background-color: #0561d9 !important;
+    transform: scale(1.1);
+}
+
+@media (max-width: 850px) {
+    #btnBackToTop {
+        bottom: 15px;
+        right: 15px;
+        width: 40px;
+        height: 40px;
+    }
+}

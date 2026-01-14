@@ -433,6 +433,22 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Erreur lors de la régularisation.");
         }
     };
+    // --- GESTION DE L'ANCRE RETOUR EN HAUT ---
+    window.onscroll = function() {
+        const btn = document.getElementById("btnBackToTop");
+        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+            btn.classList.add("show");
+        } else {
+            btn.classList.remove("show");
+        }
+    };
+
+    window.scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth" // Remontée fluide
+        });
+    };
 
     init();
 });
