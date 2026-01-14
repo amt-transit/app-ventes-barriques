@@ -79,13 +79,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderStock();
     }
 
-    // --- 4. CALCULS ET FILTRE DE CONFIRMATION ---
+    // --- 4. CALCULS ET AFFICHAGE ---
     function renderStock() {
         vendablesTableBody.innerHTML = '';
         consosTableBody.innerHTML = '';
         let globalSummary = {}; 
 
-        // Initialisation à partir des arrivages
         allStocksRaw.forEach(s => {
             const p = s.produit.trim().toUpperCase(); 
             if (!globalSummary[p]) {
@@ -96,7 +95,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             globalSummary[p].pv = parseFloat(s.prixVente) || 0;
         });
 
-        // FILTRE CRUCIAL : Seules les récupérations CONFIRMÉES sortent du stock
         allRecuperationsRaw.forEach(r => { 
             const p = r.produit.trim().toUpperCase(); 
             if (globalSummary[p] && r.statut === "confirme") {
@@ -129,7 +127,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         for (const p in globalSummary) {
             const item = globalSummary[p];
-            // FORMULE STOCK DÉPÔT : (Arrivages + Retours) - (Sorties Confirmées + Pertes + Consos Bureau)
             const enDepot = (item.in + item.returns) - (item.out + item.loss + item.cDepot);
             const totalSold = item.soldAg + item.soldAbi;
             let depotColor = enDepot > 20 ? '#10b981' : (enDepot < 10 ? '#ef4444' : (enDepot < 15 ? '#f59e0b' : 'black'));
@@ -143,7 +140,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td><b>${p}</b></td><td>${item.in}</td><td>${item.soldAg}</td><td>${item.soldAbi}</td><td>${item.loss}</td><td style="font-weight:bold; color:${depotColor}">${enDepot}</td><td style="font-weight:bold;">${formatEUR(bReel)}</td>`;
-                tr.onclick = () => { window.currentProdName = p; showProductDetails(p, enDepot); };
+                tr.onclick = () => { showProductDetails(p, enDepot); };
                 vendablesTableBody.appendChild(tr);
             } else {
                 const valInvestie = item.in * item.pa;
@@ -152,13 +149,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 const tr = document.createElement('tr');
                 tr.innerHTML = `<td><b>${p}</b></td><td>${item.in}</td><td>${item.out}</td><td>${item.cDepot}</td><td style="font-weight:bold; color:${depotColor}">${enDepot}</td><td style="font-weight:bold;">${formatEUR(valInvestie)}</td>`;
-                tr.onclick = () => { window.currentProdName = p; showProductDetails(p, enDepot); };
+                tr.onclick = () => { showProductDetails(p, enDepot); };
                 consosTableBody.appendChild(tr);
             }
         }
 
-        // Mise à jour des cartes KPI
-        const updateText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
         updateText('vend_volumeTotal', vKPI.in);
         updateText('vend_totalSorti', vKPI.out);
         updateText('vend_totalAbidjan', vKPI.abi);
@@ -172,22 +167,60 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateText('cons_valeurInvestie', formatEUR(cKPI.invest));
     }
 
-    // --- ACTIONS BOUTONS ET MODALES ---
-    addStockBtn.addEventListener('click', async () => {
-        const prod = inputProduit.value;
-        const qte = parseInt(document.getElementById('quantiteInitiale').value) || 0;
-        const date = document.getElementById('stockDate').value;
-        if(!prod || qte <= 0) return alert("Saisie invalide.");
-        await db.collection("stocks").add({ date, produit: prod, prixAchat: parseFloat(inputPrixAchat.value)||0, prixVente: parseFloat(inputPrixVente.value)||0, quantite: qte });
-        alert("Enregistré !");
-        document.getElementById('quantiteInitiale').value = ""; loadAllData();
-    });
+    // --- 5. LOGIQUE DU MODAL (FICHE PRODUIT) ---
+    window.showProductDetails = (p, currentStock) => {
+        window.currentProdName = p;
+        const m = document.getElementById('historyModal');
+        document.getElementById('modalTitle').textContent = `Fiche : ${p}`;
+        document.getElementById('modalStockStatus').innerHTML = `Dépôt actuel : <strong>${currentStock}</strong>`;
+        
+        // Construction du tableau de l'image
+        let h = `<table style="width:100%; border-collapse: collapse; margin-top:10px;">
+                    <thead>
+                        <tr style="background:#f8fafc; color:#64748b; font-size:10px;">
+                            <th style="padding:10px; border-bottom:1px solid #eee; text-align:left;">DATE</th>
+                            <th style="padding:10px; border-bottom:1px solid #eee; text-align:left;">QTÉ</th>
+                            <th style="padding:10px; border-bottom:1px solid #eee; text-align:left;">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+        
+        // Filtre les arrivages par produit et trie par date récente
+        allStocksRaw.filter(s => s.produit === p).sort((a,b) => b.date.localeCompare(a.date)).forEach(l => {
+            h += `<tr style="border-bottom: 1px solid #f1f5f9;">
+                    <td style="padding:10px;">${l.date}</td>
+                    <td style="padding:10px;">${l.quantite}</td>
+                    <td style="padding:10px;">
+                        <button onclick="editStockLot('${l.id}',${l.quantite})" style="background:none; border:none; cursor:pointer; font-size:10px;">📝</button>
+                    </td>
+                  </tr>`;
+        });
+        
+        document.getElementById('modalTableBody').innerHTML = h + `</tbody></table>`;
+        m.style.display = "block";
+    };
+
+    // --- 6. ACTIONS (PERTES, CONSOS, ÉDITION) ---
+    window.editStockLot = async (id, currentQty) => { 
+        const n = prompt("Modifier la quantité reçue :", currentQty); 
+        if(n !== null && n !== "" && !isNaN(n)) { 
+            await db.collection("stocks").doc(id).update({ quantite: parseInt(n) }); 
+            alert("Mise à jour réussie !");
+            document.getElementById('historyModal').style.display = 'none';
+            loadAllData(); 
+        } 
+    };
+
+    window.openLossModal = (p) => { document.getElementById('lossProductName').textContent = p; document.getElementById('lossModal').style.display = 'block'; };
+    window.openConsumeModal = (p) => { document.getElementById('consumeProductName').textContent = p; document.getElementById('consumeModal').style.display = 'block'; };
 
     window.confirmLoss = async () => {
         const q = parseInt(document.getElementById('lossQuantity').value);
         if(q > 0) {
             await db.collection("pertes").add({ produit: window.currentProdName, quantite: q, date: new Date().toISOString().split('T')[0] });
-            document.getElementById('lossModal').style.display = 'none'; loadAllData();
+            document.getElementById('lossModal').style.display = 'none'; 
+            document.getElementById('lossQuantity').value = "";
+            loadAllData();
         }
     };
 
@@ -195,27 +228,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         const q = parseInt(document.getElementById('consumeQuantity').value);
         if(q > 0) {
             await db.collection("consommations").add({ produit: window.currentProdName, quantite: q, date: new Date().toISOString().split('T')[0] });
-            document.getElementById('consumeModal').style.display = 'none'; loadAllData();
+            document.getElementById('consumeModal').style.display = 'none'; 
+            document.getElementById('consumeQuantity').value = "";
+            loadAllData();
         }
     };
 
-    window.showProductDetails = (p, c) => {
-        const m = document.getElementById('historyModal');
-        document.getElementById('modalTitle').textContent = `Fiche : ${p}`;
-        document.getElementById('modalStockStatus').innerHTML = `Dépôt actuel : <strong>${c}</strong>`;
-        let h = `<table style="width:100%"><thead><tr><th>Date</th><th>Qté</th><th>Action</th></tr></thead><tbody>`;
-        allStocksRaw.filter(s => s.produit === p).reverse().forEach(l => {
-            h += `<tr><td>${l.date}</td><td>${l.quantite}</td><td><button onclick="editStockLot('${l.id}',${l.quantite})">🖊️</button></td></tr>`;
-        });
-        document.getElementById('modalTableBody').innerHTML = h + `</tbody></table>`;
-        m.style.display = "block";
-    };
+    // --- 7. INITIALISATION ET UTILS ---
+    addStockBtn.addEventListener('click', async () => {
+        const prod = inputProduit.value;
+        const qte = parseInt(document.getElementById('quantiteInitiale').value) || 0;
+        const date = document.getElementById('stockDate').value;
+        const pa = parseFloat(inputPrixAchat.value) || 0;
+        const pv = parseFloat(inputPrixVente.value) || 0;
+        if(!prod || qte <= 0) return alert("Saisie invalide.");
+        await db.collection("stocks").add({ date, produit: prod, prixAchat: pa, prixVente: pv, quantite: qte });
+        alert("Enregistré !");
+        document.getElementById('quantiteInitiale').value = ""; 
+        loadAllData();
+    });
 
-    window.editStockLot = async (id, q) => { const n = prompt("Nouvelle quantité :", q); if(n) { await db.collection("stocks").doc(id).update({ quantite: parseInt(n) }); loadAllData(); } };
-    window.openLossModal = (p) => { document.getElementById('lossProductName').textContent = p; document.getElementById('lossModal').style.display = 'block'; };
-    window.openConsumeModal = (p) => { document.getElementById('consumeProductName').textContent = p; document.getElementById('consumeModal').style.display = 'block'; };
     window.downloadStockPDF = function() { const e = document.getElementById('printableStockArea'); html2pdf().set({ margin: 10, filename: 'Inventaire_AMT.pdf', html2canvas: { scale: 2 }, jsPDF: { format: 'a4', orientation: 'landscape' } }).from(e).save(); }
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
+    const updateText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     
     firebase.auth().onAuthStateChanged(user => { if (user) loadAllData(); });
 });

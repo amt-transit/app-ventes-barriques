@@ -87,6 +87,22 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
+    // --- GESTION DE L'ANCRE RETOUR EN HAUT ---
+    window.onscroll = function() {
+        const btn = document.getElementById("btnBackToTop");
+        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
+            btn.classList.add("show");
+        } else {
+            btn.classList.remove("show");
+        }
+    };
+
+    window.scrollToTop = () => {
+        window.scrollTo({
+            top: 0,
+            behavior: "smooth" // Remontée fluide
+        });
+    };
 
     // Écouteurs Firestore
     db.collection("ventes").onSnapshot(() => loadCashData());

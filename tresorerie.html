@@ -48,6 +48,14 @@
             <div class="cash-card bg-balance"><span class="cash-label">Solde Net Disponible</span><span id="soldeReel" class="cash-amount">0,00 €</span></div>
             <div class="cash-card bg-waiting"><span class="cash-label">En attente Abidjan</span><span id="attenteAbidjan" class="cash-amount">0,00 €</span></div>
         </div>
+        <div class="statement-container">
+            <h2 style="font-size: 15px; margin-top:0;">Comptabilité Globale</h2>
+            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
+                <div style="display: flex; justify-content: space-between;"><span>CA Agence (Reçu)</span><span id="ca_agence_realise" style="color:#10b981; font-weight:bold;">0,00 €</span></div>
+                <div style="display: flex; justify-content: space-between;"><span>CA Abidjan (Reçu/Réglé)</span><span id="ca_abidjan_regle" style="color:#10b981; font-weight:bold;">0,00 €</span></div>
+                <div style="display: flex; justify-content: space-between; font-weight: bold;"><span>TOTAL DISPONIBLE</span><span id="total_cash_brut">0,00 €</span></div>
+            </div>
+        </div>
 
         <div class="statement-container">
             <h2 style="color: #701a75; font-size: 15px; margin-top:0;">📍 Recouvrement Abidjan (Attente de reversement)</h2>
@@ -63,15 +71,7 @@
             </div>
         </div>
 
-        <div class="statement-container">
-            <h2 style="font-size: 15px; margin-top:0;">Comptabilité Globale</h2>
-            <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
-                <div style="display: flex; justify-content: space-between;"><span>CA Agence (Reçu)</span><span id="ca_agence_realise" style="color:#10b981; font-weight:bold;">0,00 €</span></div>
-                <div style="display: flex; justify-content: space-between;"><span>CA Abidjan (Reçu/Réglé)</span><span id="ca_abidjan_regle" style="color:#10b981; font-weight:bold;">0,00 €</span></div>
-                <hr style="border: 0; border-top: 1px solid #eee;">
-                <div style="display: flex; justify-content: space-between; font-weight: bold;"><span>TOTAL DISPONIBLE</span><span id="total_cash_brut">0,00 €</span></div>
-            </div>
-        </div>
+        
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -84,5 +84,8 @@
     </script>
     <script src="auth-guard.js"></script>
     <script src="tresorerie.js"></script>
+    <button id="btnBackToTop" onclick="scrollToTop()" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 2000; background: #1877f2; color: white; border: none; border-radius: 50%; width: 45px; height: 45px; font-size: 20px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.3); align-items: center; justify-content: center;">
+    ↑
+    </button>
 </body>
 </html>
