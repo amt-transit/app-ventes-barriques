@@ -197,15 +197,24 @@ document.addEventListener('DOMContentLoaded', () => {
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
     // --- OPTIMISATION DES GRAPHIQUES POUR LE MOBILE ---
+    Chart.register(ChartDataLabels);
     function updatePieChart(data) {
         const ctx = document.getElementById('salesPieChart');
         if (!ctx || Object.keys(data).length === 0) return;
         if (salesChart) salesChart.destroy();
-        
+
+        // 1. Calcul du total général pour les pourcentages
+        const totalCA = Object.values(data).reduce((sum, d) => sum + d.ca, 0);
+
         salesChart = new Chart(ctx.getContext('2d'), {
             type: 'doughnut',
             data: {
-                labels: Object.keys(data),
+                // 2. On modifie les étiquettes ici pour inclure le %
+                labels: Object.keys(data).map(p => {
+                    const val = data[p].ca;
+                    const pc = totalCA > 0 ? ((val / totalCA) * 100).toFixed(1) : 0;
+                    return `${p} (${pc}%)`;
+                }),
                 datasets: [{ 
                     data: Object.values(data).map(d => d.ca), 
                     backgroundColor: ['#1877f2', '#10b981', '#f59e0b', '#be123c', '#8b5cf6', '#701a75'] 
@@ -215,9 +224,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
+                    // Affichage des pourcentages SUR les tranches
+                    datalabels: {
+                        color: '#fff',
+                        font: { weight: 'bold', size: 10, family: 'Comfortaa' },
+                        formatter: (value) => {
+                            const pc = totalCA > 0 ? (value * 100 / totalCA).toFixed(1) : 0;
+                            return pc > 5 ? pc + "%" : null; // N'affiche que si > 5%
+                        }
+                    },
                     legend: {
-                        position: window.innerWidth > 850 ? 'right' : 'bottom', // Légende à droite sur PC
-                        labels: { boxWidth: 10, font: { size: 9 } }
+                        position: window.innerWidth > 850 ? 'right' : 'bottom',
+                        labels: { 
+                            boxWidth: 10, 
+                            font: { size: 9, family: 'Comfortaa' } 
+                        }
                     }
                 }
             }
