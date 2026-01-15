@@ -44,7 +44,11 @@ body {
     border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
 }
 
-
+/* --- MISE EN PAGE (LAYOUT) --- */
+.dashboard-grid-2-col {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+    padding: 0 10px !important; /* Aligné sur la navigation */
+}
 
 
 /* ==========================================================================
