@@ -44,11 +44,7 @@ body {
     border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 11px;
 }
 
-/* --- MISE EN PAGE (LAYOUT) --- */
-.dashboard-grid-2-col {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
-    padding: 0 10px !important; /* Aligné sur la navigation */
-}
+
 
 
 /* ==========================================================================
@@ -125,7 +121,7 @@ canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10
 @media (max-width: 850px) {
     /* Alignement Parfait Onglets / Formulaire */
     .navigation { padding: 5px 10px !important; gap: 2px; }
-    .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 0 10px !important; } /* Passage en 1 colonne */
+   
     .validation-container { padding: 10px !important; }
 
     /* Navigation Icônes */
@@ -143,6 +139,7 @@ canvas { max-height: 160px !important; width: 100% !important; margin: 0 auto 10
     /* KPI en 2 colonnes forcées sur mobile */
     .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 5px !important; padding: 0; }
     .stock-number { font-size: 13px; }
+    .dashboard-grid-2-col { grid-template-columns: 1fr !important; padding: 0 10px !important; }
 
     /* Éléments tactiles */
     input, select { font-size: 16px !important; padding: 12px !important; }
@@ -170,13 +167,6 @@ th, td { padding: 10px; text-align: left; border-bottom: 1px solid #eee; }
     margin-left: 0; /* Assure que le bloc blanc démarre au bord du padding */
 }
 
-@media (max-width: 850px) {
-    /* On s'assure que le conteneur n'a pas de marge parasite sur mobile */
-    .dashboard-grid-2-col {
-        padding: 0 10px !important; /* Aligné sur le padding 10px de la nav mobile */
-        width: 100%; /* Correction : 100% au lieu de 100vw pour éviter le scroll horizontal */
-    }
-}
 /* --- Style de l'ancre de remontée --- */
 #btnBackToTop {
     transition: transform 0.3s, opacity 0.3s;
