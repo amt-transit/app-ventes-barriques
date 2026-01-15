@@ -30,7 +30,7 @@
     </nav>
 
     <!-- Conteneur Principal : 2 Colonnes (Formulaire à gauche, État du vendeur à droite) -->
-    <div class="dashboard-grid-2-col" style="padding: 15px;">
+    <div class="dashboard-grid-2-col">
         <!-- COLONNE GAUCHE : Formulaire de Saisie -->
         <div class="form-section">
             <h2 style="color: #1877f2; font-size: 15px; margin: 0 0 15px 0;">📝 Saisie groupée des données</h2>
@@ -43,7 +43,7 @@
                     <p style="font-size: 11px; font-weight: bold; color: #1877f2;">📦 ÉTAPE 1 : VENTES CLIENTS</p>
                     <select id="valProduit" style="padding:10px; width:100%; margin-bottom:5px;"></select>
                     <div id="sellerStockInfo" style="font-size: 10px; color: #1877f2; font-weight: bold; margin-bottom:5px;"></div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;">
                         <input type="number" id="valQuantite" placeholder="Qté">
                         <input type="number" id="valPrixUnit" placeholder="Prix" readonly style="background:#f1f5f9; padding:10px;">
                     </div>
@@ -59,7 +59,7 @@
                 <!-- Étape 2 : Consommations (Usage interne / Pertes) -->
                 <div class="section-consos step-box">
                     <p style="font-size: 11px; font-weight: bold; color: #64748b;">🛠️ ÉTAPE 2 : USAGE INTERNE (FOURNITURES)</p>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;">
                         <select id="valProduitConso" style="padding:10px;"></select>
                         <input type="number" id="valQuantiteConso" placeholder="Qté">
                     </div>
@@ -75,7 +75,7 @@
                 <!-- Étape 3 : Retours (Marchandise rendue au dépôt) -->
                 <div class="section-retours step-box">
                     <p style="font-size: 11px; font-weight: bold; color: #f59e0b;">🔄 ÉTAPE 3 : RETOURS DE COLIS</p>
-                    <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 10px;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px;">
                         <select id="valProduitRetour" style="padding:10px;"></select>
                         <input type="number" id="valQuantiteRetour" placeholder="Qté">
                     </div>
