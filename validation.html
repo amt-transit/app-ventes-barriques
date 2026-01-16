@@ -93,7 +93,14 @@
                     <p style="font-size: 10px; font-weight: bold; color: #166534; margin: 0 0 5px 0;">💰 ÉTAPE 4 : ARGENT REÇU</p>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px;">
                         <input type="number" id="valAcompte" placeholder="Cash (€)">
-                        <input type="number" id="valCB" placeholder="CB (€)">
+                        <div style="display:flex; flex-direction:column;">
+                            <input type="number" id="valCB" placeholder="CB (€)">
+                            <input type="text" id="valRefCB" placeholder="Réf. CB" style="display:none; font-size:10px; margin-top:2px; border:1px solid #ddd; padding:4px;">
+                        </div>
+                        <div style="display:flex; flex-direction:column;">
+                            <input type="number" id="valVirement" placeholder="Virement (€)">
+                            <input type="text" id="valRefVirement" placeholder="Réf. Vir." style="display:none; font-size:10px; margin-top:2px; border:1px solid #ddd; padding:4px;">
+                        </div>
                         <input type="number" id="valRemise" placeholder="Remise (€)">
                     </div>
                 </div>
@@ -122,6 +129,7 @@
                 <div class="card-stock" style="background: #701a75;"><span class="stock-label">Vendu Abidjan</span><span id="totalVenduAbidjan" class="stock-number">0€</span></div>
                 <div class="card-stock bg-green"><span class="stock-label">Total Cash</span><span id="totalPayeCash" class="stock-number">0€</span></div>
                 <div class="card-stock" style="background: #6366f1;"><span class="stock-label">Total CB</span><span id="totalPayeCB" class="stock-number">0€</span></div>
+                <div class="card-stock" style="background: #8b5cf6;"><span class="stock-label">Total Virement</span><span id="totalPayeVirement" class="stock-number">0€</span></div>
                 <div class="card-stock" style="background: #f59e0b;"><span class="stock-label">Remises (Mois)</span><span id="totalRemiseMois" class="stock-number">0€</span></div>
                 <div class="card-stock bg-red"><span class="stock-label">Dette Vendeur</span><span id="resteAPayer" class="stock-number">0€</span></div>
             </div>
@@ -245,6 +253,12 @@
             document.getElementById('valQuantiteConso').value = "";
             document.getElementById('valQuantiteRetour').value = "";
             document.getElementById('valAcompte').value = "";
+            document.getElementById('valCB').value = "";
+            document.getElementById('valRefCB').value = "";
+            document.getElementById('valRefCB').style.display = "none";
+            document.getElementById('valVirement').value = "";
+            document.getElementById('valRefVirement').value = "";
+            document.getElementById('valRefVirement').style.display = "none";
             document.getElementById('valRemise').value = ""; // Placeholder "Remise (€)" redeviendra visible
             document.getElementById('valClientRef').value = "";
             document.getElementById('valClientRef').style.display = "none";
@@ -288,11 +302,14 @@
             // Récupération des montants financiers
             const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
             const cb = parseFloat(document.getElementById('valCB').value) || 0;
+            const vir = parseFloat(document.getElementById('valVirement').value) || 0;
+            const refCB = document.getElementById('valRefCB').value.trim();
+            const refVir = document.getElementById('valRefVirement').value.trim();
             const rem = parseFloat(document.getElementById('valRemise').value) || 0;
 
             if (!name || !date) return alert("Choisissez un vendeur et une date.");
             
-            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && cb === 0 && rem === 0) return alert("Aucune donnée saisie.");
+            if (sessionVentes.length === 0 && sessionConsos.length === 0 && sessionRetours.length === 0 && aco === 0 && cb === 0 && vir === 0 && rem === 0) return alert("Aucune donnée saisie.");
 
             // Calcul des totaux pour le récapitulatif
             const totalVentes = sessionVentes.reduce((sum, v) => sum + v.q, 0);
@@ -300,7 +317,7 @@
             const totalRetours = sessionRetours.reduce((sum, r) => sum + r.q, 0);
 
             // Récapitulatif avec CB avant validation finale
-            const recapMessage = `RÉCAPITULATIF :\n- Cash : ${formatEUR(aco)}\n- CB : ${formatEUR(cb)}\n- Remise : ${formatEUR(rem)}\nConfirmez-vous ?`;
+            const recapMessage = `RÉCAPITULATIF :\n- Cash : ${formatEUR(aco)}\n- CB : ${formatEUR(cb)}\n- Virement : ${formatEUR(vir)}\n- Remise : ${formatEUR(rem)}\nConfirmez-vous ?`;
             if (!confirm(recapMessage)) return;
 
             btn.disabled = true;
@@ -328,13 +345,16 @@
                 });
 
                 // 4. Préparation du document d'Encaissement (si mouvement d'argent)
-                if (aco > 0 || cb > 0 || rem > 0) {
+                if (aco > 0 || cb > 0 || vir > 0 || rem > 0) {
                     const ref = db.collection("encaissements_vendeurs").doc();
                     batch.set(ref, { 
                         date, 
                         vendeur: name, 
                         montantRecu: aco, 
                         montantCB: cb, // Nouveau champ
+                        refCB: refCB,
+                        montantVirement: vir,
+                        refVirement: refVir,
                         remise: rem, 
                         timestamp: firebase.firestore.FieldValue.serverTimestamp() 
                     });
@@ -379,7 +399,7 @@
                 db.collection("consommations").where("vendeur", "==", name).get()
             ]);
             inventoryData = {};
-            let hVenduAg = 0, hVenduAbi = 0, hRegleCash = 0, hRegleCB = 0, hRemiseMois = 0, hRemiseTotal = 0;
+            let hVenduAg = 0, hVenduAbi = 0, hRegleCash = 0, hRegleCB = 0, hRegleVir = 0, hRemiseMois = 0, hRemiseTotal = 0;
             
             // Calcul des entrées (Récupérations validées)
             rSnap.forEach(doc => { 
@@ -412,6 +432,7 @@
                 const d = doc.data();
                 hRegleCash += (parseFloat(d.montantRecu) || 0);
                 hRegleCB += (parseFloat(d.montantCB) || 0); // Nouveau
+                hRegleVir += (parseFloat(d.montantVirement) || 0);
                 hRemiseTotal += (parseFloat(d.remise) || 0);
                 if (d.date && d.date.startsWith(currentMonth)) hRemiseMois += (parseFloat(d.remise) || 0);
             });
@@ -421,10 +442,11 @@
             document.getElementById('totalVenduAbidjan').innerText = formatEUR(hVenduAbi);
             document.getElementById('totalPayeCash').innerText = formatEUR(hRegleCash);
             document.getElementById('totalPayeCB').innerText = formatEUR(hRegleCB); 
+            document.getElementById('totalPayeVirement').innerText = formatEUR(hRegleVir);
             document.getElementById('totalRemiseMois').innerText = formatEUR(hRemiseMois);
             
             // La dette déduit désormais le Cash ET la CB
-            document.getElementById('resteAPayer').innerText = formatEUR(hVenduAg - (hRegleCash + hRegleCB + hRemiseTotal));
+            document.getElementById('resteAPayer').innerText = formatEUR(hVenduAg - (hRegleCash + hRegleCB + hRegleVir + hRemiseTotal));
             renderUI();
         }
 
@@ -451,6 +473,14 @@
         // --- INITIALISATION ET ÉCOUTEURS D'ÉVÉNEMENTS ---
         valPayAbidjan.addEventListener('change', (e) => { valClientRef.style.display = e.target.checked ? 'block' : 'none'; });
         valVendeur.addEventListener('change', loadSellerData);
+        
+        // Affichage dynamique des champs de référence
+        document.getElementById('valCB').addEventListener('input', (e) => {
+            document.getElementById('valRefCB').style.display = e.target.value ? 'block' : 'none';
+        });
+        document.getElementById('valVirement').addEventListener('input', (e) => {
+            document.getElementById('valRefVirement').style.display = e.target.value ? 'block' : 'none';
+        });
         
         // Mise à jour automatique du prix et de l'info stock lors du choix produit
         document.getElementById('valProduit').addEventListener('change', () => {

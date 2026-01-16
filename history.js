@@ -173,7 +173,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Paiements et Remises (impact financier négatif sur la dette)
         paymentsDataAll.filter(p => p.vendeur === vendeur).forEach(p => {
             if (p.montantRecu > 0) logs.push({date: p.date, produit: 'Versement', op: '💰 Cash', v: '-', q: '-', m: -(parseFloat(p.montantRecu)), n: '-', c: '#10b981'});
-            if (p.montantCB > 0) logs.push({date: p.date, produit: 'Paiement', op: '💳 CB', v: '-', q: '-', m: -(parseFloat(p.montantCB)), n: '-', c: '#6366f1'});
+            if (p.montantCB > 0) logs.push({date: p.date, produit: 'Paiement', op: '💳 CB', v: '-', q: '-', m: -(parseFloat(p.montantCB)), n: p.refCB || '-', c: '#6366f1'});
+            if (p.montantVirement > 0) logs.push({date: p.date, produit: 'Virement', op: '🏦 Vir.', v: '-', q: '-', m: -(parseFloat(p.montantVirement)), n: p.refVirement || '-', c: '#8b5cf6'});
             if (p.remise > 0) logs.push({date: p.date, produit: 'Remise', op: '🎁 Remise', v: '-', q: '-', m: -(parseFloat(p.remise)), n: p.note || 'Remise accordée', c: '#be123c'});
         });
 
@@ -327,15 +328,16 @@ document.addEventListener('DOMContentLoaded', () => {
         filtered.forEach(d => {
             const cash = parseFloat(d.montantRecu) || 0;
             const cb = parseFloat(d.montantCB) || 0;
+            const vir = parseFloat(d.montantVirement) || 0;
             const rem = parseFloat(d.remise) || 0;
-            const total = cash + cb + rem;
+            const total = cash + cb + vir + rem;
 
             tableBodyPaiements.innerHTML += `
                 <tr>
                     <td>${d.date}</td>
                     <td>${d.vendeur}</td>
                     <td>${formatEUR(cash)}</td>
-                    <td style="color:#6366f1; font-weight:bold;">${cb > 0 ? formatEUR(cb) + ' 💳' : '-'}</td>
+                    <td style="color:#6366f1; font-weight:bold;">${cb > 0 ? formatEUR(cb) + ' 💳' : (vir > 0 ? formatEUR(vir) + ' 🏦' : '-')}</td>
                     <td>${formatEUR(rem)}</td>
                     <td style="font-weight:bold;">${formatEUR(total)}</td>
                     <td><button class="deleteBtn" onclick="deleteDocument('encaissements_vendeurs','${d.id}')">Suppr.</button></td>

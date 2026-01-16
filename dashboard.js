@@ -69,6 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // --- NOUVEAUX CALCULS FINANCIERS ---
         const totalCash = payments.reduce((sum, p) => sum + (parseFloat(p.montantRecu) || 0), 0);
         const totalCB = payments.reduce((sum, p) => sum + (parseFloat(p.montantCB) || 0), 0); // Champ CB
+        const totalVirement = payments.reduce((sum, p) => sum + (parseFloat(p.montantVirement) || 0), 0);
         const totalRemises = payments.reduce((sum, p) => sum + (parseFloat(p.remise) || 0), 0); // Champ Remise
         const totalPertes = losses.reduce((sum, l) => sum + (parseInt(l.quantite) || 0), 0);
 
@@ -76,11 +77,11 @@ document.addEventListener('DOMContentLoaded', () => {
         updateText('totalValeurStock', formatEUR(investTotal));
         updateText('totalVenduAbidjan', formatEUR(caAbidjan));
         updateText('grandTotalCaisse', formatEUR(totalCash)); // Case Verte
-        updateText('grandTotalCB', formatEUR(totalCB));       // Case Indigo
+        updateText('grandTotalCB', formatEUR(totalCB + totalVirement)); // Case Indigo (CB + Virement)
         updateText('totalRemises', formatEUR(totalRemises));   // Case Orange
         
         // Dette = Ventes Agence - (Cash + CB + Remises)
-        updateText('totalDues', formatEUR(caAgence - (totalCash + totalCB + totalRemises)));
+        updateText('totalDues', formatEUR(caAgence - (totalCash + totalCB + totalVirement + totalRemises)));
         
         updateText('qtyVendablesSortis', qtyVend);
         updateText('qtyConsosSortis', qtyCons);
@@ -135,7 +136,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // CORRECTION ICI : On ajoute montantCB au total reçu du vendeur
             sellers[p.vendeur].recu += (parseFloat(p.montantRecu) || 0) + 
-                                    (parseFloat(p.montantCB) || 0) + 
+                                    (parseFloat(p.montantCB) || 0) +
+                                    (parseFloat(p.montantVirement) || 0) + 
                                     (parseFloat(p.remise) || 0);
         });
 
