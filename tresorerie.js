@@ -22,14 +22,16 @@ document.addEventListener('DOMContentLoaded', () => {
         const table = document.getElementById('abidjanPendingBody').closest('table');
         if (!table) return;
         
-        let tabsContainer = document.getElementById('treasuryTabs');
+        // Utilisation du conteneur existant ou création si absent
+        let tabsContainer = document.getElementById('treasuryTabsContainer');
         if (!tabsContainer) {
             tabsContainer = document.createElement('div');
-            tabsContainer.id = 'treasuryTabs';
+            tabsContainer.id = 'treasuryTabsContainer';
             tabsContainer.style.marginBottom = '15px';
             tabsContainer.style.display = 'flex';
             tabsContainer.style.gap = '10px';
             tabsContainer.style.justifyContent = 'center';
+            tabsContainer.style.flexWrap = 'wrap';
             table.parentElement.insertBefore(tabsContainer, table);
         }
 
@@ -148,44 +150,14 @@ document.addEventListener('DOMContentLoaded', () => {
         const recettesReelles = totalCash + confirmedCB + confirmedVirement + caAbidjanRegle;
         const soldeNet = recettesReelles - totalDepenses;
 
-        // Injection dynamique des cartes KPI (Total CB / Virement) dans la grille
-        const recEl = document.getElementById('totalRecettes');
-        if (recEl) {
-            // Recherche plus robuste de la grille parente (compatible .card-stock ou .kpi-card)
-            let grid = recEl.closest('.kpi-stock-grid') || recEl.closest('.kpi-grid');
-            if (!grid && recEl.parentElement && recEl.parentElement.parentElement) {
-                grid = recEl.parentElement.parentElement;
-            }
-
-            if (grid) {
-                // Récupération de la classe d'une carte existante pour copier le style
-                const baseClass = grid.firstElementChild ? grid.firstElementChild.className : 'card-stock';
-
-                if (!document.getElementById('kpiTotalCB')) {
-                    const div = document.createElement('div');
-                    div.className = baseClass;
-                    div.style.background = '#6366f1';
-                    div.style.color = 'white';
-                    div.innerHTML = `<span class="stock-label">Total CB</span><span id="kpiTotalCB" class="stock-number">0€</span>`;
-                    grid.appendChild(div);
-                }
-                if (!document.getElementById('kpiTotalVir')) {
-                    const div = document.createElement('div');
-                    div.className = baseClass;
-                    div.style.background = '#8b5cf6';
-                    div.style.color = 'white';
-                    div.innerHTML = `<span class="stock-label">Total Virement</span><span id="kpiTotalVir" class="stock-number">0€</span>`;
-                    grid.appendChild(div);
-                }
-            }
-        }
-
         // Affichage KPI
         document.getElementById('totalRecettes').textContent = formatEUR(recettesReelles);
         document.getElementById('totalDepenses').textContent = formatEUR(totalDepenses);
         document.getElementById('soldeReel').textContent = formatEUR(soldeNet);
         document.getElementById('attenteAbidjan').textContent = formatEUR(caAbidjanAttente);
         
+        // Mise à jour des nouveaux KPIs de répartition
+        if (document.getElementById('kpiTotalCash')) document.getElementById('kpiTotalCash').textContent = formatEUR(totalCash);
         if (document.getElementById('kpiTotalCB')) document.getElementById('kpiTotalCB').textContent = formatEUR(totalCB);
         if (document.getElementById('kpiTotalVir')) document.getElementById('kpiTotalVir').textContent = formatEUR(totalVirement);
 

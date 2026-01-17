@@ -7,22 +7,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" type="image/png" href="logo.png">
-    <style>
-        .cash-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 15px; margin-bottom: 25px; }
-        .cash-card { padding: 15px; border-radius: 15px; color: white; text-align: center; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        .bg-income { background: #10b981; } .bg-expense { background: #be123c; } .bg-balance { background: #1e293b; } .bg-waiting { background: #701a75; }
-        .cash-label { font-size: 9px; text-transform: uppercase; font-weight: bold; opacity: 0.9; display: block; }
-        .cash-amount { font-size: 20px; font-weight: bold; display: block; margin-top: 5px; }
-        
-        .statement-container { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-top: 20px; }
-        .table-responsive { width: 100%; overflow-x: auto; margin-top: 15px; }
-        table { width: 100%; border-collapse: collapse; font-size: 12px; }
-        th, td { padding: 12px; border-bottom: 1px solid #f1f5f9; text-align: left; }
-        th { background: #f8fafc; color: #64748b; font-weight: bold; }
-        
-        .btn-settle { background: #10b981; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 11px; }
-        .btn-settle:hover { background: #059669; }
-    </style>
 </head>
 <body>
     <header class="app-header">
@@ -47,7 +31,10 @@
             <div class="cash-card bg-expense"><span class="cash-label">Dépenses (Achats Stock)</span><span id="totalDepenses" class="cash-amount">0,00 €</span></div>
             <div class="cash-card bg-balance"><span class="cash-label">Solde Net Disponible</span><span id="soldeReel" class="cash-amount">0,00 €</span></div>
             <div class="cash-card bg-waiting"><span class="cash-label">En attente Abidjan</span><span id="attenteAbidjan" class="cash-amount">0,00 €</span></div>
+            <div class="cash-card bg-waiting" style="background: #6366f1;"><span class="cash-label">Total CB</span><span id="kpiTotalCB" class="cash-amount">0,00 €</span></div>
+            <div class="cash-card bg-waiting" style="background: #8b5cf6;"><span class="cash-label">Total Virement</span><span id="kpiTotalVir" class="cash-amount">0,00 €</span></div>
         </div>
+
         <div class="statement-container">
             <h2 style="font-size: 15px; margin-top:0;">Comptabilité Globale</h2>
             <div style="display: flex; flex-direction: column; gap: 10px; font-size: 13px;">
