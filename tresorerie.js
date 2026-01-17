@@ -144,7 +144,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         // Calcul des dépenses d'achat
-        const totalDepenses = allStocks.reduce((sum, item) => sum + ((parseFloat(item.quantite) || 0) * (parseFloat(item.prixAchat) || 0)), 0);
+        let totalDepenses = 0;
+        let totalReinvesti = 0;
+
+        allStocks.forEach(item => {
+            const cout = ((parseFloat(item.quantite) || 0) * (parseFloat(item.prixAchat) || 0));
+            totalDepenses += cout;
+            if (item.source === 'benefice') totalReinvesti += cout;
+        });
         
         // RECETTES RÉELLES = Cash + CB Confirmé + Virement Confirmé + Abidjan déjà reçu
         const recettesReelles = totalCash + confirmedCB + confirmedVirement + caAbidjanRegle;
@@ -152,7 +159,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // Affichage KPI
         document.getElementById('totalRecettes').textContent = formatEUR(recettesReelles);
-        document.getElementById('totalDepenses').textContent = formatEUR(totalDepenses);
+        
+        // Affichage enrichi pour les dépenses (Total + Part réinvestie)
+        const elDepenses = document.getElementById('totalDepenses');
+        elDepenses.innerHTML = formatEUR(totalDepenses);
+        if (totalReinvesti > 0) {
+            elDepenses.innerHTML += `<div style="font-size:10px; color:#f59e0b; margin-top:4px;">Dont réinvesti : ${formatEUR(totalReinvesti)}</div>`;
+        }
+
         document.getElementById('soldeReel').textContent = formatEUR(soldeNet);
         document.getElementById('attenteAbidjan').textContent = formatEUR(caAbidjanAttente);
         

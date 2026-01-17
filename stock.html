@@ -122,14 +122,28 @@
     
     <div id="historyModal" class="modal">
         <div class="modal-content">
-            <span onclick="document.getElementById('historyModal').style.display='none'" style="float:right; cursor:pointer; font-size:20px; font-weight:bold;">&times;</span>
+            <span onclick="document.getElementById('historyModal').style.display='none'" style="float:right; cursor:pointer; font-size:30px; font-weight:bold;">&times;</span>
             <h2 id="modalTitle" style="color: #1877f2; margin-top: 0;">Détails</h2>
             <p id="modalStockStatus" style="font-size: 14px;"></p>
-            <div style="display: flex; gap: 10px;">
+            
+            <div style="display: flex; gap: 20px;">
                 <button onclick="document.getElementById('historyModal').style.display='none'; openLossModal(window.currentProdName);" class="btn-loss-main">⚠️ Déclarer Perte</button>
                 <button onclick="document.getElementById('historyModal').style.display='none'; openConsumeModal(window.currentProdName);" class="btn-loss-main" style="background: #64748b;">🛠️ Bureau</button>
             </div>
-            <div id="modalTableBody" style="margin-top: 15px;"></div>
+
+            <div style="margin-top: 15px; width: 100%; overflow: hidden;">
+                <table style="width:100%; border-collapse: collapse; margin-top:10px; table-layout: fixed;">
+                    <thead>
+                        <tr style="background:#f8fafc; color:#64748b; font-size:10px;">
+                            <th style="width: 20%; padding:6px 4px; border-bottom:1px solid #eee; text-align:left;">DATE</th>
+                            <th style="width: 15%; padding:6px 4px; border-bottom:1px solid #eee; text-align:left;">QTÉ</th>
+                            <th style="width: 20%; padding:6px 4px; border-bottom:1px solid #eee; text-align:left;">SOURCE</th>
+                            <th style="width: 25%; padding:6px 4px; border-bottom:1px solid #eee; text-align:left;">ACTION</th>
+                        </tr>
+                    </thead>
+                    <tbody id="historyTableBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
 

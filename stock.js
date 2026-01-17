@@ -4,6 +4,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     const inputPrixAchat = document.getElementById('prixAchat');
     const inputPrixVente = document.getElementById('prixVenteRef');
     
+    // --- INJECTION DU SÉLECTEUR DE SOURCE (CAPITAL vs BÉNÉFICE) ---
+    const sourceSelect = document.createElement('select');
+    sourceSelect.id = 'stockSource';
+    sourceSelect.style.marginBottom = '10px';
+    sourceSelect.style.marginTop = '5px';
+    sourceSelect.innerHTML = `<option value="benefice">Source : Bénéfice (Réinvestissement)</option><option value="capital">Source : Capital Initial / Apport</option>`;
+    if (addStockBtn && addStockBtn.parentNode) {
+        addStockBtn.parentNode.insertBefore(sourceSelect, addStockBtn);
+    }
+
     const vendablesTableBody = document.getElementById('vendablesTableBody');
     const consosTableBody = document.getElementById('consosTableBody');
 
@@ -77,6 +87,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         inputProduit.innerHTML += `<option value="NEW" style="color:blue; font-weight:bold;">+ NOUVEAU PRODUIT</option>`;
 
         renderStock();
+    }
+
+    // --- FONCTION DE SÉCURITÉ : CALCUL DU BÉNÉFICE DISPONIBLE ---
+    function getAvailableBenefice() {
+        let prices = {};
+        // On récupère le dernier prix d'achat connu pour chaque produit
+        allStocksRaw.forEach(s => { prices[s.produit] = parseFloat(s.prixAchat) || 0; });
+
+        let totalBenefice = 0;
+        allVentesRaw.forEach(v => {
+            const pa = prices[v.produit] || 0;
+            totalBenefice += (parseFloat(v.total) || 0) - ((parseInt(v.quantite) || 0) * pa);
+        });
+
+        let totalReinvesti = 0;
+        allStocksRaw.forEach(s => {
+            if (s.source === 'benefice') totalReinvesti += (parseFloat(s.quantite) || 0) * (parseFloat(s.prixAchat) || 0);
+        });
+
+        return totalBenefice - totalReinvesti;
     }
 
     // --- 4. CALCULS ET AFFICHAGE ---
@@ -174,29 +204,27 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('modalTitle').textContent = `Fiche : ${p}`;
         document.getElementById('modalStockStatus').innerHTML = `Dépôt actuel : <strong>${currentStock}</strong>`;
         
-        // Construction du tableau de l'image
-        let h = `<table style="width:100%; border-collapse: collapse; margin-top:10px;">
-                    <thead>
-                        <tr style="background:#f8fafc; color:#64748b; font-size:10px;">
-                            <th style="padding:10px; border-bottom:1px solid #eee; text-align:left;">DATE</th>
-                            <th style="padding:10px; border-bottom:1px solid #eee; text-align:left;">QTÉ</th>
-                            <th style="padding:10px; border-bottom:1px solid #eee; text-align:left;">ACTION</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
+        const tbody = document.getElementById('historyTableBody');
+        tbody.innerHTML = ''; // Nettoyage du tableau
         
         // Filtre les arrivages par produit et trie par date récente
         allStocksRaw.filter(s => s.produit === p).sort((a,b) => b.date.localeCompare(a.date)).forEach(l => {
-            h += `<tr style="border-bottom: 1px solid #f1f5f9;">
-                    <td style="padding:10px;">${l.date}</td>
-                    <td style="padding:10px;">${l.quantite}</td>
-                    <td style="padding:10px;">
+            const src = l.source || 'capital';
+            const srcLabel = src === 'benefice' ? '<span style="color:#f59e0b">Bénéfice</span>' : '<span style="color:#64748b">Capital</span>';
+            
+            const tr = document.createElement('tr');
+            tr.style.borderBottom = '1px solid #f1f5f9';
+            tr.innerHTML = `
+                    <td style="padding:4px;">${l.date}</td>
+                    <td style="padding:4px;">${l.quantite}</td>
+                    <td style="padding:4px; font-size:10px;">${srcLabel}</td>
+                    <td style="padding:4px;">
                         <button onclick="editStockLot('${l.id}',${l.quantite})" style="background:none; border:none; cursor:pointer; font-size:10px;">📝</button>
-                    </td>
-                  </tr>`;
+                        <button onclick="switchStockSource('${l.id}', '${src}')" style="background:none; border:none; cursor:pointer; font-size:10px; margin-left:5px;" title="Changer Source">🔄</button>
+                    </td>`;
+            tbody.appendChild(tr);
         });
         
-        document.getElementById('modalTableBody').innerHTML = h + `</tbody></table>`;
         m.style.display = "block";
     };
 
@@ -209,6 +237,24 @@ document.addEventListener('DOMContentLoaded', async () => {
             document.getElementById('historyModal').style.display = 'none';
             loadAllData(); 
         } 
+    };
+
+    window.switchStockSource = async (id, currentSource) => {
+        const newSource = (currentSource === 'benefice') ? 'capital' : 'benefice';
+        
+        // VÉRIFICATION AVANT CHANGEMENT
+        if (newSource === 'benefice') {
+            const item = allStocksRaw.find(s => s.id === id);
+            const cost = item ? (parseFloat(item.quantite) || 0) * (parseFloat(item.prixAchat) || 0) : 0;
+            const available = getAvailableBenefice();
+            if (cost > available) return alert(`Impossible : Le montant (${formatEUR(cost)}) dépasse le bénéfice disponible (${formatEUR(available)}).`);
+        }
+
+        if(confirm("Changer la source de financement (Capital <-> Bénéfice) ?")) {
+            await db.collection("stocks").doc(id).update({ source: newSource });
+            document.getElementById('historyModal').style.display = 'none';
+            loadAllData();
+        }
     };
 
     window.openLossModal = (p) => { document.getElementById('lossProductName').textContent = p; document.getElementById('lossModal').style.display = 'block'; };
@@ -241,8 +287,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         const date = document.getElementById('stockDate').value;
         const pa = parseFloat(inputPrixAchat.value) || 0;
         const pv = parseFloat(inputPrixVente.value) || 0;
+        const source = sourceSelect.value; // Récupération de la source choisie
+        
+        // VÉRIFICATION AVANT AJOUT
+        if (source === 'benefice') {
+            const cout = qte * pa;
+            const available = getAvailableBenefice();
+            if (cout > available) return alert(`Impossible : Le montant du réinvestissement (${formatEUR(cout)}) dépasse le bénéfice disponible (${formatEUR(available)}).`);
+        }
+
         if(!prod || qte <= 0) return alert("Saisie invalide.");
-        await db.collection("stocks").add({ date, produit: prod, prixAchat: pa, prixVente: pv, quantite: qte });
+        await db.collection("stocks").add({ date, produit: prod, prixAchat: pa, prixVente: pv, quantite: qte, source: source });
         alert("Enregistré !");
         document.getElementById('quantiteInitiale').value = ""; 
         loadAllData();

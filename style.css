@@ -289,4 +289,22 @@ body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.0
 }
 .tab-btn:hover { background: #cbd5e1; transform: translateY(-1px); }
 .tab-btn.active { background: #1877f2; color: white; box-shadow: 0 4px 6px rgba(24, 119, 242, 0.3); }
+/* --- Agrandissement du Modal pour éviter le débordement --- */
+.modal-content {
+    background-color: var(--bg-card); /* Utilise la variable de votre thème jour/nuit */
+    border-radius: 20px;
+    padding: 25px;
+    width: 95%; /* Largeur presque totale sur très petits écrans */
+    max-width: 700px !important; /* Augmenté de 450px à 700px pour loger le tableau */
+    margin: 5% auto; /* Réduction de la marge haute pour mieux voir sur les petits écrans */
+    position: relative;
+    box-shadow: var(--shadow); /* Application de l'ombre de votre thème */
+    overflow: hidden;
+}
 
+/* Optimisation du conteneur de tableau à l'intérieur */
+#modalTableBody {
+    width: 100%;
+    margin-top: 20px;
+    overflow-x: auto; /* Sécurité : permet le défilement si l'écran est vraiment trop étroit */
+}
