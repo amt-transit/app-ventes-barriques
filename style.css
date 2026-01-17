@@ -246,6 +246,19 @@ body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.0
     
     .kpi-stock-grid { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
     .card-stock { min-height: 80px; }
+
+    /* Navigation Icônes */
+
+    .navigation a { font-size: 0; padding: 15px 0; flex: 1; text-align: center; }
+    .navigation a[href*="validation"]::before { content: "📝"; font-size: 20px; }
+    .navigation a[href*="stock"]::before { content: "📦"; font-size: 20px; }
+    .navigation a[href*="dashboard"]::before { content: "📊"; font-size: 20px; }
+    .navigation a[href*="tresorerie"]::before { content: "💰"; font-size: 20px; }
+    .navigation a[href*="history"]::before { content: "📜"; font-size: 20px; }
+    .navigation a[href*="utilisateurs"]::before { content: "👥"; font-size: 20px; }
+    .navigation a[href*="recuperation"]::before { content: "🔄"; font-size: 20px; }
+    .logout-button { font-size: 0; flex: 0.5; }
+    .logout-button::before { content: "🚪"; font-size: 20px; }
 }
 
 /* ==========================================================================
@@ -276,3 +289,4 @@ body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.0
 }
 .tab-btn:hover { background: #cbd5e1; transform: translateY(-1px); }
 .tab-btn.active { background: #1877f2; color: white; box-shadow: 0 4px 6px rgba(24, 119, 242, 0.3); }
+
