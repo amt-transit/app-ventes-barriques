@@ -140,6 +140,7 @@ body.dark-mode {
 .bg-green  { background: linear-gradient(135deg, #10b981, #059669); }
 .bg-red    { background: linear-gradient(135deg, #be123c, #9f1239); }
 .bg-orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+.bg-slate  { background: linear-gradient(135deg, #64748b, #475569); }
 .bg-dark   { background: linear-gradient(135deg, #1e293b, #0f172a); }
 
 /* ==========================================================================
@@ -161,6 +162,54 @@ input:focus { border-color: var(--accent-blue); outline: none; box-shadow: 0 0 0
     width: 100%;
 }
 
+/* Boutons Actions Globales (Validation) */
+.btn-save-all, .btn-cancel-all, .btn-download {
+    border-radius: 12px; padding: 14px; font-weight: bold;
+    color: white !important; cursor: pointer; border: none;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    width: 100%;
+    font-family: inherit;
+    flex: 1; /* Répartition équitable de l'espace */
+    transition: transform 0.2s, background 0.3s;
+}
+
+.btn-save-all { background-color: #10b981; } /* Vert Validation */
+.btn-save-all:hover { background-color: #059669; transform: translateY(-2px); }
+
+.btn-cancel-all { background-color: #ef4444; } /* Rouge Annulation */
+.btn-cancel-all:hover { background-color: #dc2626; transform: translateY(-2px); }
+
+.btn-download { background-color: #1877f2; } /* Bleu Téléchargement */
+.btn-download:hover { background-color: #0561d9; transform: translateY(-2px); }
+
+/* Boutons Navigation Mois (Historique) */
+.btn-month {
+    background-color: #1877f2;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s, background 0.3s;
+}
+.btn-month:hover { background-color: #0561d9; transform: translateY(-2px); }
+
+/* Boutons Suppression (Rouge) */
+.deleteBtn, .btn-remove {
+    background-color: #ef4444;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: transform 0.2s, background 0.3s;
+    font-size: 11px;
+}
+.deleteBtn:hover, .btn-remove:hover { background-color: #dc2626; transform: translateY(-2px); }
 
 /* Sections colorées (Validation) */
 .section-ventes { border-left: 6px solid #1877f2; background: rgba(24, 119, 242, 0.05); padding: 15px; border-radius: 0 12px 12px 0; margin-bottom: 15px;}

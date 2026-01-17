@@ -42,7 +42,7 @@ function loadUsers() {
                     <td>${roleSelector}</td>
                     <td>
                         <button onclick="resetPassword('${u.email}')" style="padding:5px 10px; cursor:pointer; border-radius:5px; border:1px solid #ccc;">Reset</button>
-                        ${isSuper ? `<button onclick="deleteUser('${doc.id}')" style="padding:5px 10px; cursor:pointer; background:#fee2e2; color:#be123c; border:1px solid #fecaca; border-radius:5px; margin-left:5px;">Suppr.</button>` : ''}
+                        ${isSuper ? `<button onclick="deleteUser('${doc.id}')" class="deleteBtn" style="margin-left:5px;">Suppr.</button>` : ''}
                     </td>
                 </tr>`;
         });

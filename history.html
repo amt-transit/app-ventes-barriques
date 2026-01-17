@@ -25,8 +25,6 @@
         .modal-content { background: white; margin: 2% auto; padding: 25px; border-radius: 15px; width: 95%; max-width: 850px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
         .close-modal { float: right; font-size: 28px; font-weight: bold; cursor: pointer; color: #64748b; }
         
-        /* Style pour le bouton PDF du modal */
-        .btn-modal-pdf { background: #1e293b; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 11px; margin-bottom: 15px; }
     </style>
 </head>
 <body>
@@ -53,10 +51,10 @@
 
     <div id="global-filters" class="filter-bar">
         <div style="display: flex; gap: 5px;">
-            <button onclick="changeMonth(-1)">◀</button>
+            <button class="btn-month" onclick="changeMonth(-1)">◀</button>
             <input type="date" id="mainFilterDateStart" style="font-size:11px; width:110px;">
             <input type="date" id="mainFilterDateEnd" style="font-size:11px; width:110px;">
-            <button onclick="changeMonth(1)">▶</button>
+            <button class="btn-month" onclick="changeMonth(1)">▶</button>
         </div>
         <select id="filterVendeur" style="padding:8px; border-radius:8px;"><option value="">Vendeur: Tous</option></select>
         <input type="text" id="filterClientRef" placeholder="🔍 Réf. Client..." style="padding:8px; border-radius:8px; border:1px solid #cbd5e1; width:140px; font-family:'Comfortaa'; font-size:11px;">
@@ -122,8 +120,8 @@
             <span class="close-modal" onclick="closeInvendusModal()">&times;</span>
             <h2 id="modalInvendusTitle" style="font-size:18px; color:#1877f2; margin-top:0;">Détails du Compte</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button onclick="downloadSellerHistoryPDF()" class="btn-modal-pdf">📄 Bilan PDF</button>
-                <button onclick="resetSellerDebt()" id="btnResetDebt" style="background: #be123c; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 11px;">💰 Solder la Dette (Mise à zéro)</button>
+                <button onclick="downloadSellerHistoryPDF()" class="btn-download">📄 Bilan PDF</button>
+                <button onclick="resetSellerDebt()" id="btnResetDebt" class="btn-cancel-all">💰 Solder la Dette (Mise à zéro)</button>
             </div>
             <div id="sellerPdfArea" style="padding: 10px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 2px solid #1877f2; padding-bottom: 10px;">
