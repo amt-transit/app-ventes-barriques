@@ -138,10 +138,12 @@
             <div class="kpi-card bg-purple"><h3>📍 Abidjan</h3><p id="totalVenduAbidjan">0,00 €</p></div>
             <div class="kpi-card bg-green"><h3>Total Cash</h3><p id="grandTotalCaisse">0,00 €</p></div>
             <div class="kpi-card" style="background: #6366f1;"><h3>Total CB</h3><p id="grandTotalCB">0,00 €</p></div>
+            <div class="kpi-card" style="background: #8b5cf6;"><h3>Total Virement</h3><p id="grandTotalVirement">0,00 €</p></div>
             <div class="kpi-card bg-orange"><h3>Total Remises</h3><p id="totalRemises">0,00 €</p></div>
             <div class="kpi-card bg-red"><h3>Dette Vendeurs</h3><p id="totalDues">0,00 €</p></div>
             <div class="kpi-card bg-slate"><h3>📦 Sortis (Toutes Opé.)</h3><p id="qtyVendablesSortis">0</p></div>
             <div class="kpi-card bg-dark"><h3>Pertes</h3><p id="totalPertes">0</p></div>
+            <div class="kpi-card bg-orange"><h3>Réinvesti (Période)</h3><p id="kpiReinvesti">0,00 €</p></div>
         </div>
 
         <!-- Résumé Flash (Stats du jour et Top Vendeur) -->
@@ -157,6 +159,7 @@
             <div style="flex: 1; background: #10b981; color: white; padding: 10px; border-radius: 8px; text-align: center;">
                 <span style="font-size: 9px; font-weight: bold;">MARGE RÉELLE</span><br>
                 <strong id="beneficeTotalDisplay" style="font-size: 16px;">0,00 €</strong>
+                <div id="beneficeDispoDisplay" style="font-size: 11px; margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 3px;">Reste : 0,00 €</div>
             </div>
         </div>
 
@@ -211,5 +214,55 @@
     </script>
     <script src="auth-guard.js"></script>
     <script src="dashboard.js"></script>
+    <script>
+        // --- SCRIPT ADDITIONNEL : GESTION DU RÉINVESTISSEMENT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const db = firebase.firestore();
+            const startInput = document.getElementById('startDate');
+            const endInput = document.getElementById('endDate');
+            
+            let allStocks = [], allSales = [];
+
+            async function loadReinvestData() {
+                const [sSnap, vSnap] = await Promise.all([
+                    db.collection("stocks").orderBy("date", "asc").get(),
+                    db.collection("ventes").get()
+                ]);
+                allStocks = sSnap.docs.map(d => d.data());
+                allSales = vSnap.docs.map(d => d.data());
+                calculateReinvestKPIs();
+            }
+
+            function calculateReinvestKPIs() {
+                const start = startInput.value || "2000-01-01";
+                const end = endInput.value || "2100-01-01";
+
+                // 1. Prix d'achat de référence
+                let prices = {};
+                allStocks.forEach(s => { prices[s.produit] = parseFloat(s.prixAchat) || 0; });
+
+                // 2. Calcul Réinvesti (Période)
+                let reinvesti = 0;
+                allStocks.filter(s => s.date >= start && s.date <= end && s.source === 'benefice').forEach(s => {
+                    reinvesti += (parseFloat(s.quantite) || 0) * (parseFloat(s.prixAchat) || 0);
+                });
+
+                // 3. Calcul Marge (Période) pour déduire le reste
+                let marge = 0;
+                allSales.filter(s => s.date >= start && s.date <= end).forEach(s => {
+                    const pa = prices[s.produit] || 0;
+                    marge += (parseFloat(s.total)||0) - ((parseInt(s.quantite)||0) * pa);
+                });
+
+                document.getElementById('kpiReinvesti').textContent = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(reinvesti);
+                document.getElementById('beneficeDispoDisplay').textContent = "Reste (Période) : " + new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(marge - reinvesti);
+            }
+
+            db.collection("stocks").onSnapshot(loadReinvestData);
+            startInput.addEventListener('change', calculateReinvestKPIs);
+            endInput.addEventListener('change', calculateReinvestKPIs);
+            setTimeout(loadReinvestData, 1500); // Attente init dashboard.js
+        });
+    </script>
 </body>
 </html>

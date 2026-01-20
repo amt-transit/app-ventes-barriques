@@ -121,7 +121,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             cbList.sort((a,b) => new Date(b.date) - new Date(a.date));
             cbList.forEach(row => {
-                const actionBtn = row.isConfirmed ? '<span style="color:green; font-weight:bold;">✅ Reçu</span>' : `<button class="btn-settle" onclick="confirmerReception('${row.source}', '${row.id}', '${row.type}')">Confirmer</button>`;
+                const actionBtn = row.isConfirmed 
+                    ? `<span style="color:green; font-weight:bold;">✅ Reçu</span> <button class="btn-settle" style="background-color:#f59e0b; margin-left:5px; font-size:9px; padding:4px 8px;" onclick="reverserEnCaisse('${row.source}', '${row.id}', '${row.type}', ${row.total})">➡️ Caisse</button>` 
+                    : `<button class="btn-settle" onclick="confirmerReception('${row.source}', '${row.id}', '${row.type}')">Confirmer</button>`;
                 pendingBody.innerHTML += `<tr><td>${row.date}</td><td>${row.client}</td><td>${row.produit}</td><td style="color:#6366f1; font-weight:bold;">${formatEUR(row.total)}</td><td>${row.vendeur}</td><td>${actionBtn}</td></tr>`;
             });
         } else if (currentTab === 'virement') {
@@ -138,7 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             virList.sort((a,b) => new Date(b.date) - new Date(a.date));
             virList.forEach(row => {
-                const actionBtn = row.isConfirmed ? '<span style="color:green; font-weight:bold;">✅ Reçu</span>' : `<button class="btn-settle" onclick="confirmerReception('${row.source}', '${row.id}', '${row.type}')">Confirmer</button>`;
+                const actionBtn = row.isConfirmed 
+                    ? `<span style="color:green; font-weight:bold;">✅ Reçu</span> <button class="btn-settle" style="background-color:#f59e0b; margin-left:5px; font-size:9px; padding:4px 8px;" onclick="reverserEnCaisse('${row.source}', '${row.id}', '${row.type}', ${row.total})">➡️ Caisse</button>` 
+                    : `<button class="btn-settle" onclick="confirmerReception('${row.source}', '${row.id}', '${row.type}')">Confirmer</button>`;
                 pendingBody.innerHTML += `<tr><td>${row.date}</td><td>${row.client}</td><td>${row.produit}</td><td style="color:#8b5cf6; font-weight:bold;">${formatEUR(row.total)}</td><td>${row.vendeur}</td><td>${actionBtn}</td></tr>`;
             });
         }
@@ -194,6 +198,37 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
         tbody.appendChild(tr);
     }
+
+    // FONCTION POUR BASCULER CB/VIREMENT VERS CAISSE
+    window.reverserEnCaisse = async (source, id, type, amount) => {
+        if (confirm(`Transférer ce montant de ${formatEUR(amount)} vers la Caisse (Espèces) ?\n\nCela déplacera les fonds de "${type === 'cb' ? 'Carte Bancaire' : 'Virement'}" vers "Espèces".`)) {
+            try {
+                const docRef = db.collection(source).doc(id);
+                const doc = await docRef.get();
+                if (!doc.exists) return;
+                const data = doc.data();
+
+                let updateData = {};
+
+                if (source === 'ventes') {
+                    updateData = { modeDePaiement: 'Espèce' };
+                } else {
+                    const currentCash = parseFloat(data.montantRecu) || 0;
+                    updateData = { montantRecu: currentCash + amount };
+                    
+                    if (type === 'cb') updateData.montantCB = 0;
+                    else updateData.montantVirement = 0;
+                }
+
+                await docRef.update(updateData);
+                if (window.logAction) window.logAction("TRÉSORERIE", "TRANSFERT_CAISSE", `Transfert ${type.toUpperCase()} ${amount}€ vers Caisse`);
+                
+            } catch (e) {
+                console.error(e);
+                alert("Erreur lors du transfert.");
+            }
+        }
+    };
 
     // FONCTION POUR VALIDER LE REVERSEMENT
     window.marquerCommeRegle = async (id) => {

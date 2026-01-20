@@ -139,6 +139,16 @@
                     <tbody id="sellerInventoryBody"></tbody>
                 </table>
             </div>
+            
+            <h3 style="font-size:14px; margin-top:20px; color:#1e293b; border-top: 1px solid #e2e8f0; padding-top: 10px;">📦 Répartition Stock (Ancien / Nouveau)</h3>
+            <div class="table-responsive">
+                <table id="stockAgeTable">
+                    <thead>
+                        <tr style="background: #f1f5f9;"><th>Produit</th><th style="color: #64748b;">Ancien</th><th>Date</th><th style="color: #1877f2;">Nouveau</th><th>Date</th><th>Total</th></tr>
+                    </thead>
+                    <tbody id="stockAgeBody"></tbody>
+                </table>
+            </div>
         </div>
     </div>
     </div>
@@ -400,6 +410,7 @@
             ]);
             inventoryData = {};
             let hVenduAg = 0, hVenduAbi = 0, hRegleCash = 0, hRegleCB = 0, hRegleVir = 0, hRemiseMois = 0, hRemiseTotal = 0;
+            let allRecups = [];
             
             // Calcul des entrées (Récupérations validées)
             rSnap.forEach(doc => { 
@@ -407,6 +418,7 @@
                 if (d.statut === "confirme" || !d.statut) {
                     if (!inventoryData[d.produit]) inventoryData[d.produit] = { pT:0, vT:0, rT:0, cT:0 }; 
                     inventoryData[d.produit].pT += d.quantite; 
+                    allRecups.push({ p: d.produit, q: parseInt(d.quantite)||0, d: d.date });
                 }
             });
             
@@ -448,6 +460,7 @@
             // La dette déduit désormais le Cash ET la CB
             document.getElementById('resteAPayer').innerText = formatEUR(hVenduAg - (hRegleCash + hRegleCB + hRegleVir + hRemiseTotal));
             renderUI();
+            renderStockAgeTable(allRecups, inventoryData);
         }
 
         // Mise à jour de l'interface utilisateur (Selects et Tableaux)
@@ -467,6 +480,47 @@
             for (const p in inventoryData) {
                 const i = inventoryData[p]; const enMain = i.pT - i.vT - i.rT - i.cT;
                 tbody.innerHTML += `<tr><td>${p} ${globalPrices[p] <= 0 ? '🛠️' : ''}</td><td>${i.pT}</td><td>${i.vT}</td><td>${i.cT}</td><td>${i.rT}</td><td><b>${enMain}</b></td></tr>`;
+            }
+        }
+
+        function renderStockAgeTable(recups, inventory) {
+            const tbody = document.getElementById('stockAgeBody');
+            if (!tbody) return;
+            tbody.innerHTML = '';
+            if (recups.length === 0) return;
+            
+            const dates = recups.map(r => r.d).sort();
+            const latestDate = dates[dates.length - 1];
+
+            for (const p in inventory) {
+                const item = inventory[p];
+                let remainingToCover = item.vT + item.rT + item.cT;
+                const pRecups = recups.filter(r => r.p === p).sort((a, b) => a.d.localeCompare(b.d));
+                
+                let oldStock = 0, newStock = 0;
+                let oldDate = "-", newDate = "-";
+
+                pRecups.forEach(r => {
+                    let available = r.q;
+                    if (remainingToCover > 0) {
+                        const used = Math.min(available, remainingToCover);
+                        available -= used;
+                        remainingToCover -= used;
+                    }
+                    if (available > 0) {
+                        if (r.d < latestDate) {
+                            oldStock += available;
+                            oldDate = r.d;
+                        } else {
+                            newStock += available;
+                            newDate = r.d;
+                        }
+                    }
+                });
+
+                if (oldStock > 0 || newStock > 0) {
+                    tbody.innerHTML += `<tr><td>${p}</td><td style="color: #64748b; font-weight:bold;">${oldStock}</td><td><small>${oldStock > 0 ? oldDate : '-'}</small></td><td style="color: #1877f2; font-weight:bold;">${newStock}</td><td><small>${newStock > 0 ? newDate : '-'}</small></td><td><b>${oldStock + newStock}</b></td></tr>`;
+                }
             }
         }
 

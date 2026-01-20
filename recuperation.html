@@ -132,6 +132,16 @@
                     </table>
                 </div>
             </div>
+
+            <div class="points-card" style="background: white; padding: 15px; border-radius: 12px; margin-top: 10px;">
+                <h3 style="margin:0; font-size:13px; color:#1e293b;">📦 Répartition Stock (Ancien / Nouveau)</h3>
+                <div class="table-responsive">
+                    <table class="points-table">
+                        <thead><tr style="background: #f1f5f9;"><th>Produit</th><th style="color: #64748b;">Ancien</th><th>Date</th><th style="color: #1877f2;">Nouveau</th><th>Date</th><th>Total</th></tr></thead>
+                        <tbody id="stockAgeBody"></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
         <button onclick="downloadPDF()" class="btn-pdf">📄 Télécharger mon point (PDF)</button>
     </div>
@@ -333,11 +343,13 @@
         async function loadSellerPersonalPoints(nom) {
             const dateDebut = document.getElementById('filterDateDebut').value;
             const dateFin = document.getElementById('filterDateFin').value;
-            const [recupSnap, ventesSnap, encaissSnap, pricesSnap] = await Promise.all([
+            const [recupSnap, ventesSnap, encaissSnap, pricesSnap, retoursSnap, consosSnap] = await Promise.all([
                 db.collection("recuperations").where("vendeur", "==", nom).get(),
                 db.collection("ventes").where("vendeur", "==", nom).get(),
                 db.collection("encaissements_vendeurs").where("vendeur", "==", nom).get(),
-                db.collection("stocks").get()
+                db.collection("stocks").get(),
+                db.collection("retours_vendeurs").where("vendeur", "==", nom).get(),
+                db.collection("consommations").where("vendeur", "==", nom).get()
             ]);
             let pVenteMap = {};
             pricesSnap.forEach(doc => { pVenteMap[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
@@ -364,6 +376,58 @@
             document.getElementById('myTotalVendu').innerText = fmt(totalVenduArgent);
             document.getElementById('myTotalVerse').innerText = fmt(totalVerse);
             document.getElementById('myReste').innerText = fmt(totalVenduArgent - totalVerse);
+
+            // --- CALCUL RÉPARTITION ANCIEN / NOUVEAU STOCK ---
+            let inventory = {};
+            let allRecups = [];
+
+            // 1. Entrées (Récupérations)
+            recupSnap.forEach(doc => {
+                const d = doc.data();
+                if (d.statut === "confirme" || !d.statut) {
+                    if (!inventory[d.produit]) inventory[d.produit] = { in: 0, out: 0 };
+                    inventory[d.produit].in += (parseInt(d.quantite) || 0);
+                    allRecups.push({ p: d.produit, q: parseInt(d.quantite)||0, d: d.date });
+                }
+            });
+
+            // 2. Sorties (Ventes + Retours + Consos)
+            const countOut = (snap) => {
+                snap.forEach(doc => {
+                    const d = doc.data();
+                    if (inventory[d.produit]) inventory[d.produit].out += (parseInt(d.quantite) || 0);
+                });
+            };
+            countOut(ventesSnap);
+            countOut(retoursSnap);
+            countOut(consosSnap);
+
+            // 3. Rendu du tableau
+            const tbodyAge = document.getElementById('stockAgeBody');
+            tbodyAge.innerHTML = '';
+            if (allRecups.length > 0) {
+                const dates = allRecups.map(r => r.d).sort();
+                const latestDate = dates[dates.length - 1];
+
+                for (const p in inventory) {
+                    const item = inventory[p];
+                    let remainingToCover = item.out; // On déduit les sorties des stocks les plus anciens (FIFO)
+                    const pRecups = allRecups.filter(r => r.p === p).sort((a, b) => a.d.localeCompare(b.d));
+                    
+                    let oldStock = 0, newStock = 0;
+                    let oldDate = "-", newDate = "-";
+
+                    pRecups.forEach(r => {
+                        let available = r.q;
+                        if (remainingToCover > 0) { const used = Math.min(available, remainingToCover); available -= used; remainingToCover -= used; }
+                        if (available > 0) {
+                            if (r.d < latestDate) { oldStock += available; oldDate = r.d; }
+                            else { newStock += available; newDate = r.d; }
+                        }
+                    });
+                    if (oldStock > 0 || newStock > 0) tbodyAge.innerHTML += `<tr><td>${p}</td><td style="color: #64748b; font-weight:bold;">${oldStock}</td><td><small>${oldStock > 0 ? oldDate : '-'}</small></td><td style="color: #1877f2; font-weight:bold;">${newStock}</td><td><small>${newStock > 0 ? newDate : '-'}</small></td><td><b>${oldStock + newStock}</b></td></tr>`;
+                }
+            }
         }
 
         function switchRecupTab(type) {

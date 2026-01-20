@@ -77,7 +77,8 @@ document.addEventListener('DOMContentLoaded', () => {
         updateText('totalValeurStock', formatEUR(investTotal));
         updateText('totalVenduAbidjan', formatEUR(caAbidjan));
         updateText('grandTotalCaisse', formatEUR(totalCash)); // Case Verte
-        updateText('grandTotalCB', formatEUR(totalCB + totalVirement)); // Case Indigo (CB + Virement)
+        updateText('grandTotalCB', formatEUR(totalCB)); // Case Indigo (CB)
+        updateText('grandTotalVirement', formatEUR(totalVirement)); // Case Violet (Virement)
         updateText('totalRemises', formatEUR(totalRemises));   // Case Orange
         
         // Dette = Ventes Agence - (Cash + CB + Remises)
