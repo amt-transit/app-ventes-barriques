@@ -4,6 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const tableBodyInvendus = document.getElementById('tableBodyInvendus');
     const tableBodyConsommables = document.getElementById('tableBodyConsommables');
     const tableBodyPaiements = document.getElementById('tableBodyPaiements');
+    const tableBodyRecuperations = document.getElementById('tableBodyRecuperations');
     const auditLogBody = document.getElementById('auditLogBody');
     const filterVendeur = document.getElementById('filterVendeur');
     const filterClientRef = document.getElementById('filterClientRef'); 
@@ -17,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let salesDataAll = [];  
     let retoursDataAll = []; 
     let consommationsData = []; 
+    let recuperationsData = [];
     let currentModalSeller = ""; // Pour nommer le PDF
     let paymentsDataAll = [];
     
@@ -24,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let unsubSales = null;
     let unsubConsos = null;
     let unsubPayments = null;
+    let unsubRecuperations = null;
 
     async function init() {
         setDefaultDates();
@@ -62,6 +65,13 @@ document.addEventListener('DOMContentLoaded', () => {
         startDataListeners(); 
     };
 
+    function formatTime(t) {
+        if (t && typeof t.toDate === 'function') {
+            return t.toDate().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+        }
+        return '';
+    }
+
     // Listeners globaux (non affectés par les dates) pour le calcul des stocks/invendus
     function startGlobalListeners() {
         db.collection("recuperations").onSnapshot(snap => {
@@ -78,6 +88,10 @@ document.addEventListener('DOMContentLoaded', () => {
             retoursDataAll = snap.docs.map(doc => doc.data());
             renderInvendus();
         });
+
+        db.collection("encaissements_vendeurs").onSnapshot(snap => {
+            paymentsDataAll = snap.docs.map(doc => doc.data());
+        });
     }
 
     // Listeners dynamiques (dépendants des dates sélectionnées)
@@ -86,6 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (unsubSales) unsubSales();
         if (unsubConsos) unsubConsos();
         if (unsubPayments) unsubPayments();
+        if (unsubRecuperations) unsubRecuperations();
 
         const start = dateStartInput.value; 
         const end = dateEndInput.value;
@@ -107,6 +122,12 @@ document.addEventListener('DOMContentLoaded', () => {
             .orderBy("date", "desc") 
             .onSnapshot(s => { 
                 renderPaiements(s.docs.map(d => ({id: d.id, ...d.data()}))); 
+            });
+
+        unsubRecuperations = db.collection("recuperations").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
+            .onSnapshot(snap => {
+                recuperationsData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderRecuperations();
             });
     }
 
@@ -185,21 +206,22 @@ document.addEventListener('DOMContentLoaded', () => {
         let logs = [];
 
         // Mouvements de stock (impact financier = 0)
-        uRecupsAll.forEach(d => logs.push({date: d.date, produit: d.produit, op: '📦 Récup.', v: '-', q: d.quantite, m: 0, n: '-', c: '#1877f2'}));
-        uRetoursAll.forEach(d => logs.push({date: d.date, produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, m: 0, n: '-', c: '#f59e0b'}));
+        uRecupsAll.forEach(d => logs.push({date: d.date, time: formatTime(d.timestamp), produit: d.produit, op: '📦 Récup.', v: '-', q: d.quantite, m: 0, n: '-', c: '#1877f2'}));
+        uRetoursAll.forEach(d => logs.push({date: d.date, time: formatTime(d.timestamp), produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, m: 0, n: '-', c: '#f59e0b'}));
         
         // Ventes (impact financier si Agence)
         uSalesAll.forEach(d => {
             const impact = (d.payeAbidjan !== true) ? (parseFloat(d.total) || 0) : 0;
-            logs.push({date: d.date, produit: d.produit, op: '🏠 Vente', v: d.payeAbidjan ? 'Abidjan' : 'Agence', q: d.quantite, m: impact, n: d.clientRef || '-', c: '#10b981'});
+            logs.push({date: d.date, time: formatTime(d.timestamp), produit: d.produit, op: '🏠 Vente', v: d.payeAbidjan ? 'Abidjan' : 'Agence', q: d.quantite, m: impact, n: d.clientRef || '-', c: '#10b981'});
         });
 
         // Paiements et Remises (impact financier négatif sur la dette)
         paymentsDataAll.filter(p => p.vendeur === vendeur).forEach(p => {
-            if (p.montantRecu > 0) logs.push({date: p.date, produit: 'Versement', op: '💰 Cash', v: '-', q: '-', m: -(parseFloat(p.montantRecu)), n: '-', c: '#10b981'});
-            if (p.montantCB > 0) logs.push({date: p.date, produit: 'Paiement', op: '💳 CB', v: '-', q: '-', m: -(parseFloat(p.montantCB)), n: p.refCB || '-', c: '#6366f1'});
-            if (p.montantVirement > 0) logs.push({date: p.date, produit: 'Virement', op: '🏦 Vir.', v: '-', q: '-', m: -(parseFloat(p.montantVirement)), n: p.refVirement || '-', c: '#8b5cf6'});
-            if (p.remise > 0) logs.push({date: p.date, produit: 'Remise', op: '🎁 Remise', v: '-', q: '-', m: -(parseFloat(p.remise)), n: p.note || 'Remise accordée', c: '#be123c'});
+            const t = formatTime(p.timestamp);
+            if (p.montantRecu > 0) logs.push({date: p.date, time: t, produit: 'Versement', op: '💰 Cash', v: '-', q: '-', m: -(parseFloat(p.montantRecu)), n: '-', c: '#10b981'});
+            if (p.montantCB > 0) logs.push({date: p.date, time: t, produit: 'Paiement', op: '💳 CB', v: '-', q: '-', m: -(parseFloat(p.montantCB)), n: p.refCB || '-', c: '#6366f1'});
+            if (p.montantVirement > 0) logs.push({date: p.date, time: t, produit: 'Virement', op: '🏦 Vir.', v: '-', q: '-', m: -(parseFloat(p.montantVirement)), n: p.refVirement || '-', c: '#8b5cf6'});
+            if (p.remise > 0) logs.push({date: p.date, time: t, produit: 'Remise', op: '🎁 Remise', v: '-', q: '-', m: -(parseFloat(p.remise)), n: p.note || 'Remise accordée', c: '#be123c'});
         });
 
         // 4. CALCUL DU SOLDE PROGRESSIF (Chronologique)
@@ -222,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             histBody.innerHTML += `
                 <tr>
-                    <td>${l.date}</td>
+                    <td>${l.date} <small style="color:gray; font-size:9px;">${l.time}</small></td>
                     <td><b>${l.produit}</b></td>
                     <td style="color:${l.c}; font-weight:bold;">${l.op}</td>
                     <td><small>${l.v}</small></td>
@@ -247,6 +269,63 @@ document.addEventListener('DOMContentLoaded', () => {
             filename: `Bilan_${currentModalSeller}_${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.98 },
             html2canvas: { scale: 3, useCORS: true }, // scale: 3 pour une meilleure netteté du logo
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        html2pdf().set(opt).from(element).save();
+    };
+
+    // --- MODALE RÉCUPÉRATIONS ---
+    window.openRecuperationsModal = (vendeur) => {
+        currentModalSeller = vendeur;
+        document.getElementById('modalRecuperationsTitle').innerText = `Récupérations : ${vendeur}`;
+        document.getElementById('pdfRecupSellerName').innerText = vendeur;
+        document.getElementById('pdfRecupPeriod').innerText = `${dateStartInput.value} au ${dateEndInput.value}`;
+
+        const sumBody = document.getElementById('modalRecupSummaryBody');
+        const histBody = document.getElementById('modalRecupHistoryBody');
+        sumBody.innerHTML = ''; histBody.innerHTML = '';
+
+        const selC = filterClientRef.value.toLowerCase();
+        let uRecups = recuperationsData.filter(r => r.vendeur === vendeur);
+        
+        if (selC) uRecups = uRecups.filter(d => d.produit.toLowerCase().includes(selC));
+
+        // Résumé par produit
+        const products = [...new Set(uRecups.map(r => r.produit))];
+        products.forEach(p => {
+            const qty = uRecups.filter(r => r.produit === p).reduce((s, c) => s + (parseInt(c.quantite)||0), 0);
+            sumBody.innerHTML += `<tr><td><b>${p}</b></td><td>${qty}</td></tr>`;
+        });
+
+        // Historique
+        uRecups.sort((a,b) => new Date(b.date) - new Date(a.date));
+        uRecups.forEach(d => {
+            const statut = d.statut === 'confirme' 
+                ? `<span style="color:green; font-weight:bold;">Confirmé</span>` 
+                : (d.statut === 'annule' ? `<span style="color:red;">Annulé</span>` : `<span>En attente</span>`);
+            
+            histBody.innerHTML += `
+                <tr>
+                    <td>${d.date} <small style="color:gray; font-size:9px;">${formatTime(d.timestamp)}</small></td>
+                    <td><b>${d.produit}</b></td>
+                    <td>${d.quantite}</td>
+                    <td>${statut}</td>
+                    <td><button class="deleteBtn" onclick="deleteDocument('recuperations','${d.id}')">Suppr.</button></td>
+                </tr>`;
+        });
+
+        document.getElementById('recuperationsModal').style.display = 'block';
+    };
+
+    window.closeRecuperationsModal = () => document.getElementById('recuperationsModal').style.display = 'none';
+
+    window.downloadRecupPDF = () => {
+        const element = document.getElementById('recupPdfArea');
+        const opt = {
+            margin: [10, 10, 10, 10],
+            filename: `Recuperations_${currentModalSeller}_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 3, useCORS: true },
             jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
         html2pdf().set(opt).from(element).save();
@@ -342,6 +421,38 @@ document.addEventListener('DOMContentLoaded', () => {
         consommationsData.forEach(d => { tableBodyConsommables.innerHTML += `<tr><td>${d.date}</td><td><b>${d.produit}</b></td><td>${d.quantite}</td><td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:10px;">USAGE INTERNE</span></td><td><button class="deleteBtn" onclick="deleteDocument('consommations','${d.id}')">Suppr.</button></td></tr>`; });
     }
 
+    function renderRecuperations() {
+        if (!tableBodyRecuperations) return;
+        tableBodyRecuperations.innerHTML = '';
+        
+        const selV = filterVendeur.value;
+        const selC = filterClientRef.value.toLowerCase();
+
+        let filtered = recuperationsData;
+        if (selV) filtered = filtered.filter(d => d.vendeur === selV);
+        if (selC) filtered = filtered.filter(d => d.produit.toLowerCase().includes(selC));
+
+        const sellers = [...new Set(filtered.map(d => d.vendeur))];
+        
+        if (sellers.length === 0) {
+            tableBodyRecuperations.innerHTML = '<tr><td colspan="4" style="text-align:center;">Aucune récupération sur cette période</td></tr>';
+            return;
+        }
+
+        sellers.forEach(seller => {
+            const uRecups = filtered.filter(r => r.vendeur === seller);
+            const totalQty = uRecups.reduce((sum, r) => sum + (parseInt(r.quantite) || 0), 0);
+            
+            tableBodyRecuperations.innerHTML += `
+                <tr class="clickable-row" onclick="openRecuperationsModal('${seller}')">
+                    <td><b>${seller}</b></td>
+                    <td>${uRecups.length} opérations</td>
+                    <td style="font-weight:bold; color:#1877f2;">${totalQty}</td>
+                    <td><button style="background:none; border:none; color:#64748b; cursor:pointer;">👁️ Détails</button></td>
+                </tr>`;
+        });
+    }
+
     function renderPaiements(data) {
         const selV = filterVendeur.value;
         let filtered = selV ? data.filter(d => d.vendeur === selV) : data;
@@ -388,8 +499,8 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // Mise à jour des événements pour recharger les données lors du changement de date
-    if (filterVendeur) filterVendeur.addEventListener('input', () => { renderVentes(); renderInvendus(); });
-    if (filterClientRef) filterClientRef.addEventListener('input', () => { renderVentes(); renderInvendus(); });
+    if (filterVendeur) filterVendeur.addEventListener('input', () => { renderVentes(); renderInvendus(); renderRecuperations(); });
+    if (filterClientRef) filterClientRef.addEventListener('input', () => { renderVentes(); renderRecuperations(); });
     
     [dateStartInput, dateEndInput].forEach(el => {
         if(el) el.addEventListener('change', () => { startDataListeners(); });
