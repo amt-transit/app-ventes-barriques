@@ -20,11 +20,22 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentModalSeller = ""; // Pour nommer le PDF
     let paymentsDataAll = [];
     
+    // Variables pour gérer les désabonnements (listeners)
+    let unsubSales = null;
+    let unsubConsos = null;
+    let unsubPayments = null;
+
     async function init() {
         setDefaultDates();
         await loadAllUsers();
         firebase.auth().onAuthStateChanged(user => {
-            if (user) { setTimeout(() => { startDataListeners(); loadAuditLogs(); }, 800); }
+            if (user) { 
+                setTimeout(() => { 
+                    startGlobalListeners(); // Données globales (Invendus)
+                    startDataListeners();   // Données filtrées par date
+                    loadAuditLogs(); 
+                }, 800); 
+            }
         });
     }
 
@@ -51,16 +62,8 @@ document.addEventListener('DOMContentLoaded', () => {
         startDataListeners(); 
     };
 
-    function startDataListeners() {
-        const start = dateStartInput.value; 
-        const end = dateEndInput.value;
-
-        db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
-            .onSnapshot(snap => {
-                salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                renderVentes();
-            });
-
+    // Listeners globaux (non affectés par les dates) pour le calcul des stocks/invendus
+    function startGlobalListeners() {
         db.collection("recuperations").onSnapshot(snap => {
             recupsDataAll = snap.docs.map(doc => doc.data());
             renderInvendus();
@@ -75,9 +78,30 @@ document.addEventListener('DOMContentLoaded', () => {
             retoursDataAll = snap.docs.map(doc => doc.data());
             renderInvendus();
         });
+    }
 
-        db.collection("consommations").where("date", ">=", start).where("date", "<=", end).onSnapshot(s => { consommationsData = s.docs.map(d => d.data()); renderConsommables(); });
-        db.collection("encaissements_vendeurs")
+    // Listeners dynamiques (dépendants des dates sélectionnées)
+    function startDataListeners() {
+        // Nettoyage des anciens listeners pour éviter les doublons/fuites
+        if (unsubSales) unsubSales();
+        if (unsubConsos) unsubConsos();
+        if (unsubPayments) unsubPayments();
+
+        const start = dateStartInput.value; 
+        const end = dateEndInput.value;
+
+        unsubSales = db.collection("ventes").where("date", ">=", start).where("date", "<=", end).orderBy("date", "desc")
+            .onSnapshot(snap => {
+                salesData = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderVentes();
+            });
+
+        unsubConsos = db.collection("consommations").where("date", ">=", start).where("date", "<=", end).onSnapshot(s => { 
+            consommationsData = s.docs.map(d => ({ id: d.id, ...d.data() })); 
+            renderConsommables(); 
+        });
+        
+        unsubPayments = db.collection("encaissements_vendeurs")
             .where("date", ">=", start)
             .where("date", "<=", end)
             .orderBy("date", "desc") 
@@ -363,9 +387,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (gFilters) gFilters.style.display = (type === 'audit' || type === 'consommables') ? 'none' : 'flex';
     };
 
-    [filterVendeur, filterClientRef, dateStartInput, dateEndInput].forEach(el => {
-        if(el) el.addEventListener('input', () => { renderVentes(); renderInvendus(); });
+    // Mise à jour des événements pour recharger les données lors du changement de date
+    if (filterVendeur) filterVendeur.addEventListener('input', () => { renderVentes(); renderInvendus(); });
+    if (filterClientRef) filterClientRef.addEventListener('input', () => { renderVentes(); renderInvendus(); });
+    
+    [dateStartInput, dateEndInput].forEach(el => {
+        if(el) el.addEventListener('change', () => { startDataListeners(); });
     });
+
     // --- FONCTION DE REMISE À ZÉRO DE LA DETTE ---
     window.resetSellerDebt = async () => {
         const vendeur = currentModalSeller;
