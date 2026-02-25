@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadCashData() {
         // Chargement temps réel pour voir les changements instantanément
         const [salesSnap, stocksSnap, encSnap] = await Promise.all([
-            db.collection("ventes").orderBy("timestamp", "desc").get(),
+            db.collection("ventes").orderBy("date", "desc").get(),
             db.collection("stocks").get(),
             db.collection("encaissements_vendeurs").orderBy("date", "desc").get()
         ]);
