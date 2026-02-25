@@ -575,22 +575,51 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Erreur lors de la régularisation.");
         }
     };
-    // --- GESTION DE L'ANCRE RETOUR EN HAUT ---
-    window.onscroll = function() {
-        const btn = document.getElementById("btnBackToTop");
-        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-            btn.classList.add("show");
-        } else {
-            btn.classList.remove("show");
-        }
-    };
 
-    window.scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth" // Remontée fluide
-        });
-    };
+    // --- GESTION DU BOUTON RETOUR EN HAUT (SCROLL UP ONLY) ---
+    let backToTopBtn = document.getElementById("btnBackToTop");
+    if (!backToTopBtn) {
+        backToTopBtn = document.createElement('button');
+        backToTopBtn.id = "btnBackToTop";
+        backToTopBtn.innerHTML = "↑";
+        document.body.appendChild(backToTopBtn);
+        backToTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+
+    let lastScrollTop = 0;
+    window.addEventListener("scroll", () => {
+        const st = window.pageYOffset || document.documentElement.scrollTop;
+        if (st > 300 && st < lastScrollTop) {
+            backToTopBtn.classList.add("show");
+        } else {
+            backToTopBtn.classList.remove("show");
+        }
+        lastScrollTop = st <= 0 ? 0 : st;
+    }, { passive: true });
+
+    // --- GESTION DES BOUTONS RETOUR EN HAUT DANS LES MODALS ---
+    document.querySelectorAll('.modal').forEach(modal => {
+        const content = modal.querySelector('.modal-content');
+        const btn = modal.querySelector('.btn-back-to-top-modal');
+        
+        if(content && btn) {
+            let lastModalScrollTop = 0;
+            content.addEventListener('scroll', () => {
+                const st = content.scrollTop;
+                // Apparition au scroll up (comme le bouton principal)
+                if (st > 200 && st < lastModalScrollTop) {
+                    btn.classList.add('show');
+                } else {
+                    btn.classList.remove('show');
+                }
+                lastModalScrollTop = st <= 0 ? 0 : st;
+            }, { passive: true });
+
+            btn.addEventListener('click', () => {
+                content.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    });
 
     init();
 });

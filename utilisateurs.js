@@ -187,3 +187,26 @@ firebase.auth().onAuthStateChanged(user => {
         });
     }
 });
+
+// --- GESTION DU BOUTON RETOUR EN HAUT (SCROLL UP ONLY) ---
+document.addEventListener('DOMContentLoaded', () => {
+    let backToTopBtn = document.getElementById("btnBackToTop");
+    if (!backToTopBtn) {
+        backToTopBtn = document.createElement('button');
+        backToTopBtn.id = "btnBackToTop";
+        backToTopBtn.innerHTML = "↑";
+        document.body.appendChild(backToTopBtn);
+        backToTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+
+    let lastScrollTop = 0;
+    window.addEventListener("scroll", () => {
+        const st = window.pageYOffset || document.documentElement.scrollTop;
+        if (st > 300 && st < lastScrollTop) {
+            backToTopBtn.classList.add("show");
+        } else {
+            backToTopBtn.classList.remove("show");
+        }
+        lastScrollTop = st <= 0 ? 0 : st;
+    }, { passive: true });
+});

@@ -550,6 +550,30 @@
             snap.forEach(doc => { valVendeur.innerHTML += `<option value="${doc.data().nom}">${doc.data().nom}</option>`; });
         });
         loadPrices();
+
+        // --- GESTION DU BOUTON RETOUR EN HAUT (SCROLL UP ONLY) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            let backToTopBtn = document.getElementById("btnBackToTop");
+            if (!backToTopBtn) {
+                backToTopBtn = document.createElement('button');
+                backToTopBtn.id = "btnBackToTop";
+                backToTopBtn.innerHTML = "↑";
+                document.body.appendChild(backToTopBtn);
+                backToTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+            }
+
+            let lastScrollTop = 0;
+            window.addEventListener("scroll", () => {
+                const st = window.pageYOffset || document.documentElement.scrollTop;
+                if (st > 300 && st < lastScrollTop) {
+                    backToTopBtn.classList.add("show");
+                } else {
+                    backToTopBtn.classList.remove("show");
+                }
+                lastScrollTop = st <= 0 ? 0 : st;
+            }, { passive: true });
+        });
     </script>
+    <button id="btnBackToTop" title="Retour en haut" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">↑</button>
 </body>
 </html>

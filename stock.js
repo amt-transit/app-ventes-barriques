@@ -307,5 +307,49 @@ document.addEventListener('DOMContentLoaded', async () => {
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
     const updateText = (id, val) => { const el = document.getElementById(id); if(el) el.textContent = val; };
     
+    // --- GESTION DU BOUTON RETOUR EN HAUT (SCROLL UP ONLY) ---
+    let backToTopBtn = document.getElementById("btnBackToTop");
+    if (!backToTopBtn) {
+        backToTopBtn = document.createElement('button');
+        backToTopBtn.id = "btnBackToTop";
+        backToTopBtn.innerHTML = "↑";
+        document.body.appendChild(backToTopBtn);
+        backToTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
+
+    let lastScrollTop = 0;
+    window.addEventListener("scroll", () => {
+        const st = window.pageYOffset || document.documentElement.scrollTop;
+        if (st > 300 && st < lastScrollTop) {
+            backToTopBtn.classList.add("show");
+        } else {
+            backToTopBtn.classList.remove("show");
+        }
+        lastScrollTop = st <= 0 ? 0 : st;
+    }, { passive: true });
+
+    // --- GESTION DES BOUTONS RETOUR EN HAUT DANS LES MODALS ---
+    document.querySelectorAll('.modal').forEach(modal => {
+        const content = modal.querySelector('.modal-content');
+        const btn = modal.querySelector('.btn-back-to-top-modal');
+        
+        if(content && btn) {
+            let lastModalScrollTop = 0;
+            content.addEventListener('scroll', () => {
+                const st = content.scrollTop;
+                if (st > 200 && st < lastModalScrollTop) {
+                    btn.classList.add('show');
+                } else {
+                    btn.classList.remove('show');
+                }
+                lastModalScrollTop = st <= 0 ? 0 : st;
+            }, { passive: true });
+
+            btn.addEventListener('click', () => {
+                content.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        }
+    });
+
     firebase.auth().onAuthStateChanged(user => { if (user) loadAllData(); });
 });

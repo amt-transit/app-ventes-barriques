@@ -106,5 +106,22 @@
     </script>
     <script src="auth-guard.js"></script>
     <script src="script.js"></script>
+    <script>
+        // --- GESTION DU BOUTON RETOUR EN HAUT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const backToTopBtn = document.getElementById("btnBackToTop");
+            let lastScrollTop = 0;
+            window.addEventListener("scroll", () => {
+                const st = window.pageYOffset || document.documentElement.scrollTop;
+                if (st > 300 && st < lastScrollTop) {
+                    backToTopBtn.classList.add("show");
+                } else {
+                    backToTopBtn.classList.remove("show");
+                }
+                lastScrollTop = st <= 0 ? 0 : st;
+            }, { passive: true });
+        });
+    </script>
+    <button id="btnBackToTop" title="Retour en haut" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">↑</button>
 </body>
 </html>

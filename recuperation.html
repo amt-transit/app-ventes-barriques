@@ -176,6 +176,7 @@
                 <tbody id="modalHistoryBody"></tbody>
             </table>
         </div>
+        <button class="btn-back-to-top-modal" title="Haut de page">↑</button>
     </div>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -466,6 +467,45 @@
         }
         function closeHistoryModal() { document.getElementById('historyModal').style.display = 'none'; }
         function downloadPDF() { const e = document.getElementById('printableArea'); html2pdf().set({ margin: 10, filename: `Point_${currentSellerName}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { format: 'a4' } }).from(e).save(); }
+
+        // --- GESTION DU BOUTON RETOUR EN HAUT ---
+        document.addEventListener('DOMContentLoaded', () => {
+            const backToTopBtn = document.getElementById("btnBackToTop");
+            let lastScrollTop = 0;
+            window.addEventListener("scroll", () => {
+                const st = window.pageYOffset || document.documentElement.scrollTop;
+                if (st > 300 && st < lastScrollTop) {
+                    backToTopBtn.classList.add("show");
+                } else {
+                    backToTopBtn.classList.remove("show");
+                }
+                lastScrollTop = st <= 0 ? 0 : st;
+            }, { passive: true });
+
+            // --- GESTION DES BOUTONS RETOUR EN HAUT DANS LES MODALS ---
+            document.querySelectorAll('.modal').forEach(modal => {
+                const content = modal.querySelector('.modal-content');
+                const btn = modal.querySelector('.btn-back-to-top-modal');
+                
+                if(content && btn) {
+                    let lastModalScrollTop = 0;
+                    content.addEventListener('scroll', () => {
+                        const st = content.scrollTop;
+                        if (st > 200 && st < lastModalScrollTop) {
+                            btn.classList.add('show');
+                        } else {
+                            btn.classList.remove('show');
+                        }
+                        lastModalScrollTop = st <= 0 ? 0 : st;
+                    }, { passive: true });
+
+                    btn.addEventListener('click', () => {
+                        content.scrollTo({ top: 0, behavior: 'smooth' });
+                    });
+                }
+            });
+        });
     </script>
+    <button id="btnBackToTop" title="Retour en haut" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">↑</button>
 </body>
 </html>

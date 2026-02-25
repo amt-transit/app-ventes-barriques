@@ -262,22 +262,27 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
-    // --- GESTION DE L'ANCRE RETOUR EN HAUT ---
-    window.onscroll = function() {
-        const btn = document.getElementById("btnBackToTop");
-        if (document.body.scrollTop > 300 || document.documentElement.scrollTop > 300) {
-            btn.classList.add("show");
-        } else {
-            btn.classList.remove("show");
-        }
-    };
+    
+    // --- GESTION DU BOUTON RETOUR EN HAUT (SCROLL UP ONLY) ---
+    let backToTopBtn = document.getElementById("btnBackToTop");
+    if (!backToTopBtn) {
+        backToTopBtn = document.createElement('button');
+        backToTopBtn.id = "btnBackToTop";
+        backToTopBtn.innerHTML = "↑";
+        document.body.appendChild(backToTopBtn);
+        backToTopBtn.addEventListener("click", () => window.scrollTo({ top: 0, behavior: "smooth" }));
+    }
 
-    window.scrollToTop = () => {
-        window.scrollTo({
-            top: 0,
-            behavior: "smooth" // Remontée fluide
-        });
-    };
+    let lastScrollTop = 0;
+    window.addEventListener("scroll", () => {
+        const st = window.pageYOffset || document.documentElement.scrollTop;
+        if (st > 300 && st < lastScrollTop) {
+            backToTopBtn.classList.add("show");
+        } else {
+            backToTopBtn.classList.remove("show");
+        }
+        lastScrollTop = st <= 0 ? 0 : st;
+    }, { passive: true });
 
     // Écouteurs Firestore
     db.collection("ventes").onSnapshot(() => loadCashData());
