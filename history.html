@@ -178,6 +178,56 @@
         <button class="btn-back-to-top-modal" title="Haut de page">↑</button>
     </div>
 
+    <!-- NOUVELLE MODALE : ÉDITION VENTE -->
+    <div id="editSaleModal" class="modal">
+        <div class="modal-content" style="max-width: 450px;">
+            <span class="close-modal" onclick="closeEditSaleModal()">&times;</span>
+            <h2 style="color:#1877f2; margin-top:0;">Modifier la Vente</h2>
+            
+            <input type="hidden" id="editSaleId">
+            
+            <div class="edit-form-grid">
+                <div>
+                    <label class="edit-label">Date</label>
+                    <input type="date" id="editSaleDate">
+                </div>
+                <div>
+                    <label class="edit-label">Prix Unitaire</label>
+                    <input type="number" id="editSalePrice" step="0.01">
+                </div>
+            </div>
+
+            <label style="font-size:11px; font-weight:bold; color:#64748b;">Produit</label>
+            <input type="text" id="editSaleProduct" disabled style="background:#f1f5f9; margin-bottom:10px; color:#334155; font-weight:bold;">
+
+            <label style="font-size:11px; font-weight:bold; color:#64748b;">Quantité</label>
+            <input type="number" id="editSaleQty" style="margin-bottom:10px;">
+
+            <label style="font-size:11px; font-weight:bold; color:#64748b;">Référence Client / Note</label>
+            <input type="text" id="editSaleRef" style="margin-bottom:10px;" placeholder="Nom du client ou note...">
+
+            <label style="font-size:11px; font-weight:bold; color:#64748b;">Statut Paiement</label>
+            <select id="editSaleStatus" style="margin-bottom:20px;">
+                <option value="agence">🏠 Vente Agence</option>
+                <option value="abidjan">📍 Payé à Abidjan</option>
+            </select>
+
+            <div id="editSalePaymentDiv" style="display:none;">
+                <label style="font-size:11px; font-weight:bold; color:#64748b;">Mode de Paiement</label>
+                <select id="editSalePayment" style="margin-bottom:20px;">
+                    <option value="Espèce">Espèce</option>
+                    <option value="Carte Bleue">Carte Bleue</option>
+                    <option value="Virement">Virement</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:10px;">
+                <button onclick="saveSaleChanges()" class="btn-save-all">Enregistrer</button>
+                <button onclick="deleteSaleFromModal()" class="btn-cancel-all">Supprimer</button>
+            </div>
+        </div>
+    </div>
+
     <div id="recuperationsModal" class="modal">
         <div class="modal-content">
             <span class="close-modal" onclick="closeRecuperationsModal()">&times;</span>
