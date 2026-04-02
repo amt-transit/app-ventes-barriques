@@ -60,6 +60,7 @@
 
     <div class="tab-nav">
         <button class="tab-btn active" onclick="switchRecupTab('saisie')">Saisie Retrait</button>
+        <button class="tab-btn" onclick="switchRecupTab('declaration')">Bilan Journée</button>
         <button class="tab-btn" onclick="switchRecupTab('points')">Mes Points</button>
         <button id="tabBtnConfirm" class="tab-btn" onclick="switchRecupTab('confirmations')" style="display:none; background:#701a75; color:white;">
             🔔 Confirmations <span id="notifCount" class="notification-badge">0</span>
@@ -81,6 +82,40 @@
                 <button id="btnValiderRecup" style="width: 100%; padding: 12px; background:#1877f2; color:white; border:none; border-radius:8px; cursor:pointer; font-weight:bold;">Valider le retrait</button>
                 <p id="msgStatus" style="text-align:center; font-weight:bold; margin-top:10px;"></p>
             </div>
+        </div>
+    </div>
+
+    <!-- NOUVELLE SECTION : DÉCLARATION FIN DE JOURNÉE -->
+    <div id="section-declaration" class="section-content">
+        <div class="points-card">
+            <h2 style="font-size: 15px; color: #10b981; margin-top: 0;">📝 Déclarer ma fin de journée</h2>
+            <p style="font-size: 11px; color: #64748b;">Saisissez ce que vous avez vendu et ce que vous ramenez.</p>
+            <div class="table-responsive">
+                <table class="points-table">
+                    <thead>
+                        <tr>
+                            <th style="text-align:left;">Produit</th>
+                            <th>En main</th>
+                            <th>Vendus (Ag.)</th>
+                            <th>Vendus (Abi.)</th>
+                            <th>Rendus</th>
+                            <th>Écart</th>
+                        </tr>
+                    </thead>
+                    <tbody id="declarationBody"></tbody>
+                </table>
+            </div>
+            
+            <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #e2e8f0;">
+                <h3 style="font-size: 12px; color: #1e293b; margin-top: 0;">💰 Argent remis au dépôt</h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="number" id="declCash" placeholder="Espèces (€)" style="padding: 10px;">
+                    <input type="number" id="declCB" placeholder="Preuve CB (€)" style="padding: 10px;">
+                    <input type="number" id="declVirement" placeholder="Preuve Virement (€)" style="padding: 10px;">
+                    <input type="number" id="declRemise" placeholder="Remises (€)" style="padding: 10px;">
+                </div>
+            </div>
+            <button onclick="previewDeclaration()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer;">Vérifier & Soumettre</button>
         </div>
     </div>
 
@@ -179,6 +214,21 @@
         <button class="btn-back-to-top-modal" title="Haut de page">↑</button>
     </div>
 
+    <!-- MODALE DE CONFIRMATION DE DÉCLARATION -->
+    <div id="declarationModal" class="modal">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <span class="close-modal" onclick="closeDeclarationModal()">&times;</span>
+            <h2 style="color: #f59e0b; margin-top: 0;">⚠️ Confirmation</h2>
+            <p style="font-size: 12px; color: #334155;">Veuillez vérifier vos chiffres. Ils seront envoyés à l'administrateur pour validation.</p>
+            <div id="declarationPreview" style="text-align: left; background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 12px; margin-bottom: 15px; max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0;">
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="closeDeclarationModal()" style="flex: 1; padding: 12px; background: #cbd5e1; color: #334155; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Annuler</button>
+                <button onclick="submitDeclaration()" style="flex: 1; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Oui, Soumettre</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
@@ -195,6 +245,8 @@
         let rawData = { recups: [], ventes: [] };
         let stockDisponibleMagasin = {};
         const recupProduitSelect = document.getElementById('recupProduit');
+        let currentSellerEnMain = {}; // Pour le calcul de l'écart
+        let pendingDeclarationPayload = null; // Stocke la déclaration avant envoi
 
         firebase.auth().onAuthStateChanged(async (user) => {
             if (user) {
@@ -431,15 +483,129 @@
             }
         }
 
+        // --- NOUVEAU : GESTION DE LA DÉCLARATION DE FIN DE JOURNÉE ---
+        async function loadDeclarationData() {
+            if (!currentSellerName) return;
+            
+            // On récupère tout l'historique du vendeur pour calculer ce qu'il a "En Main" exactement maintenant
+            const [recupSnap, ventesSnap, retoursSnap, consosSnap] = await Promise.all([
+                db.collection("recuperations").where("vendeur", "==", currentSellerName).get(),
+                db.collection("ventes").where("vendeur", "==", currentSellerName).get(),
+                db.collection("retours_vendeurs").where("vendeur", "==", currentSellerName).get(),
+                db.collection("consommations").where("vendeur", "==", currentSellerName).get()
+            ]);
+            
+            let inventory = {};
+            recupSnap.forEach(doc => {
+                const d = doc.data();
+                if(d.statut === "confirme" || !d.statut) inventory[d.produit] = (inventory[d.produit]||0) + parseInt(d.quantite);
+            });
+            const sub = (snap) => { snap.forEach(doc => { const d = doc.data(); if(inventory[d.produit]) inventory[d.produit] -= parseInt(d.quantite); }); };
+            sub(ventesSnap); sub(retoursSnap); sub(consosSnap);
+
+            const tbody = document.getElementById('declarationBody');
+            tbody.innerHTML = '';
+            currentSellerEnMain = {};
+            let hasItems = false;
+
+            for(let p in inventory) {
+                if(inventory[p] > 0) {
+                    hasItems = true;
+                    currentSellerEnMain[p] = inventory[p];
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="text-align:left; font-size:11px;"><b>${p}</b></td>
+                            <td style="color:#1877f2; font-weight:bold;">${inventory[p]}</td>
+                            <td><input type="number" min="0" class="decl-input" id="declVenduAg_${p}" placeholder="0" style="width:40px; padding:4px; text-align:center;"></td>
+                            <td><input type="number" min="0" class="decl-input" id="declVenduAb_${p}" placeholder="0" style="width:40px; padding:4px; text-align:center;"></td>
+                            <td><input type="number" min="0" class="decl-input" id="declRendu_${p}" placeholder="0" style="width:40px; padding:4px; text-align:center;"></td>
+                            <td id="declEcart_${p}" style="font-weight:bold; color:#10b981;">0 ✅</td>
+                        </tr>`;
+                }
+            }
+            if(!hasItems) tbody.innerHTML = '<tr><td colspan="5">Vous n\'avez aucun produit en main.</td></tr>';
+
+            // Ajouter les écouteurs pour calculer l'écart en temps réel
+            document.querySelectorAll('.decl-input').forEach(inp => inp.addEventListener('input', calculateEcart));
+            calculateEcart(); // Init
+        }
+
+        function calculateEcart() {
+            for(let p in currentSellerEnMain) {
+                let enMain = currentSellerEnMain[p];
+                let venduAg = parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0;
+                let venduAb = parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0;
+                let rendu = parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0;
+                let ecart = enMain - (venduAg + venduAb + rendu);
+                let td = document.getElementById(`declEcart_${p}`);
+                if(!td) continue;
+
+                if (ecart === 0) { td.innerText = "0 ✅"; td.style.color = "#10b981"; } 
+                else if (ecart > 0) { td.innerText = ecart + " ⚠️"; td.style.color = "#f59e0b"; } 
+                else { td.innerText = ecart + " ❌"; td.style.color = "#be123c"; }
+            }
+        }
+
+        function previewDeclaration() {
+            let items = [];
+            let hasError = false;
+            for(let p in currentSellerEnMain) {
+                let enMain = currentSellerEnMain[p];
+                let vAg = parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0;
+                let vAb = parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0;
+                let r = parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0;
+                if (vAg < 0 || vAb < 0 || r < 0 || (vAg + vAb + r) > enMain) hasError = true;
+                if (vAg > 0 || vAb > 0 || r > 0) items.push({ produit: p, venduAg: vAg, venduAb: vAb, rendu: r });
+            }
+            if (hasError) return alert("Erreur : Quantités négatives ou supérieures au stock que vous possédez.");
+
+            let cash = parseFloat(document.getElementById('declCash').value) || 0;
+            let cb = parseFloat(document.getElementById('declCB').value) || 0;
+            let vir = parseFloat(document.getElementById('declVirement').value) || 0;
+            let rem = parseFloat(document.getElementById('declRemise').value) || 0;
+
+            if (items.length === 0 && cash === 0 && cb === 0 && vir === 0) return alert("Votre déclaration est vide.");
+
+            pendingDeclarationPayload = { vendeur: currentSellerName, date: new Date().toISOString().split('T')[0], items: items, cash: cash, cb: cb, virement: vir, remise: rem, statut: "en_attente", timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+
+            let html = `<strong>📦 Colis :</strong><ul style="margin-top:5px; padding-left:20px;">`;
+            items.forEach(i => html += `<li><b>${i.produit}</b> : ${i.venduAg} Agence, ${i.venduAb} Abidjan, ${i.rendu} rendu(s)</li>`);
+            if(items.length===0) html += `<li>Rien de déclaré</li>`;
+            html += `</ul><strong>💰 Finances :</strong><ul style="margin-top:5px; padding-left:20px;">`;
+            html += `<li>Espèces : ${cash} €</li><li>CB : ${cb} €</li><li>Virement : ${vir} €</li><li>Remises : ${rem} €</li></ul>`;
+
+            document.getElementById('declarationPreview').innerHTML = html;
+            document.getElementById('declarationModal').style.display = 'block';
+        }
+
+        function closeDeclarationModal() { document.getElementById('declarationModal').style.display = 'none'; }
+
+        async function submitDeclaration() {
+            if(!pendingDeclarationPayload) return;
+            try {
+                await db.collection("declarations_fin_journee").add(pendingDeclarationPayload);
+                alert("Déclaration envoyée ! L'admin va la vérifier.");
+                closeDeclarationModal();
+                // Reset formulaire
+                document.querySelectorAll('.decl-input').forEach(i => i.value = '');
+                ['declCash', 'declCB', 'declVirement', 'declRemise'].forEach(id => document.getElementById(id).value = '');
+                calculateEcart();
+            } catch (e) { alert("Erreur d'envoi."); }
+        }
+
         function switchRecupTab(type) {
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.section-content').forEach(s => s.classList.remove('active'));
             if(type === 'confirmations') {
-                document.getElementById('tabBtnConfirm').classList.add('active');
+                document.querySelectorAll('.tab-btn')[3].classList.add('active'); // 4eme bouton
                 document.getElementById('section-confirmations').classList.add('active');
             } else if(type === 'points') {
-                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.querySelectorAll('.tab-btn')[2].classList.add('active'); // 3eme bouton
                 document.getElementById('section-points').classList.add('active');
+            } else if(type === 'declaration') {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active'); // 2eme bouton
+                document.getElementById('section-declaration').classList.add('active');
+                loadDeclarationData();
             } else {
                 document.querySelectorAll('.tab-btn')[0].classList.add('active');
                 document.getElementById('section-saisie').classList.add('active');

@@ -156,10 +156,13 @@
                 <span style="font-size: 9px; font-weight: bold;">TOP VENDEUR</span><br>
                 <strong id="topVendeur" style="font-size: 13px; color: #f59e0b;">-</strong>
             </div>
-            <div style="flex: 1; background: #10b981; color: white; padding: 10px; border-radius: 8px; text-align: center;">
-                <span style="font-size: 9px; font-weight: bold;">MARGE RÉELLE</span><br>
+            <div style="flex: 1; background: #10b981; color: white; padding: 10px; border-radius: 8px; text-align: center; opacity: 0.9;">
+                <span style="font-size: 9px; font-weight: bold;">MARGE (BRUTE)</span><br>
                 <strong id="beneficeTotalDisplay" style="font-size: 16px;">0,00 €</strong>
-                <div id="beneficeDispoDisplay" style="font-size: 11px; margin-top: 5px; border-top: 1px solid rgba(255,255,255,0.3); padding-top: 3px;">Reste : 0,00 €</div>
+            </div>
+            <div style="flex: 1.2; background: #059669; color: white; padding: 10px; border-radius: 8px; text-align: center; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.4); border: 2px solid #34d399;">
+                <span style="font-size: 10px; font-weight: bold;">BÉNÉFICE NET (RESTE)</span><br>
+                <strong id="beneficeDispoDisplay" style="font-size: 18px;">0,00 €</strong>
             </div>
         </div>
 
@@ -255,7 +258,7 @@
                 });
 
                 document.getElementById('kpiReinvesti').textContent = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(reinvesti);
-                document.getElementById('beneficeDispoDisplay').textContent = "Reste (Période) : " + new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(marge - reinvesti);
+                document.getElementById('beneficeDispoDisplay').textContent = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(marge - reinvesti);
             }
 
             db.collection("stocks").onSnapshot(loadReinvestData);

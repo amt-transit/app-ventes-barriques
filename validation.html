@@ -29,6 +29,12 @@
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
+    <!-- ALERTE DÉCLARATIONS EN ATTENTE -->
+    <div id="pendingDeclarationsAlert" style="display: none; background: #fffbeb; border: 1px solid #fde047; padding: 15px; margin: 0 20px 15px 20px; border-radius: 12px; cursor: pointer; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onclick="openPendingDeclModal()">
+        <span style="font-size: 18px;">🔔</span>
+        <strong style="color: #b45309; margin-left: 10px; font-size: 14px;">Bilan(s) de fin de journée en attente (<span id="pendingDeclCount">0</span>)</strong>
+    </div>
+
     <!-- Conteneur Principal : 2 Colonnes (Formulaire à gauche, État du vendeur à droite) -->
     <div class="dashboard-grid-2-col">
         <!-- COLONNE GAUCHE : Formulaire de Saisie -->
@@ -153,6 +159,58 @@
     </div>
     </div>
 
+    <!-- MODALE 1 : LISTE DES DÉCLARATIONS -->
+    <div id="pendingDeclModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close-modal" onclick="closePendingDeclModal()">&times;</span>
+            <h2 style="color: #b45309; margin-top: 0;">🔔 Déclarations en attente</h2>
+            <div class="table-responsive">
+                <table style="width: 100%;">
+                    <thead><tr style="background:#fef3c7;"><th>Vendeur</th><th>Date</th><th>Action</th></tr></thead>
+                    <tbody id="pendingDeclBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODALE 2 : EXAMEN ET VALIDATION D'UNE DÉCLARATION -->
+    <div id="reviewDeclModal" class="modal">
+        <div class="modal-content" style="max-width: 550px;">
+            <span class="close-modal" onclick="closeReviewDeclModal()">&times;</span>
+            <h2 style="color: #1877f2; margin-top: 0;">Contrôle : <span id="reviewDeclVendeur"></span></h2>
+            <p style="font-size: 11px; color: #64748b; margin-top: -5px;">Ajustez les valeurs si nécessaire avant de valider.</p>
+            
+            <h3 style="font-size: 12px; margin-top: 15px; color:#1e293b;">📦 Colis</h3>
+            <div class="table-responsive">
+                <table style="width: 100%;">
+                    <thead><tr style="background:#f1f5f9;"><th>Produit</th><th>Vend. (Ag.)</th><th>Vend. (Abi.)</th><th>Rendus</th></tr></thead>
+                    <tbody id="reviewDeclItemsBody"></tbody>
+                </table>
+            </div>
+
+            <h3 style="font-size: 12px; margin-top: 15px; color:#1e293b;">💰 Finances remises</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <div><label style="font-size:10px; font-weight:bold;">Cash (€)</label><input type="number" id="reviewDeclCash" style="padding:10px; width:100%; box-sizing:border-box;"></div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-size:10px; font-weight:bold;">CB (€)</label>
+                    <input type="number" id="reviewDeclCB" style="padding:10px; width:100%; box-sizing:border-box;">
+                    <input type="text" id="reviewDeclRefCB" placeholder="Réf. CB" style="font-size:10px; margin-top:2px; border:1px solid #ddd; padding:4px; box-sizing:border-box;">
+                </div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-size:10px; font-weight:bold;">Virement (€)</label>
+                    <input type="number" id="reviewDeclVir" style="padding:10px; width:100%; box-sizing:border-box;">
+                    <input type="text" id="reviewDeclRefVir" placeholder="Réf. Vir." style="font-size:10px; margin-top:2px; border:1px solid #ddd; padding:4px; box-sizing:border-box;">
+                </div>
+                <div><label style="font-size:10px; font-weight:bold;">Remises (€)</label><input type="number" id="reviewDeclRem" style="padding:10px; width:100%; box-sizing:border-box;"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button onclick="rejectDeclaration()" style="flex: 1; padding: 12px; background: #cbd5e1; color: #334155; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Refuser & Supprimer</button>
+                <button onclick="confirmDeclaration()" style="flex: 2; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Confirmer & Encaisser</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts : Firebase et Logique de Validation -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -178,6 +236,9 @@
         let sessionVentes = [];
         let sessionConsos = [];
         let sessionRetours = [];
+        
+        let pendingDeclarations = [];
+        let currentDeclReviewId = null;
 
         // Utilitaire de formatage monétaire
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
@@ -522,6 +583,134 @@
                     tbody.innerHTML += `<tr><td>${p}</td><td style="color: #64748b; font-weight:bold;">${oldStock}</td><td><small>${oldStock > 0 ? oldDate : '-'}</small></td><td style="color: #1877f2; font-weight:bold;">${newStock}</td><td><small>${newStock > 0 ? newDate : '-'}</small></td><td><b>${oldStock + newStock}</b></td></tr>`;
                 }
             }
+        }
+
+        // --- NOUVEAU : GESTION DES DÉCLARATIONS DES VENDEURS ---
+        
+        // 1. Écouteur en temps réel pour la notification
+        db.collection("declarations_fin_journee").where("statut", "==", "en_attente").onSnapshot(snap => {
+            pendingDeclarations = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const count = pendingDeclarations.length;
+            const alertBox = document.getElementById('pendingDeclarationsAlert');
+            if (count > 0) {
+                document.getElementById('pendingDeclCount').innerText = count;
+                alertBox.style.display = 'block';
+            } else {
+                alertBox.style.display = 'none';
+                closePendingDeclModal(); // Fermeture auto si tout est traité
+            }
+            if(document.getElementById('pendingDeclModal').style.display === 'block') renderPendingDeclList();
+        });
+
+        function openPendingDeclModal() {
+            renderPendingDeclList();
+            document.getElementById('pendingDeclModal').style.display = 'block';
+        }
+        function closePendingDeclModal() { document.getElementById('pendingDeclModal').style.display = 'none'; }
+
+        function renderPendingDeclList() {
+            const tbody = document.getElementById('pendingDeclBody');
+            tbody.innerHTML = '';
+            pendingDeclarations.forEach(d => {
+                tbody.innerHTML += `
+                    <tr>
+                        <td><b>${d.vendeur}</b></td>
+                        <td>${d.date}</td>
+                        <td><button onclick="openReviewDeclModal('${d.id}')" style="background:#1877f2; color:white; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold;">Contrôler</button></td>
+                    </tr>`;
+            });
+        }
+
+        function openReviewDeclModal(id) {
+            const decl = pendingDeclarations.find(d => d.id === id);
+            if (!decl) return;
+            currentDeclReviewId = id;
+            document.getElementById('reviewDeclVendeur').innerText = decl.vendeur + " (" + decl.date + ")";
+            
+            const tbody = document.getElementById('reviewDeclItemsBody');
+            tbody.innerHTML = '';
+            if (decl.items && decl.items.length > 0) {
+                decl.items.forEach((item, index) => {
+                    let vAg = item.venduAg !== undefined ? item.venduAg : (item.vendu || 0); // Sécurité pour les anciennes déclarations
+                    let vAb = item.venduAb || 0;
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="font-weight:bold; font-size:11px;">${item.produit}<input type="hidden" id="revItemProd_${index}" value="${item.produit}"></td>
+                            <td><input type="number" min="0" id="revItemVenduAg_${index}" value="${vAg}" style="width:50px; padding:8px; text-align:center;"></td>
+                            <td><input type="number" min="0" id="revItemVenduAb_${index}" value="${vAb}" style="width:50px; padding:8px; text-align:center;"></td>
+                            <td><input type="number" min="0" id="revItemRendu_${index}" value="${item.rendu}" style="width:50px; padding:8px; text-align:center;"></td>
+                        </tr>`;
+                });
+            } else { tbody.innerHTML = '<tr><td colspan="3">Aucun article déclaré.</td></tr>'; }
+
+            document.getElementById('reviewDeclCash').value = decl.cash || 0;
+            document.getElementById('reviewDeclCB').value = decl.cb || 0;
+            document.getElementById('reviewDeclVir').value = decl.virement || 0;
+            document.getElementById('reviewDeclRem').value = decl.remise || 0;
+            document.getElementById('reviewDeclRefCB').value = "";
+            document.getElementById('reviewDeclRefVir').value = "";
+            document.getElementById('reviewDeclItemsBody').setAttribute('data-count', decl.items ? decl.items.length : 0);
+
+            document.getElementById('pendingDeclModal').style.display = 'none';
+            document.getElementById('reviewDeclModal').style.display = 'block';
+        }
+        function closeReviewDeclModal() { document.getElementById('reviewDeclModal').style.display = 'none'; currentDeclReviewId = null; }
+
+        async function rejectDeclaration() {
+            if (!currentDeclReviewId) return;
+            if (confirm("Voulez-vous refuser cette déclaration ? Elle sera supprimée et le vendeur devra la refaire.")) {
+                await db.collection("declarations_fin_journee").doc(currentDeclReviewId).delete();
+                closeReviewDeclModal();
+            }
+        }
+
+        async function confirmDeclaration() {
+            if (!currentDeclReviewId) return;
+            const decl = pendingDeclarations.find(d => d.id === currentDeclReviewId);
+            if (!confirm(`Confirmer le bilan de ${decl.vendeur} et l'intégrer à la comptabilité ?`)) return;
+
+            const batch = db.batch();
+            const itemCount = parseInt(document.getElementById('reviewDeclItemsBody').getAttribute('data-count') || 0);
+            
+            // 1. Génération des Ventes et Retours
+            for (let i = 0; i < itemCount; i++) {
+                const prod = document.getElementById(`revItemProd_${i}`).value;
+                const venduAg = parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0;
+                const venduAb = parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0;
+                const rendu = parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0;
+
+                if (venduAg > 0) {
+                    const price = globalPrices[prod] || 0;
+                    batch.set(db.collection("ventes").doc(), { date: decl.date, vendeur: decl.vendeur, produit: prod, quantite: venduAg, prixUnitaire: price, total: venduAg * price, payeAbidjan: false, abidjanRegle: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+                if (venduAb > 0) {
+                    const price = globalPrices[prod] || 0;
+                    batch.set(db.collection("ventes").doc(), { date: decl.date, vendeur: decl.vendeur, produit: prod, quantite: venduAb, prixUnitaire: price, total: venduAb * price, payeAbidjan: true, abidjanRegle: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                }
+                if (rendu > 0) batch.set(db.collection("retours_vendeurs").doc(), { date: decl.date, vendeur: decl.vendeur, produit: prod, quantite: rendu, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+
+            // 2. Génération de l'Encaissement
+            const cash = parseFloat(document.getElementById('reviewDeclCash').value) || 0;
+            const cb = parseFloat(document.getElementById('reviewDeclCB').value) || 0;
+            const vir = parseFloat(document.getElementById('reviewDeclVir').value) || 0;
+            const rem = parseFloat(document.getElementById('reviewDeclRem').value) || 0;
+            const refCB = document.getElementById('reviewDeclRefCB').value.trim();
+            const refVir = document.getElementById('reviewDeclRefVir').value.trim();
+
+            if (cash > 0 || cb > 0 || vir > 0 || rem > 0) {
+                batch.set(db.collection("encaissements_vendeurs").doc(), { date: decl.date, vendeur: decl.vendeur, montantRecu: cash, montantCB: cb, refCB: refCB, montantVirement: vir, refVirement: refVir, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+            }
+
+            // 3. Mise à jour du statut de la déclaration
+            batch.update(db.collection("declarations_fin_journee").doc(currentDeclReviewId), { statut: "confirme" });
+
+            try {
+                await batch.commit();
+                alert("Bilan validé et enregistré en comptabilité !");
+                closeReviewDeclModal();
+                if(valVendeur.value === decl.vendeur) loadSellerData(); // Rafraîchit l'affichage droite si c'est le même vendeur
+            } catch (e) { alert("Erreur lors de la validation : " + e.message); }
         }
 
         // --- INITIALISATION ET ÉCOUTEURS D'ÉVÉNEMENTS ---
