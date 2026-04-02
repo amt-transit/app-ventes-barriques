@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grand Livre - AMT</title>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="logo.png">
+</head>
+<body>
+    <header class="app-header">
+        <img src="logo.png" alt="Logo" class="app-logo">
+        <h1>Grand Livre (Mouvements Financiers)</h1>
+    </header>
+
+    <nav class="navigation">
+        <a href="validation.html">Validation</a>
+        <a href="stock.html">Stock</a>
+        <a href="dashboard.html">Tableau de Bord</a>
+        <a href="tresorerie.html">Trésorerie</a>
+        <a href="audit.html" class="active">Grand Livre</a>
+        <a href="history.html">Historique</a>
+        <a href="utilisateurs.html">Utilisateurs</a>
+        <a href="recuperation.html">Récupération</a>
+        <button onclick="logout()" class="logout-button">Déconnexion</button>
+    </nav>
+
+    <div style="padding: 20px;">
+        <div class="statement-container">
+            <h2 style="color: #1877f2; font-size: 15px; margin-top:0;">📜 Audit des Mouvements Financiers</h2>
+            <div class="table-responsive">
+                <table>
+                    <thead>
+                        <tr style="background:#f1f5f9;">
+                            <th>Date</th><th>Type</th><th>Description</th><th style="color:#10b981;">Entrée (+)</th><th style="color:#ef4444;">Sortie (-)</th><th style="color:#1877f2;">Solde (Trésorerie Nette)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="financialAuditBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script>
+        const firebaseConfig = { apiKey: "AIzaSyCV8hR9MxIdpZDthtQpMbByZtNet1nIO-M", authDomain: "app-ventes-barriques.firebaseapp.com", projectId: "app-ventes-barriques", storageBucket: "app-ventes-barriques.appspot.com", messagingSenderId: "615546459847", appId: "1:615546459847:web:1b387b0b703b7a9a1210e2" };
+        if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+        window.db = firebase.firestore();
+    </script>
+    <script src="auth-guard.js"></script>
+    <script src="audit.js"></script>
+</body>
+</html>
