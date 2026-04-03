@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/png" href="logo.png">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
 </head>
 <body>
@@ -179,8 +180,11 @@
         <div class="modal-content" style="max-width: 550px;">
             <span class="close-modal" onclick="closeReviewDeclModal()">&times;</span>
             <h2 style="color: #1877f2; margin-top: 0;">Contrôle : <span id="reviewDeclVendeur"></span></h2>
-            <p style="font-size: 11px; color: #64748b; margin-top: -5px;">Ajustez les valeurs si nécessaire avant de valider.</p>
             
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: -5px; padding-bottom: 10px;">
+                <p style="font-size: 11px; color: #64748b; margin: 0;">Ajustez les valeurs si nécessaire avant de valider.</p>
+                <button onclick="downloadBilanPDF()" style="background: #1e293b; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 11px; font-weight: bold; display: flex; align-items: center; gap: 5px;">📄 Imprimer PDF</button>
+            </div>
             <h3 style="font-size: 12px; margin-top: 15px; color:#1e293b;">📦 Colis</h3>
             <div class="table-responsive">
                 <table style="width: 100%;">
@@ -758,6 +762,56 @@
                 closeReviewDeclModal();
                 if(valVendeur.value === declVendeur) loadSellerData(); // Rafraîchit l'affichage droite si c'est le même vendeur
             } catch (e) { alert("Erreur lors de la validation : " + e.message); }
+        }
+
+        // --- GÉNÉRATION DU PDF PROFESSIONNEL DU BILAN ---
+        function downloadBilanPDF() {
+            if (!currentDeclReviewVendeur) return;
+
+            // 1. Peupler le modèle PDF avec les valeurs ACTUELLEMENT à l'écran (y compris corrections)
+            document.getElementById('pdfBilanVendeur').innerText = currentDeclReviewVendeur;
+            document.getElementById('pdfBilanDate').innerText = currentDeclReviewDate;
+            document.getElementById('pdfPrintTime').innerText = new Date().toLocaleString('fr-FR');
+
+            const cash = parseFloat(document.getElementById('reviewDeclCash').value) || 0;
+            const cb = parseFloat(document.getElementById('reviewDeclCB').value) || 0;
+            const vir = parseFloat(document.getElementById('reviewDeclVir').value) || 0;
+            const rem = parseFloat(document.getElementById('reviewDeclRem').value) || 0;
+
+            document.getElementById('pdfBilanCash').innerText = formatEUR(cash);
+            document.getElementById('pdfBilanCB').innerText = formatEUR(cb);
+            document.getElementById('pdfBilanVir').innerText = formatEUR(vir);
+            document.getElementById('pdfBilanRem').innerText = formatEUR(rem);
+            document.getElementById('pdfBilanTotal').innerText = formatEUR(cash + cb + vir);
+
+            const tbodyPdf = document.getElementById('pdfBilanStockBody');
+            tbodyPdf.innerHTML = '';
+            const itemCount = parseInt(document.getElementById('reviewDeclItemsBody').getAttribute('data-count') || 0);
+
+            for (let i = 0; i < itemCount; i++) {
+                const prod = document.getElementById(`revItemProd_${i}`).value;
+                const venduAg = parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0;
+                const venduAb = parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0;
+                const rendu = parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0;
+
+                if (venduAg > 0 || venduAb > 0 || rendu > 0) {
+                    tbodyPdf.innerHTML += `
+                        <tr style="border-bottom: 1px solid #e2e8f0;">
+                            <td style="padding: 10px 12px; font-weight: bold;">${prod}</td>
+                            <td style="padding: 10px 12px; text-align: center;">${venduAg}</td>
+                            <td style="padding: 10px 12px; text-align: center;">${venduAb}</td>
+                            <td style="padding: 10px 12px; text-align: center;">${rendu}</td>
+                        </tr>`;
+                }
+            }
+
+            // 2. Préparation et rendu PDF
+            const container = document.getElementById('pdfContainerHidden');
+            container.style.display = 'block'; // Rendre visible pour la capture
+
+            const opt = { margin: 0, filename: `Bilan_${currentDeclReviewVendeur}_${currentDeclReviewDate}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+
+            html2pdf().set(opt).from(document.getElementById('pdfBilanArea')).save().then(() => { container.style.display = 'none'; });
         }
 
         // --- INITIALISATION ET ÉCOUTEURS D'ÉVÉNEMENTS ---
