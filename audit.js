@@ -1,5 +1,5 @@
 document.addEventListener('DOMContentLoaded', () => {
-    let allSales = [], allStocks = [], allEncaissements = [];
+    let allSales = [], allStocks = [], allEncaissements = [], currentAuditLogs = [];
 
     async function loadAuditData() {
         const [salesSnap, stocksSnap, encSnap] = await Promise.all([
@@ -68,6 +68,8 @@ document.addEventListener('DOMContentLoaded', () => {
         // Tri inverse pour l'affichage (le plus récent en haut)
         auditLogs.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         
+        currentAuditLogs = auditLogs; // Sauvegarde pour les exports
+
         if (auditLogs.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Aucun mouvement financier enregistré.</td></tr>';
             return;
@@ -88,6 +90,52 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
+
+    // --- EXPORT EXCEL (CSV) ---
+    window.exportAuditExcel = function() {
+        if (currentAuditLogs.length === 0) return alert("Aucune donnée à exporter.");
+        let csvContent = "Date;Type;Description;Entree;Sortie;Solde\n"; // Point-virgule pour Excel FR
+        
+        currentAuditLogs.forEach(log => {
+            const desc = `"${log.desc.replace(/"/g, '""')}"`;
+            // Formatage des nombres avec des virgules pour Excel français
+            const inVal = log.in.toString().replace('.', ',');
+            const outVal = log.out.toString().replace('.', ',');
+            const balVal = log.balance.toString().replace('.', ',');
+            csvContent += `${log.date};${log.type};${desc};${inVal};${outVal};${balVal}\n`;
+        });
+
+        // Encodage UTF-8 BOM pour bien afficher les accents dans Excel
+        const blob = new Blob([new Uint8Array([0xEF, 0xBB, 0xBF]), csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.setAttribute("href", url);
+        link.setAttribute("download", `Grand_Livre_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    // --- EXPORT PDF ---
+    window.exportAuditPDF = function() {
+        if (currentAuditLogs.length === 0) return alert("Aucune donnée à exporter.");
+        if (typeof html2pdf === 'undefined') return alert("L'export PDF nécessite la librairie html2pdf.js dans audit.html.");
+        
+        const element = document.createElement('div');
+        element.style.padding = '20px';
+        element.style.fontFamily = 'Comfortaa, sans-serif';
+        
+        let html = `<div style="border-bottom: 3px solid #1877f2; padding-bottom: 10px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center;">
+            <h1 style="color: #1877f2; margin: 0; font-size: 22px;">Grand Livre Comptable</h1>
+            <p style="margin: 0; font-weight: bold; font-size: 14px;">Édité le : ${new Date().toLocaleDateString('fr-FR')}</p>
+        </div><table style="width: 100%; border-collapse: collapse; font-size: 11px; text-align: left; color: #0f172a;">
+        <thead><tr style="background-color: #1e293b; color: white;"><th style="padding: 8px; border: 1px solid #e2e8f0;">Date</th><th style="padding: 8px; border: 1px solid #e2e8f0;">Type</th><th style="padding: 8px; border: 1px solid #e2e8f0;">Description</th><th style="padding: 8px; border: 1px solid #e2e8f0;">Entrée</th><th style="padding: 8px; border: 1px solid #e2e8f0;">Sortie</th><th style="padding: 8px; border: 1px solid #e2e8f0;">Solde</th></tr></thead><tbody>`;
+        currentAuditLogs.forEach(log => { html += `<tr><td style="padding: 6px; border: 1px solid #e2e8f0;">${log.date}</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${log.type}</td><td style="padding: 6px; border: 1px solid #e2e8f0;">${log.desc}</td><td style="padding: 6px; border: 1px solid #e2e8f0; color:#10b981;">${log.in > 0 ? '+ ' + formatEUR(log.in) : '-'}</td><td style="padding: 6px; border: 1px solid #e2e8f0; color:#ef4444;">${log.out > 0 ? '- ' + formatEUR(log.out) : '-'}</td><td style="padding: 6px; border: 1px solid #e2e8f0; font-weight:bold;">${formatEUR(log.balance)}</td></tr>`; });
+        html += `</tbody></table>`; element.innerHTML = html;
+
+        const opt = { margin: 10, filename: `Grand_Livre_${new Date().toISOString().split('T')[0]}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+        html2pdf().set(opt).from(element).save();
+    };
 
     // Écouteurs Firestore
     db.collection("ventes").onSnapshot(() => loadAuditData());
