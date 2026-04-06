@@ -621,6 +621,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // --- FONCTION DE RÉINITIALISATION DU BILAN (SUPER ADMIN) ---
+    window.resetBilan = async () => {
+        const vendeur = currentModalSeller;
+        if (!vendeur) return;
+
+        if (window.userRole !== 'superadmin') return alert("Action réservée au Super Admin.");
+
+        const start = document.getElementById('mainFilterDateStart').value;
+        const end = document.getElementById('mainFilterDateEnd').value;
+
+        if (!confirm(`⚠️ ATTENTION ⚠️\n\nVoulez-vous vraiment réinitialiser le bilan de ${vendeur} pour la période du ${start} au ${end} ?\n\nCela supprimera toutes les ventes, retours et encaissements liés de cette période, et remettra la déclaration en attente.`)) return;
+
+        try {
+            const batch = db.batch();
+
+            // Récupération simultanée des documents concernés
+            const [vSnap, rSnap, eSnap, dSnap] = await Promise.all([
+                db.collection("ventes").where("vendeur", "==", vendeur).where("date", ">=", start).where("date", "<=", end).get(),
+                db.collection("retours_vendeurs").where("vendeur", "==", vendeur).where("date", ">=", start).where("date", "<=", end).get(),
+                db.collection("encaissements_vendeurs").where("vendeur", "==", vendeur).where("date", ">=", start).where("date", "<=", end).get(),
+                db.collection("declarations_fin_journee").where("vendeur", "==", vendeur).where("date", ">=", start).where("date", "<=", end).get()
+            ]);
+
+            let count = 0;
+            vSnap.forEach(doc => { batch.delete(doc.ref); count++; });
+            rSnap.forEach(doc => { batch.delete(doc.ref); count++; });
+            eSnap.forEach(doc => { batch.delete(doc.ref); count++; });
+            dSnap.forEach(doc => { batch.update(doc.ref, { statut: "en_attente" }); count++; });
+
+            if (count === 0) {
+                return alert("Aucune donnée trouvée à réinitialiser pour cette période.");
+            }
+
+            await batch.commit();
+
+            alert("Bilan réinitialisé avec succès !");
+            closeInvendusModal();
+        } catch (e) {
+            console.error(e);
+            alert("Erreur lors de la réinitialisation : " + e.message);
+        }
+    };
+
     // --- GESTION DU BOUTON RETOUR EN HAUT (SCROLL UP ONLY) ---
     let backToTopBtn = document.getElementById("btnBackToTop");
     if (!backToTopBtn) {

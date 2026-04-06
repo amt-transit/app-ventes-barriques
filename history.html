@@ -31,7 +31,7 @@
     <header class="app-header"><h1>Centre d'Historique</h1></header>
 
     <nav class="navigation">
-        <a href="validation.html">Validation</a>
+        <a href="validation.html">Validation <span id="globalPendingBadge" class="nav-badge" style="display:none;">0</span></a>
         <a href="stock.html">Stock</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="tresorerie.html">Trésorerie</a>
@@ -138,6 +138,7 @@
             <h2 id="modalInvendusTitle" style="font-size:18px; color:#1877f2; margin-top:0;">Détails du Compte</h2>
             <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                 <button onclick="downloadSellerHistoryPDF()" class="btn-download">📄 Bilan PDF</button>
+                <button onclick="resetBilan()" id="btnResetBilan" class="btn-cancel-all" style="background-color: #f59e0b;">🔄 Réinitialiser le Bilan</button>
                 <button onclick="resetSellerDebt()" id="btnResetDebt" class="btn-cancel-all">💰 Solder la Dette (Mise à zéro)</button>
             </div>
             <div id="sellerPdfArea" style="padding: 10px;">
@@ -280,6 +281,18 @@
     </script>
     <script src="auth-guard.js"></script>
     <script src="history.js"></script>
+    <script>
+        if (window.db) {
+            window.db.collection("declarations_fin_journee").where("statut", "==", "en_attente").onSnapshot(snap => {
+                const count = snap.docs.length;
+                const badge = document.getElementById('globalPendingBadge');
+                if (badge) {
+                    badge.innerText = count;
+                    badge.style.display = count > 0 ? 'inline-block' : 'none';
+                }
+            });
+        }
+    </script>
     <button id="btnBackToTop" title="Retour en haut" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">↑</button>
 </body>
 </html>

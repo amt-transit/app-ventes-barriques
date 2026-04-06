@@ -54,7 +54,7 @@
 
     <nav class="navigation">
         <a href="recuperation.html" class="active">Récupération</a>
-        <a href="validation.html" id="adminLink" style="display: none; background: #4b5563; color: white;">Administration</a>
+        <a href="validation.html" id="adminLink" style="display: none; background: #4b5563; color: white;">Administration <span id="globalPendingBadge" class="nav-badge" style="display:none;">0</span></a>
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
 
@@ -115,7 +115,11 @@
                     <input type="number" id="declRemise" placeholder="Remises (€)" style="padding: 10px;">
                 </div>
             </div>
-            <button onclick="previewDeclaration()" style="width: 100%; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; font-weight: bold; margin-top: 15px; cursor: pointer;">Vérifier & Soumettre</button>
+            
+            <div id="surplusWarning" style="display:none; background: #fef2f2; color: #ef4444; border: 2px solid #ef4444; padding: 12px; border-radius: 8px; margin-top: 15px; font-weight: bold; text-align: center; box-shadow: 0 4px 6px rgba(239,68,68,0.2); animation: pulse-red 2s infinite;">
+                🚨 EXCÉDENT DÉTECTÉ : Vous déclarez plus de colis que vous n'en avez en main ! Veuillez corriger les cases en rouge.
+            </div>
+            <button onclick="previewDeclaration()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); box-shadow: 0 4px 10px rgba(16,185,129,0.3); color: white; border: none; border-radius: 12px; font-weight: bold; font-size: 14px; margin-top: 15px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">Vérifier & Soumettre</button>
         </div>
     </div>
 
@@ -216,16 +220,32 @@
 
     <!-- MODALE DE CONFIRMATION DE DÉCLARATION -->
     <div id="declarationModal" class="modal">
-        <div class="modal-content" style="max-width: 400px; text-align: center;">
-            <span class="close-modal" onclick="closeDeclarationModal()">&times;</span>
-            <h2 style="color: #f59e0b; margin-top: 0;">⚠️ Confirmation</h2>
-            <p style="font-size: 12px; color: #334155;">Veuillez vérifier vos chiffres. Ils seront envoyés à l'administrateur pour validation.</p>
-            <div id="declarationPreview" style="text-align: left; background: #f8fafc; padding: 15px; border-radius: 8px; font-size: 12px; margin-bottom: 15px; max-height: 250px; overflow-y: auto; border: 1px solid #e2e8f0;">
+        <div class="modal-content" style="max-width: 450px; padding: 0; overflow: hidden; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: none;">
+            <div style="background: linear-gradient(135deg, #1877f2 0%, #0f172a 100%); padding: 25px 20px; text-align: center; position: relative;">
+                <span class="close-modal" onclick="closeDeclarationModal()" style="position: absolute; top: 15px; right: 20px; color: white; opacity: 0.8; font-size: 28px;">&times;</span>
+                <div style="font-size: 40px; margin-bottom: 10px;">🧾</div>
+                <h2 style="color: white; margin: 0; font-size: 20px; font-weight: 900; letter-spacing: 1px;">BILAN DE JOURNÉE</h2>
+                <p style="color: #cbd5e1; font-size: 11px; margin: 5px 0 0 0;">Vérifiez attentivement avant transmission à l'agence.</p>
             </div>
-            <div style="display: flex; gap: 10px;">
-                <button onclick="closeDeclarationModal()" style="flex: 1; padding: 12px; background: #cbd5e1; color: #334155; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Annuler</button>
-                <button onclick="submitDeclaration()" style="flex: 1; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Oui, Soumettre</button>
+            
+            <div style="padding: 25px; background: #f8fafc;">
+                <div id="declarationPreview" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); font-size: 13px; max-height: 400px; overflow-y: auto; border: 1px dashed #cbd5e1;">
+                </div>
+                <div style="display: flex; gap: 15px; margin-top: 25px;">
+                    <button onclick="closeDeclarationModal()" style="flex: 1; padding: 14px; background: white; color: #64748b; border: 2px solid #cbd5e1; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">Corriger</button>
+                    <button onclick="submitDeclaration()" style="flex: 1.5; padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">🚀 Transmettre</button>
+                </div>
             </div>
+        </div>
+    </div>
+
+    <!-- MODALE D'ERREUR DE SURPLUS (STOCK) -->
+    <div id="stockErrorModal" class="modal modal-error">
+        <div class="modal-content modal-error-content" style="text-align: center; max-width: 400px; border: 2px solid #ef4444;">
+            <span class="error-icon" style="font-size: 40px; display: block; margin-bottom: 10px;">🚫</span>
+            <div class="error-title" style="color: #ef4444; font-size: 18px; font-weight: bold; margin-bottom: 15px;">SURPLUS DÉTECTÉ</div>
+            <div id="stockErrorText" class="error-text" style="background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; font-size: 12px; text-align: left; white-space: pre-wrap; margin-bottom: 20px; line-height: 1.5;"></div>
+            <button onclick="closeStockError()" style="background:#ef4444; color:white; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; font-weight:bold; width: 100%;">Corriger mes chiffres</button>
         </div>
     </div>
 
@@ -370,7 +390,10 @@
             const quantite = parseInt(document.getElementById('recupQuantite').value) || 0;
             const date = document.getElementById('recupDate').value;
             if (!produit || quantite <= 0 || !date) return alert("Champs invalides.");
-            if (quantite > stockDisponibleMagasin[produit]) return alert("Stock insuffisant.");
+            if (quantite > stockDisponibleMagasin[produit]) {
+                showStockError(`• ${produit} : Stock insuffisant au magasin.\nDisponible : ${stockDisponibleMagasin[produit]}\nDemandé : ${quantite}\nManquant : ${quantite - stockDisponibleMagasin[produit]}`);
+                return;
+            }
             btn.disabled = true;
             try {
                 await db.collection("recuperations").add({ date: date, vendeur: currentSellerName, produit: produit, quantite: quantite, statut: "en_attente", timestamp: firebase.firestore.FieldValue.serverTimestamp() });
@@ -531,6 +554,8 @@
         }
 
         function calculateEcart() {
+            let hasSurplus = false;
+            
             for(let p in currentSellerEnMain) {
                 let enMain = currentSellerEnMain[p];
                 let venduAg = parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0;
@@ -538,41 +563,121 @@
                 let rendu = parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0;
                 let ecart = enMain - (venduAg + venduAb + rendu);
                 let td = document.getElementById(`declEcart_${p}`);
+                
+                // Inputs à colorer en cas d'erreur
+                let inputs = [document.getElementById(`declVenduAg_${p}`), document.getElementById(`declVenduAb_${p}`), document.getElementById(`declRendu_${p}`)];
+                
                 if(!td) continue;
 
-                if (ecart === 0) { td.innerText = "0 ✅"; td.style.color = "#10b981"; } 
-                else if (ecart > 0) { td.innerText = ecart + " ⚠️"; td.style.color = "#f59e0b"; } 
-                else { td.innerText = ecart + " ❌"; td.style.color = "#be123c"; }
+                if (ecart === 0) { 
+                    td.innerHTML = "0 <br><small>✅ OK</small>"; td.style.color = "#10b981"; 
+                    inputs.forEach(i => { if(i) { i.style.borderColor = "#cbd5e1"; i.style.backgroundColor = ""; i.style.color = ""; }});
+                } 
+                else if (ecart > 0) { 
+                    td.innerHTML = ecart + " <br><small>⚠️ Reste</small>"; td.style.color = "#f59e0b"; 
+                    inputs.forEach(i => { if(i) { i.style.borderColor = "#cbd5e1"; i.style.backgroundColor = ""; i.style.color = ""; }});
+                } 
+                else { 
+                    td.innerHTML = Math.abs(ecart) + " <br><small>❌ Excédent</small>"; td.style.color = "#ef4444"; 
+                    inputs.forEach(i => { if(i) { i.style.borderColor = "#ef4444"; i.style.backgroundColor = "#fef2f2"; i.style.color = "#b91c1c"; }});
+                    hasSurplus = true;
+                }
             }
+            
+            document.getElementById('surplusWarning').style.display = hasSurplus ? 'block' : 'none';
         }
+        window.showStockError = (message) => {
+            document.getElementById('stockErrorText').innerText = message;
+            document.getElementById('stockErrorModal').style.display = 'block';
+        };
+
+        window.closeStockError = () => {
+            document.getElementById('stockErrorModal').style.display = 'none';
+        };
 
         function previewDeclaration() {
             let items = [];
-            let hasError = false;
+            let errorMsg = "";
+
             for(let p in currentSellerEnMain) {
                 let enMain = currentSellerEnMain[p];
                 let vAg = parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0;
                 let vAb = parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0;
                 let r = parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0;
-                if (vAg < 0 || vAb < 0 || r < 0 || (vAg + vAb + r) > enMain) hasError = true;
-                if (vAg > 0 || vAb > 0 || r > 0) items.push({ produit: p, venduAg: vAg, venduAb: vAb, rendu: r });
+                let total = vAg + vAb + r;
+
+                if (total > enMain) {
+                    errorMsg += `• ${p} : Vous déclarez ${total} mais n'avez que ${enMain} en main (Excédent: ${total - enMain})\n`;
+                }
+                if (total > 0) items.push({ produit: p, venduAg: vAg, venduAb: vAb, rendu: r });
             }
-            if (hasError) return alert("Erreur : Quantités négatives ou supérieures au stock que vous possédez.");
 
-            let cash = parseFloat(document.getElementById('declCash').value) || 0;
-            let cb = parseFloat(document.getElementById('declCB').value) || 0;
-            let vir = parseFloat(document.getElementById('declVirement').value) || 0;
-            let rem = parseFloat(document.getElementById('declRemise').value) || 0;
+            if (errorMsg !== "") {
+                showStockError(errorMsg); // Utilise la nouvelle modale
+                return;
+            }
 
-            if (items.length === 0 && cash === 0 && cb === 0 && vir === 0) return alert("Votre déclaration est vide.");
+            if (items.length === 0 && parseFloat(document.getElementById('declCash').value || 0) === 0) {
+                return alert("Votre déclaration est vide.");
+            }
 
-            pendingDeclarationPayload = { vendeur: currentSellerName, date: new Date().toISOString().split('T')[0], items: items, cash: cash, cb: cb, virement: vir, remise: rem, statut: "en_attente", timestamp: firebase.firestore.FieldValue.serverTimestamp() };
+            // Suite du code pour préparer le payload...
+            pendingDeclarationPayload = { 
+                vendeur: currentSellerName, 
+                date: new Date().toISOString().split('T')[0], 
+                items: items, 
+                cash: parseFloat(document.getElementById('declCash').value) || 0, 
+                cb: parseFloat(document.getElementById('declCB').value) || 0, 
+                virement: parseFloat(document.getElementById('declVirement').value) || 0, 
+                remise: parseFloat(document.getElementById('declRemise').value) || 0, 
+                statut: "en_attente", 
+                timestamp: firebase.firestore.FieldValue.serverTimestamp() 
+            };
+            
+            const formatEUR = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+            const totalFonds = pendingDeclarationPayload.cash + pendingDeclarationPayload.cb + pendingDeclarationPayload.virement;
 
-            let html = `<strong>📦 Colis :</strong><ul style="margin-top:5px; padding-left:20px;">`;
-            items.forEach(i => html += `<li><b>${i.produit}</b> : ${i.venduAg} Agence, ${i.venduAb} Abidjan, ${i.rendu} rendu(s)</li>`);
-            if(items.length===0) html += `<li>Rien de déclaré</li>`;
-            html += `</ul><strong>💰 Finances :</strong><ul style="margin-top:5px; padding-left:20px;">`;
-            html += `<li>Espèces : ${cash} €</li><li>CB : ${cb} €</li><li>Virement : ${vir} €</li><li>Remises : ${rem} €</li></ul>`;
+            let html = `
+                <div style="margin-bottom: 20px;">
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; border-bottom:2px solid #e2e8f0; padding-bottom:5px;">
+                        <span style="font-size:18px;">📦</span>
+                        <h3 style="margin:0; color:#1e293b; font-size:13px; text-transform:uppercase;">État des Colis</h3>
+                    </div>`;
+            
+            if (items.length > 0) {
+                items.forEach(i => {
+                    html += `
+                    <div style="background:#f1f5f9; padding:10px 12px; border-radius:8px; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
+                        <strong style="color:#1877f2; font-size:14px;">${i.produit}</strong>
+                        <div style="text-align:right; font-size:11px; font-weight:bold; color:#475569; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
+                            ${i.venduAg > 0 ? `<span style="background:#dbeafe; color:#1e40af; padding:4px 8px; border-radius:6px;">${i.venduAg} Agence</span>` : ''}
+                            ${i.venduAb > 0 ? `<span style="background:#fae8ff; color:#86198f; padding:4px 8px; border-radius:6px;">${i.venduAb} Abidjan</span>` : ''}
+                            ${i.rendu > 0 ? `<span style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:6px;">${i.rendu} Rendu(s)</span>` : ''}
+                        </div>
+                    </div>`;
+                });
+            } else {
+                html += `<div style="text-align:center; color:#94a3b8; font-style:italic; padding:10px;">Aucun colis déclaré</div>`;
+            }
+
+            html += `
+                </div>
+                <div>
+                    <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px; border-bottom:2px solid #e2e8f0; padding-bottom:5px;">
+                        <span style="font-size:18px;">💶</span>
+                        <h3 style="margin:0; color:#1e293b; font-size:13px; text-transform:uppercase;">Fonds à remettre</h3>
+                    </div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
+                        <div style="background:#ecfdf5; padding:10px; border-radius:8px; border:1px solid #a7f3d0; text-align:center;"><span style="font-size:9px; color:#065f46; font-weight:bold; display:block;">CASH</span><strong style="color:#047857; font-size:16px;">${formatEUR(pendingDeclarationPayload.cash)}</strong></div>
+                        <div style="background:#eef2ff; padding:10px; border-radius:8px; border:1px solid #bfdbfe; text-align:center;"><span style="font-size:9px; color:#1e40af; font-weight:bold; display:block;">CARTE BLEUE</span><strong style="color:#1d4ed8; font-size:16px;">${formatEUR(pendingDeclarationPayload.cb)}</strong></div>
+                        <div style="background:#f5f3ff; padding:10px; border-radius:8px; border:1px solid #ddd6fe; text-align:center;"><span style="font-size:9px; color:#4338ca; font-weight:bold; display:block;">VIREMENT</span><strong style="color:#5b21b6; font-size:16px;">${formatEUR(pendingDeclarationPayload.virement)}</strong></div>
+                        <div style="background:#fff1f2; padding:10px; border-radius:8px; border:1px solid #fecdd3; text-align:center;"><span style="font-size:9px; color:#9f1239; font-weight:bold; display:block;">REMISES</span><strong style="color:#be123c; font-size:16px;">${formatEUR(pendingDeclarationPayload.remise)}</strong></div>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color:white; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
+                        <span style="font-weight:bold; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#cbd5e1;">Total Encaissé</span>
+                        <strong style="font-size:22px; color:#34d399;">${formatEUR(totalFonds)}</strong>
+                    </div>
+                </div>`;
 
             document.getElementById('declarationPreview').innerHTML = html;
             document.getElementById('declarationModal').style.display = 'block';
@@ -670,6 +775,18 @@
                     });
                 }
             });
+
+            // Écouteur global pour le badge des déclarations en attente
+            if (window.db) {
+                window.db.collection("declarations_fin_journee").where("statut", "==", "en_attente").onSnapshot(snap => {
+                    const count = snap.docs.length;
+                    const badge = document.getElementById('globalPendingBadge');
+                    if (badge) {
+                        badge.innerText = count;
+                        badge.style.display = count > 0 ? 'inline-block' : 'none';
+                    }
+                });
+            }
         });
     </script>
     <button id="btnBackToTop" title="Retour en haut" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">↑</button>

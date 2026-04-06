@@ -20,7 +20,7 @@
 
     <!-- Menu de Navigation -->
     <nav class="navigation">
-        <a href="validation.html" class="active">Validation</a>
+        <a href="validation.html" class="active">Validation <span id="globalPendingBadge" class="nav-badge" style="display:none;">0</span></a>
         <a href="stock.html">Stock</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="tresorerie.html">Trésorerie</a>
@@ -28,14 +28,9 @@
         <a href="history.html">Historique</a>
         <a href="utilisateurs.html">Utilisateurs</a>
         <a href="recuperation.html">Récupération</a>
+        
         <button onclick="logout()" class="logout-button">Déconnexion</button>
     </nav>
-
-    <!-- ALERTE DÉCLARATIONS EN ATTENTE -->
-    <div id="pendingDeclarationsAlert" style="display: none; background: #fffbeb; border: 1px solid #fde047; padding: 15px; margin: 0 20px 15px 20px; border-radius: 12px; cursor: pointer; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.05);" onclick="openPendingDeclModal()">
-        <span style="font-size: 18px;">🔔</span>
-        <strong style="color: #b45309; margin-left: 10px; font-size: 14px;">Bilan(s) de fin de journée en attente (<span id="pendingDeclCount">0</span>)</strong>
-    </div>
 
     <!-- Conteneur Principal : 2 Colonnes (Formulaire à gauche, État du vendeur à droite) -->
     <div class="dashboard-grid-2-col">
@@ -216,6 +211,22 @@
         </div>
     </div>
 
+    <!-- MODALE D'ERREUR DE SURPLUS (STOCK) -->
+    <div id="stockErrorModal" class="modal modal-error">
+        <div class="modal-content modal-error-content" style="text-align: center; max-width: 400px; border: 2px solid #ef4444;">
+            <span class="error-icon" style="font-size: 40px; display: block; margin-bottom: 10px;">🚫</span>
+            <div class="error-title" style="color: #ef4444; font-size: 18px; font-weight: bold; margin-bottom: 15px;">SURPLUS DÉTECTÉ</div>
+            <div id="stockErrorText" class="error-text" style="background: #fee2e2; color: #991b1b; padding: 15px; border-radius: 8px; font-size: 12px; text-align: left; white-space: pre-wrap; margin-bottom: 20px; line-height: 1.5;"></div>
+            <button onclick="closeStockError()" style="background:#ef4444; color:white; border:none; padding:12px 25px; border-radius:10px; cursor:pointer; font-weight:bold; width: 100%;">Corriger mes chiffres</button>
+        </div>
+    </div>
+
+    <!-- CLOCHE FLOTTANTE -->
+    <div id="floatingBell" class="floating-bell" onclick="openPendingDeclModal()" style="display:none;" title="Bilans en attente">
+        🔔
+        <span id="floatingBellBadge" class="floating-badge">0</span>
+    </div>
+
     <!-- Scripts : Firebase et Logique de Validation -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
@@ -250,6 +261,15 @@
         // Utilitaire de formatage monétaire
         function formatEUR(n) { return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n || 0); }
 
+        // Fonction pour afficher la modale d'erreur personnalisée
+        window.showStockError = (message) => {
+            document.getElementById('stockErrorText').innerText = message;
+            document.getElementById('stockErrorModal').style.display = 'block';
+        };
+        window.closeStockError = () => {
+            document.getElementById('stockErrorModal').style.display = 'none';
+        };
+
         // --- GESTION DU PANIER (AJOUT D'ITEMS) ---
         function ajouterItem(type) {
             let prod, qty, pu = 0;
@@ -279,7 +299,10 @@
                                 (sessionConsos.filter(c => c.p === prod).reduce((s,c)=>s+c.q,0)) + 
                                 (sessionRetours.filter(r => r.p === prod).reduce((s,r)=>s+r.q,0));
 
-            if ((qty + dejaDansPanier) > enMain) return alert(`Action impossible. Stock insuffisant.`);
+            if ((qty + dejaDansPanier) > enMain) {
+                showStockError(`• ${prod} : Ajout impossible au panier.\nStock en main : ${enMain}\nDéjà dans le panier : ${dejaDansPanier}\nTentative d'ajout : ${qty}`);
+                return;
+            }
 
             // Ajout au tableau correspondant
             if (type === 'ventes') sessionVentes.push({ p: prod, q: qty, pu: pu, t: qty * pu });
@@ -393,6 +416,22 @@
             const totalVentes = sessionVentes.reduce((sum, v) => sum + v.q, 0);
             const totalConsos = sessionConsos.reduce((sum, c) => sum + c.q, 0);
             const totalRetours = sessionRetours.reduce((sum, r) => sum + r.q, 0);
+
+            // VÉRIFICATION DE SÉCURITÉ FINALE AVANT ENREGISTREMENT
+            let totalParProduit = {};
+            [...sessionVentes, ...sessionConsos, ...sessionRetours].forEach(item => {
+                let p = item.p || item.produit;
+                totalParProduit[p] = (totalParProduit[p] || 0) + (item.q || item.quantite);
+            });
+
+            for (let p in totalParProduit) {
+                const info = inventoryData[p];
+                const enMain = info ? info.pT - info.vT - info.rT - info.cT : 0;
+                if (totalParProduit[p] > enMain) {
+                    showStockError(`• ${p} : Le vendeur ne possède pas assez de stock.\nStock en main : ${enMain}\nQuantité demandée : ${totalParProduit[p]}\nExcédent : ${totalParProduit[p] - enMain}`);
+                    return; // Bloque l'exécution
+                }
+            }
 
             // Récapitulatif avec CB avant validation finale
             const recapMessage = `RÉCAPITULATIF :\n- Cash : ${formatEUR(aco)}\n- CB : ${formatEUR(cb)}\n- Virement : ${formatEUR(vir)}\n- Remise : ${formatEUR(rem)}\nConfirmez-vous ?`;
@@ -598,12 +637,15 @@
         db.collection("declarations_fin_journee").where("statut", "==", "en_attente").onSnapshot(snap => {
             pendingDeclarations = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             const count = pendingDeclarations.length;
-            const alertBox = document.getElementById('pendingDeclarationsAlert');
+            const globalBadge = document.getElementById('globalPendingBadge');
+            const floatingBell = document.getElementById('floatingBell');
+            const floatingBadge = document.getElementById('floatingBellBadge');
             if (count > 0) {
-                document.getElementById('pendingDeclCount').innerText = count;
-                alertBox.style.display = 'block';
+                if(globalBadge) { globalBadge.innerText = count; globalBadge.style.display = 'inline-block'; }
+                if(floatingBell) { floatingBadge.innerText = count; floatingBell.style.display = 'flex'; }
             } else {
-                alertBox.style.display = 'none';
+                if(globalBadge) globalBadge.style.display = 'none';
+                if(floatingBell) floatingBell.style.display = 'none';
                 closePendingDeclModal(); // Fermeture auto si tout est traité
             }
             if(document.getElementById('pendingDeclModal').style.display === 'block') renderPendingDeclList();
@@ -639,7 +681,13 @@
             }
         }
 
-        function openReviewDeclModal(vendeur) {
+        async function openReviewDeclModal(vendeur) {
+            // Assurer le chargement des stocks en temps réel pour ce vendeur
+            if (valVendeur.value !== vendeur) {
+                valVendeur.value = vendeur;
+            }
+            await loadSellerData();
+
             const decls = pendingDeclarations.filter(d => d.vendeur === vendeur);
             if (decls.length === 0) return;
             
@@ -677,15 +725,24 @@
             if (keys.length > 0) {
                 keys.forEach((p, index) => {
                     const item = aggItems[p];
+                    const it = inventoryData[p];
+                    const enMain = it ? it.pT - it.vT - it.rT - it.cT : 0;
                     tbody.innerHTML += `
                         <tr>
-                            <td style="font-weight:bold; font-size:11px;">${p}<input type="hidden" id="revItemProd_${index}" value="${p}"></td>
-                            <td><input type="number" min="0" id="revItemVenduAg_${index}" value="${item.venduAg}" style="width:50px; padding:8px; text-align:center;"></td>
-                            <td><input type="number" min="0" id="revItemVenduAb_${index}" value="${item.venduAb}" style="width:50px; padding:8px; text-align:center;"></td>
-                            <td><input type="number" min="0" id="revItemRendu_${index}" value="${item.rendu}" style="width:50px; padding:8px; text-align:center;"></td>
+                            <td style="font-weight:bold; font-size:11px;">
+                                ${p}<br><small style="color:#1877f2;">En main: <span id="revEnMain_${index}">${enMain}</span></small>
+                                <input type="hidden" id="revItemProd_${index}" value="${p}">
+                            </td>
+                            <td><input type="number" min="0" id="revItemVenduAg_${index}" value="${item.venduAg}" style="width:50px; padding:8px; text-align:center;" oninput="checkReviewExcess(${index})"></td>
+                            <td>
+                                <input type="number" min="0" id="revItemVenduAb_${index}" value="${item.venduAb}" style="width:50px; padding:8px; text-align:center;" oninput="checkReviewExcess(${index})">
+                                <br><input type="text" id="revItemRefAb_${index}" placeholder="Réf. Client" style="width:70px; padding:4px; font-size:9px; margin-top:2px; text-align:center; border:1px solid #cbd5e1; border-radius:4px;">
+                            </td>
+                            <td><input type="number" min="0" id="revItemRendu_${index}" value="${item.rendu}" style="width:50px; padding:8px; text-align:center;" oninput="checkReviewExcess(${index})"></td>
                         </tr>`;
                 });
-            } else { tbody.innerHTML = '<tr><td colspan="3">Aucun article déclaré.</td></tr>'; }
+                setTimeout(() => { keys.forEach((p, index) => checkReviewExcess(index)); }, 50);
+            } else { tbody.innerHTML = '<tr><td colspan="4">Aucun article déclaré.</td></tr>'; }
 
             document.getElementById('reviewDeclCash').value = tCash;
             document.getElementById('reviewDeclCB').value = tCb;
@@ -704,6 +761,53 @@
             currentDeclReviewVendeur = null; 
         }
 
+        // Fonction pour vérifier les excédents dans le tableau de révision
+        window.checkReviewExcess = function(index) {
+            const enMain = parseInt(document.getElementById(`revEnMain_${index}`).innerText) || 0;
+            const ag = parseInt(document.getElementById(`revItemVenduAg_${index}`).value) || 0;
+            const ab = parseInt(document.getElementById(`revItemVenduAb_${index}`).value) || 0;
+            const rendu = parseInt(document.getElementById(`revItemRendu_${index}`).value) || 0;
+            
+            const total = ag + ab + rendu;
+            const inputs = [
+                document.getElementById(`revItemVenduAg_${index}`),
+                document.getElementById(`revItemVenduAb_${index}`),
+                document.getElementById(`revItemRendu_${index}`)
+            ];
+            
+            if (total > enMain) {
+                inputs.forEach(inp => {
+                    inp.style.backgroundColor = '#fee2e2';
+                    inp.style.borderColor = '#ef4444';
+                    inp.style.color = '#b91c1c';
+                });
+            } else {
+                inputs.forEach(inp => {
+                    inp.style.backgroundColor = '';
+                    inp.style.borderColor = '';
+                    inp.style.color = '';
+                });
+            }
+
+            // Vérification globale pour afficher/masquer l'alerte
+            let hasSurplus = false;
+            const itemCount = parseInt(document.getElementById('reviewDeclItemsBody').getAttribute('data-count') || 0);
+            for (let i = 0; i < itemCount; i++) {
+                const eM = parseInt(document.getElementById(`revEnMain_${i}`)?.innerText) || 0;
+                const vAg = parseInt(document.getElementById(`revItemVenduAg_${i}`)?.value) || 0;
+                const vAb = parseInt(document.getElementById(`revItemVenduAb_${i}`)?.value) || 0;
+                const rR = parseInt(document.getElementById(`revItemRendu_${i}`)?.value) || 0;
+                if ((vAg + vAb + rR) > eM) {
+                    hasSurplus = true;
+                    break;
+                }
+            }
+            const warning = document.getElementById('reviewSurplusWarning');
+            if (warning) {
+                warning.style.display = hasSurplus ? 'block' : 'none';
+            }
+        };
+
         async function rejectDeclaration() {
             if (currentDeclReviewIds.length === 0) return;
             if (confirm("Voulez-vous refuser TOUS les bilans cumulés de ce vendeur ? Ils seront supprimés et il devra recommencer.")) {
@@ -720,6 +824,23 @@
 
             const batch = db.batch();
             const itemCount = parseInt(document.getElementById('reviewDeclItemsBody').getAttribute('data-count') || 0);
+
+            // RE-VÉRIFICATION DU STOCK RÉEL AU MOMENT DE LA VALIDATION
+            for (let i = 0; i < itemCount; i++) {
+                const prod = document.getElementById(`revItemProd_${i}`).value;
+                const totalSortant = (parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0) +
+                                     (parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0) +
+                                     (parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0);
+                
+                const info = inventoryData[prod];
+                const enMain = info ? info.pT - info.vT - info.rT - info.cT : 0;
+
+                if (totalSortant > enMain) {
+                    showStockError(`• ${prod} : Le stock a changé entre-temps.\nDisponible : ${enMain}\nDéclaré : ${totalSortant}\nSurplus : ${totalSortant - enMain}`);
+                    return;
+                }
+            }
+
             const declDate = currentDeclReviewDate;
             const declVendeur = currentDeclReviewVendeur;
             
@@ -729,6 +850,7 @@
                 const venduAg = parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0;
                 const venduAb = parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0;
                 const rendu = parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0;
+                const refAb = document.getElementById(`revItemRefAb_${i}`) ? document.getElementById(`revItemRefAb_${i}`).value.trim() : "";
 
                 if (venduAg > 0) {
                     const price = globalPrices[prod] || 0;
@@ -736,7 +858,7 @@
                 }
                 if (venduAb > 0) {
                     const price = globalPrices[prod] || 0;
-                    batch.set(db.collection("ventes").doc(), { date: declDate, vendeur: declVendeur, produit: prod, quantite: venduAb, prixUnitaire: price, total: venduAb * price, payeAbidjan: true, abidjanRegle: false, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                    batch.set(db.collection("ventes").doc(), { date: declDate, vendeur: declVendeur, produit: prod, quantite: venduAb, prixUnitaire: price, total: venduAb * price, payeAbidjan: true, abidjanRegle: false, clientRef: refAb, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
                 }
                 if (rendu > 0) batch.set(db.collection("retours_vendeurs").doc(), { date: declDate, vendeur: declVendeur, produit: prod, quantite: rendu, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             }

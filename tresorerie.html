@@ -15,7 +15,7 @@
     </header>
 
     <nav class="navigation">
-        <a href="validation.html">Validation</a>
+        <a href="validation.html">Validation <span id="globalPendingBadge" class="nav-badge" style="display:none;">0</span></a>
         <a href="stock.html">Stock</a>
         <a href="dashboard.html">Tableau de Bord</a>
         <a href="tresorerie.html" class="active">Trésorerie</a>
@@ -72,6 +72,18 @@
     </script>
     <script src="auth-guard.js"></script>
     <script src="tresorerie.js"></script>
+    <script>
+        if (window.db) {
+            window.db.collection("declarations_fin_journee").where("statut", "==", "en_attente").onSnapshot(snap => {
+                const count = snap.docs.length;
+                const badge = document.getElementById('globalPendingBadge');
+                if (badge) {
+                    badge.innerText = count;
+                    badge.style.display = count > 0 ? 'inline-block' : 'none';
+                }
+            });
+        }
+    </script>
     <button id="btnBackToTop" title="Retour en haut" onclick="window.scrollTo({ top: 0, behavior: 'smooth' })">↑</button>
 </body>
 </html>

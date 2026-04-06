@@ -78,6 +78,26 @@ body.dark-mode {
 }
 .navigation a.active { background-color: var(--accent-blue); color: white; }
 
+.nav-badge {
+    background-color: #ef4444;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 10px;
+    font-weight: bold;
+    margin-left: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    vertical-align: baseline;
+}
+
+.btn-bell {
+    background-color: #f59e0b; color: white; border: none; padding: 10px 14px;
+    border-radius: 12px; font-weight: bold; font-size: 12px; cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1); font-family: inherit;
+    transition: background 0.3s, transform 0.2s; display: none; align-items: center;
+}
+.btn-bell:hover { background-color: #d97706; transform: translateY(-2px); }
+
 /* Bouton Toggle Jour/Nuit (À ajouter dans votre HTML) */
 .theme-toggle {
     background: var(--border-color); border: none; padding: 8px 12px;
@@ -227,6 +247,25 @@ td { padding: 12px; border-bottom: 1px solid var(--border-color); color: var(--t
 tbody tr:nth-child(even) { background-color: rgba(0,0,0,0.015); }
 body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.03); }
 
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(4px);
+    overflow-y: auto;
+}
+
+.close-modal {
+    float: right; font-size: 24px; font-weight: bold;
+    cursor: pointer; color: var(--text-muted); transition: color 0.3s;
+}
+.close-modal:hover { color: #ef4444; }
+
 .modal-content {
     background: var(--bg-card); color: var(--text-main);
     border-radius: 25px; padding: 25px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
@@ -259,6 +298,9 @@ body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.0
     .navigation a[href*="recuperation"]::before { content: "🔄"; font-size: 20px; }
     .logout-button { font-size: 0; flex: 0.5; }
     .logout-button::before { content: "🚪"; font-size: 20px; }
+    .btn-bell { font-size: 0; flex: 0.5; justify-content: center; }
+    .btn-bell::before { content: "🔔"; font-size: 20px; }
+    .bell-text { display: none; }
 }
 
 /* ==========================================================================
@@ -394,3 +436,57 @@ body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.0
     opacity: 1;
     visibility: visible;
 }
+/* --- Modale d'Erreur Critique (Surplus Stock) --- */
+.modal-error {
+    display: none; 
+    position: fixed; 
+    z-index: 5000; 
+    left: 0; top: 0; 
+    width: 100%; height: 100%; 
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(8px);
+}
+
+.modal-error-content {
+    background: var(--bg-card);
+    margin: 15% auto;
+    padding: 30px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 450px;
+    text-align: center;
+    border: 3px solid #ef4444;
+    box-shadow: 0 0 30px rgba(239, 68, 68, 0.4);
+    animation: pulse-red 2s infinite; /* Animation de pulsation */
+}
+
+@keyframes pulse-red {
+    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { box-shadow: 0 0 0 15px rgba(239, 68, 68, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* ==========================================================================
+   9. CLOCHE FLOTTANTE (Validation)
+   ========================================================================== */
+.floating-bell {
+    position: fixed; bottom: 30px; left: 30px;
+    background-color: #f59e0b; color: white;
+    width: 60px; height: 60px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    cursor: pointer; z-index: 1500;
+    transition: transform 0.3s, background-color 0.3s;
+}
+.floating-bell:hover { transform: scale(1.1); background-color: #d97706; }
+
+.floating-badge {
+    position: absolute; top: -5px; right: -5px;
+    background-color: #ef4444; color: white;
+    font-size: 12px; font-weight: bold; padding: 4px 8px;
+    border-radius: 50%; border: 2px solid white;
+}
+
+.error-icon { font-size: 50px; margin-bottom: 15px; display: block; }
+.error-title { color: #ef4444; font-weight: bold; font-size: 20px; margin-bottom: 10px; }
+.error-text { color: var(--text-main); font-size: 14px; margin-bottom: 20px; line-height: 1.5; }
