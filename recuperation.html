@@ -220,21 +220,20 @@
 
     <!-- MODALE DE CONFIRMATION DE DÉCLARATION -->
     <div id="declarationModal" class="modal">
-        <div class="modal-content" style="max-width: 450px; padding: 0; overflow: hidden; border-radius: 20px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); border: none;">
-            <div style="background: linear-gradient(135deg, #1877f2 0%, #0f172a 100%); padding: 25px 20px; text-align: center; position: relative;">
-                <span class="close-modal" onclick="closeDeclarationModal()" style="position: absolute; top: 15px; right: 20px; color: white; opacity: 0.8; font-size: 28px;">&times;</span>
-                <div style="font-size: 40px; margin-bottom: 10px;">🧾</div>
-                <h2 style="color: white; margin: 0; font-size: 20px; font-weight: 900; letter-spacing: 1px;">BILAN DE JOURNÉE</h2>
-                <p style="color: #cbd5e1; font-size: 11px; margin: 5px 0 0 0;">Vérifiez attentivement avant transmission à l'agence.</p>
+        <div class="modal-content" style="max-width: 500px; padding: 25px; border-radius: 20px;">
+            <div class="modal-premium-header">
+                <span class="close-modal" onclick="closeDeclarationModal()">&times;</span>
+                <div class="modal-premium-icon">🧾</div>
+                <h2 class="modal-premium-title">BILAN DE JOURNÉE</h2>
+                <p style="color: var(--text-muted); font-size: 11px; margin: 5px 0 0 0;">Vérifiez attentivement avant transmission à l'agence.</p>
             </div>
             
-            <div style="padding: 25px; background: #f8fafc;">
-                <div id="declarationPreview" style="background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); font-size: 13px; max-height: 400px; overflow-y: auto; border: 1px dashed #cbd5e1;">
-                </div>
-                <div style="display: flex; gap: 15px; margin-top: 25px;">
-                    <button onclick="closeDeclarationModal()" style="flex: 1; padding: 14px; background: white; color: #64748b; border: 2px solid #cbd5e1; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; transition: all 0.2s;" onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='white'">Corriger</button>
-                    <button onclick="submitDeclaration()" style="flex: 1.5; padding: 14px; background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4); transition: transform 0.2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'">🚀 Transmettre</button>
-                </div>
+            <div id="declarationPreview" style="max-height: 50vh; overflow-y: auto; padding-right: 5px;">
+            </div>
+            
+            <div style="display: flex; gap: 15px; margin-top: 20px;">
+                <button onclick="closeDeclarationModal()" style="flex: 1; padding: 14px; background: transparent; color: var(--text-muted); border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.3s;">Corriger</button>
+                <button id="btnSubmitDeclModal" onclick="submitDeclaration()" style="flex: 1.5; padding: 14px; background: var(--accent-blue); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.3s;">🚀 Transmettre</button>
             </div>
         </div>
     </div>
@@ -598,6 +597,7 @@
         function previewDeclaration() {
             let items = [];
             let errorMsg = "";
+            let hasSurplus = false;
 
             for(let p in currentSellerEnMain) {
                 let enMain = currentSellerEnMain[p];
@@ -607,14 +607,10 @@
                 let total = vAg + vAb + r;
 
                 if (total > enMain) {
+                    hasSurplus = true;
                     errorMsg += `• ${p} : Vous déclarez ${total} mais n'avez que ${enMain} en main (Excédent: ${total - enMain})\n`;
                 }
                 if (total > 0) items.push({ produit: p, venduAg: vAg, venduAb: vAb, rendu: r });
-            }
-
-            if (errorMsg !== "") {
-                showStockError(errorMsg); // Utilise la nouvelle modale
-                return;
             }
 
             if (items.length === 0 && parseFloat(document.getElementById('declCash').value || 0) === 0) {

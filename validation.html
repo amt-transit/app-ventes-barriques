@@ -728,10 +728,11 @@
                     const it = inventoryData[p];
                     const enMain = it ? it.pT - it.vT - it.rT - it.cT : 0;
                     tbody.innerHTML += `
-                        <tr>
+                        <tr id="revRow_${index}">
                             <td style="font-weight:bold; font-size:11px;">
-                                ${p}<br><small style="color:#1877f2;">En main: <span id="revEnMain_${index}">${enMain}</span></small>
+                                ${p}<br><small style="color:var(--accent-blue);">En main: <span id="revEnMain_${index}">${enMain}</span></small>
                                 <input type="hidden" id="revItemProd_${index}" value="${p}">
+                                <div id="surplusMsg_${index}" class="surplus-msg"></div>
                             </td>
                             <td><input type="number" min="0" id="revItemVenduAg_${index}" value="${item.venduAg}" style="width:50px; padding:8px; text-align:center;" oninput="checkReviewExcess(${index})"></td>
                             <td>
@@ -769,6 +770,8 @@
             const rendu = parseInt(document.getElementById(`revItemRendu_${index}`).value) || 0;
             
             const total = ag + ab + rendu;
+            const tr = document.getElementById(`revRow_${index}`);
+            const msg = document.getElementById(`surplusMsg_${index}`);
             const inputs = [
                 document.getElementById(`revItemVenduAg_${index}`),
                 document.getElementById(`revItemVenduAb_${index}`),
@@ -776,12 +779,16 @@
             ];
             
             if (total > enMain) {
+                if(tr) tr.classList.add('row-error');
+                if(msg) { msg.innerText = `⚠️ Surplus : +${total - enMain}`; msg.style.display = 'block'; }
                 inputs.forEach(inp => {
                     inp.style.backgroundColor = '#fee2e2';
                     inp.style.borderColor = '#ef4444';
                     inp.style.color = '#b91c1c';
                 });
             } else {
+                if(tr) tr.classList.remove('row-error');
+                if(msg) msg.style.display = 'none';
                 inputs.forEach(inp => {
                     inp.style.backgroundColor = '';
                     inp.style.borderColor = '';
@@ -802,9 +809,16 @@
                     break;
                 }
             }
-            const warning = document.getElementById('reviewSurplusWarning');
-            if (warning) {
-                warning.style.display = hasSurplus ? 'block' : 'none';
+            
+            const confirmBtn = document.getElementById('btnConfirmDeclModal');
+            if (confirmBtn) {
+                if (hasSurplus) {
+                    confirmBtn.classList.add('btn-disabled');
+                    confirmBtn.disabled = true;
+                } else {
+                    confirmBtn.classList.remove('btn-disabled');
+                    confirmBtn.disabled = false;
+                }
             }
         };
 

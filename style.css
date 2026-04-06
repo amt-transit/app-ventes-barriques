@@ -274,6 +274,55 @@ body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.0
     -webkit-backdrop-filter: var(--glass-blur);
 }
 
+/* --- Nouveaux styles Premium pour Modales --- */
+.modal-premium-header {
+    text-align: center;
+    padding-bottom: 15px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--border-color);
+}
+.modal-premium-icon {
+    font-size: 40px;
+    margin-bottom: 10px;
+    display: inline-block;
+}
+.modal-premium-title {
+    color: var(--text-main);
+    margin: 0;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+.modal-section-card {
+    background: var(--bg-card);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border-color);
+}
+.row-error td {
+    border-top: 2px solid #ef4444 !important;
+    border-bottom: 2px solid #ef4444 !important;
+    background-color: rgba(239, 68, 68, 0.05) !important;
+    transition: all 0.3s ease;
+}
+.surplus-msg {
+    color: #ef4444;
+    font-size: 10px;
+    font-weight: bold;
+    display: none;
+    margin-top: 6px;
+    transition: all 0.3s ease;
+}
+.btn-disabled {
+    background: var(--text-muted) !important;
+    color: var(--bg-card) !important;
+    cursor: not-allowed !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
 /* ==========================================================================
    6. RESPONSIVE MOBILE
    ========================================================================== */
