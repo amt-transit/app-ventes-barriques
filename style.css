@@ -470,7 +470,7 @@ body.dark-mode tbody tr:nth-child(even) { background-color: rgba(255,255,255,0.0
    9. CLOCHE FLOTTANTE (Validation)
    ========================================================================== */
 .floating-bell {
-    position: fixed; bottom: 30px; left: 30px;
+    position: fixed; top: 90px; left: 20px;
     background-color: #f59e0b; color: white;
     width: 60px; height: 60px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
