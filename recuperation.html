@@ -109,10 +109,19 @@
             <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-top: 15px; border: 1px solid #e2e8f0;">
                 <h3 style="font-size: 12px; color: #1e293b; margin-top: 0;">💰 Argent remis au dépôt</h3>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <input type="number" id="declCash" placeholder="Espèces (€)" style="padding: 10px;">
-                    <input type="number" id="declCB" placeholder="Preuve CB (€)" style="padding: 10px;">
-                    <input type="number" id="declVirement" placeholder="Preuve Virement (€)" style="padding: 10px;">
-                    <input type="number" id="declRemise" placeholder="Remises (€)" style="padding: 10px;">
+                    <input type="number" id="declCash" placeholder="Espèces (€)" style="padding: 10px; width: 100%; box-sizing: border-box;">
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <input type="number" id="declCB" placeholder="Montant CB (€)" style="padding: 10px; width: 100%; box-sizing: border-box;">
+                        <input type="text" id="declRefCB" placeholder="Réf. transaction CB" style="padding: 8px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <input type="number" id="declVirement" placeholder="Montant Virement (€)" style="padding: 10px; width: 100%; box-sizing: border-box;">
+                        <input type="text" id="declRefVirement" placeholder="Réf. du virement" style="padding: 8px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
+                    <div style="display: flex; flex-direction: column; gap: 5px;">
+                        <input type="number" id="declRemise" placeholder="Montant Remises (€)" style="padding: 10px; width: 100%; box-sizing: border-box;">
+                        <input type="text" id="declMotifRemise" placeholder="Motif de la remise" style="padding: 8px; font-size: 11px; border: 1px solid #cbd5e1; border-radius: 6px;">
+                    </div>
                 </div>
             </div>
             
@@ -233,8 +242,47 @@
             
             <div style="display: flex; gap: 15px; margin-top: 20px;">
                 <button onclick="closeDeclarationModal()" style="flex: 1; padding: 14px; background: transparent; color: var(--text-muted); border: 2px solid var(--border-color); border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.3s;">Corriger</button>
+                <button onclick="downloadDeclarationPDF()" style="flex: 1; padding: 14px; background: #64748b; color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.3s;">📄 PDF</button>
                 <button id="btnSubmitDeclModal" onclick="submitDeclaration()" style="flex: 1.5; padding: 14px; background: var(--accent-blue); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; transition: all 0.3s;">🚀 Transmettre</button>
             </div>
+        </div>
+    </div>
+
+    <!-- CONTENEUR PDF MASQUÉ POUR LA DÉCLARATION -->
+    <div id="pdfDeclarationContainerHidden" style="display: none;">
+        <div id="pdfDeclarationArea" style="padding: 20px; font-family: 'Comfortaa', sans-serif; color: #1e293b; background: white;">
+            <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #1877f2; padding-bottom: 15px; margin-bottom: 20px;">
+                <img src="logo.png" alt="Logo" style="width: 80px; height: auto;">
+                <div style="text-align: right;">
+                    <h2 style="margin: 0; font-size: 18px; color: #1e293b;">Déclaration de Fin de Journée</h2>
+                    <p style="margin: 5px 0 0 0; font-weight: bold; color: #1877f2; font-size: 14px;">Vendeur : <span id="pdfDeclVendeur"></span></p>
+                    <p style="margin: 0; font-size: 10px; color: #64748b;">Date : <span id="pdfDeclDate"></span></p>
+                </div>
+            </div>
+
+            <h3 style="font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">📦 Détail des Colis</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 20px;">
+                <thead>
+                    <tr style="background: #f1f5f9;">
+                        <th style="padding: 8px; text-align: left; border: 1px solid #e2e8f0;">Produit</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #e2e8f0;">Vendu (Ag)</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #e2e8f0;">Vendu (Abi)</th>
+                        <th style="padding: 8px; text-align: center; border: 1px solid #e2e8f0;">Rendu</th>
+                    </tr>
+                </thead>
+                <tbody id="pdfDeclItemsBody"></tbody>
+            </table>
+
+            <h3 style="font-size: 14px; margin-bottom: 10px; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">💶 Détail Financier</h3>
+            <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
+                <tr><td style="padding: 8px; border: 1px solid #e2e8f0;">Espèces (Cash)</td><td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold;" id="pdfDeclCash"></td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e2e8f0;">Carte Bleue (CB)<br><small id="pdfDeclRefCB" style="color: #64748b; font-style: italic;"></small></td><td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold;" id="pdfDeclCB"></td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e2e8f0;">Virement<br><small id="pdfDeclRefVirement" style="color: #64748b; font-style: italic;"></small></td><td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold;" id="pdfDeclVirement"></td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e2e8f0;">Remises<br><small id="pdfDeclMotifRemise" style="color: #64748b; font-style: italic;"></small></td><td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold; color: #be123c;" id="pdfDeclRemise"></td></tr>
+                <tr style="background: #f8fafc;"><td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">TOTAL À REMETTRE</td><td style="padding: 8px; border: 1px solid #e2e8f0; text-align: right; font-weight: bold; font-size: 14px; color: #10b981;" id="pdfDeclTotal"></td></tr>
+            </table>
+            
+            <p style="margin-top: 30px; font-size: 10px; color: #94a3b8; text-align: center; font-style: italic;">Généré depuis l'application AMT Vendeurs le <span id="pdfDeclPrintDate"></span></p>
         </div>
     </div>
 
@@ -539,7 +587,10 @@
                             <td style="text-align:left; font-size:11px;"><b>${p}</b></td>
                             <td style="color:#1877f2; font-weight:bold;">${inventory[p]}</td>
                             <td><input type="number" min="0" class="decl-input" id="declVenduAg_${p}" placeholder="0" style="width:40px; padding:4px; text-align:center;"></td>
-                            <td><input type="number" min="0" class="decl-input" id="declVenduAb_${p}" placeholder="0" style="width:40px; padding:4px; text-align:center;"></td>
+                            <td>
+                                <input type="number" min="0" class="decl-input" id="declVenduAb_${p}" placeholder="0" style="width:40px; padding:4px; text-align:center;">
+                                <br><input type="text" id="declRefAb_${p}" placeholder="Client Abi." style="width:60px; padding:4px; font-size:9px; margin-top:2px; text-align:center; border:1px solid #cbd5e1; border-radius:4px;">
+                            </td>
                             <td><input type="number" min="0" class="decl-input" id="declRendu_${p}" placeholder="0" style="width:40px; padding:4px; text-align:center;"></td>
                             <td id="declEcart_${p}" style="font-weight:bold; color:#10b981;">0 ✅</td>
                         </tr>`;
@@ -603,6 +654,7 @@
                 let enMain = currentSellerEnMain[p];
                 let vAg = parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0;
                 let vAb = parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0;
+                let refAb = document.getElementById(`declRefAb_${p}`)?.value || "";
                 let r = parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0;
                 let total = vAg + vAb + r;
 
@@ -610,7 +662,7 @@
                     hasSurplus = true;
                     errorMsg += `• ${p} : Vous déclarez ${total} mais n'avez que ${enMain} en main (Excédent: ${total - enMain})\n`;
                 }
-                if (total > 0) items.push({ produit: p, venduAg: vAg, venduAb: vAb, rendu: r });
+                if (total > 0) items.push({ produit: p, venduAg: vAg, venduAb: vAb, refAb: refAb, rendu: r });
             }
 
             if (items.length === 0 && parseFloat(document.getElementById('declCash').value || 0) === 0) {
@@ -624,8 +676,11 @@
                 items: items, 
                 cash: parseFloat(document.getElementById('declCash').value) || 0, 
                 cb: parseFloat(document.getElementById('declCB').value) || 0, 
+                refCB: document.getElementById('declRefCB').value || "",
                 virement: parseFloat(document.getElementById('declVirement').value) || 0, 
+                refVirement: document.getElementById('declRefVirement').value || "",
                 remise: parseFloat(document.getElementById('declRemise').value) || 0, 
+                motifRemise: document.getElementById('declMotifRemise').value || "",
                 statut: "en_attente", 
                 timestamp: firebase.firestore.FieldValue.serverTimestamp() 
             };
@@ -647,7 +702,7 @@
                         <strong style="color:#1877f2; font-size:14px;">${i.produit}</strong>
                         <div style="text-align:right; font-size:11px; font-weight:bold; color:#475569; display:flex; gap:5px; flex-wrap:wrap; justify-content:flex-end;">
                             ${i.venduAg > 0 ? `<span style="background:#dbeafe; color:#1e40af; padding:4px 8px; border-radius:6px;">${i.venduAg} Agence</span>` : ''}
-                            ${i.venduAb > 0 ? `<span style="background:#fae8ff; color:#86198f; padding:4px 8px; border-radius:6px;">${i.venduAb} Abidjan</span>` : ''}
+                            ${i.venduAb > 0 ? `<span style="background:#fae8ff; color:#86198f; padding:4px 8px; border-radius:6px;">${i.venduAb} Abidjan ${i.refAb ? `(${i.refAb})` : ''}</span>` : ''}
                             ${i.rendu > 0 ? `<span style="background:#fef3c7; color:#92400e; padding:4px 8px; border-radius:6px;">${i.rendu} Rendu(s)</span>` : ''}
                         </div>
                     </div>`;
@@ -665,9 +720,9 @@
                     </div>
                     <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:15px;">
                         <div style="background:#ecfdf5; padding:10px; border-radius:8px; border:1px solid #a7f3d0; text-align:center;"><span style="font-size:9px; color:#065f46; font-weight:bold; display:block;">CASH</span><strong style="color:#047857; font-size:16px;">${formatEUR(pendingDeclarationPayload.cash)}</strong></div>
-                        <div style="background:#eef2ff; padding:10px; border-radius:8px; border:1px solid #bfdbfe; text-align:center;"><span style="font-size:9px; color:#1e40af; font-weight:bold; display:block;">CARTE BLEUE</span><strong style="color:#1d4ed8; font-size:16px;">${formatEUR(pendingDeclarationPayload.cb)}</strong></div>
-                        <div style="background:#f5f3ff; padding:10px; border-radius:8px; border:1px solid #ddd6fe; text-align:center;"><span style="font-size:9px; color:#4338ca; font-weight:bold; display:block;">VIREMENT</span><strong style="color:#5b21b6; font-size:16px;">${formatEUR(pendingDeclarationPayload.virement)}</strong></div>
-                        <div style="background:#fff1f2; padding:10px; border-radius:8px; border:1px solid #fecdd3; text-align:center;"><span style="font-size:9px; color:#9f1239; font-weight:bold; display:block;">REMISES</span><strong style="color:#be123c; font-size:16px;">${formatEUR(pendingDeclarationPayload.remise)}</strong></div>
+                        <div style="background:#eef2ff; padding:10px; border-radius:8px; border:1px solid #bfdbfe; text-align:center;"><span style="font-size:9px; color:#1e40af; font-weight:bold; display:block;">CARTE BLEUE</span><strong style="color:#1d4ed8; font-size:16px;">${formatEUR(pendingDeclarationPayload.cb)}</strong>${pendingDeclarationPayload.refCB ? `<div style="font-size:9px; color:#64748b; margin-top:2px;">Réf: ${pendingDeclarationPayload.refCB}</div>` : ''}</div>
+                        <div style="background:#f5f3ff; padding:10px; border-radius:8px; border:1px solid #ddd6fe; text-align:center;"><span style="font-size:9px; color:#4338ca; font-weight:bold; display:block;">VIREMENT</span><strong style="color:#5b21b6; font-size:16px;">${formatEUR(pendingDeclarationPayload.virement)}</strong>${pendingDeclarationPayload.refVirement ? `<div style="font-size:9px; color:#64748b; margin-top:2px;">Réf: ${pendingDeclarationPayload.refVirement}</div>` : ''}</div>
+                        <div style="background:#fff1f2; padding:10px; border-radius:8px; border:1px solid #fecdd3; text-align:center;"><span style="font-size:9px; color:#9f1239; font-weight:bold; display:block;">REMISES</span><strong style="color:#be123c; font-size:16px;">${formatEUR(pendingDeclarationPayload.remise)}</strong>${pendingDeclarationPayload.motifRemise ? `<div style="font-size:9px; color:#64748b; margin-top:2px;">Motif: ${pendingDeclarationPayload.motifRemise}</div>` : ''}</div>
                     </div>
                     <div style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); color:white; padding:15px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; box-shadow:0 4px 10px rgba(0,0,0,0.2);">
                         <span style="font-weight:bold; font-size:12px; text-transform:uppercase; letter-spacing:1px; color:#cbd5e1;">Total Encaissé</span>
@@ -681,6 +736,55 @@
 
         function closeDeclarationModal() { document.getElementById('declarationModal').style.display = 'none'; }
 
+        function downloadDeclarationPDF() {
+            if (!pendingDeclarationPayload) return alert("Aucune donnée à imprimer.");
+
+            const payload = pendingDeclarationPayload;
+            const formatEUR = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
+
+            // Remplir les champs d'en-tête
+            document.getElementById('pdfDeclVendeur').innerText = payload.vendeur;
+            document.getElementById('pdfDeclDate').innerText = payload.date;
+            document.getElementById('pdfDeclPrintDate').innerText = new Date().toLocaleString('fr-FR');
+
+            // Remplir le tableau des colis
+            const tbody = document.getElementById('pdfDeclItemsBody');
+            tbody.innerHTML = '';
+            if (payload.items && payload.items.length > 0) {
+                payload.items.forEach(item => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td style="padding: 8px; border: 1px solid #e2e8f0; font-weight: bold;">${item.produit}</td>
+                            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${item.venduAg}</td>
+                            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${item.venduAb} ${item.refAb ? `<br><small style="color:#64748b; font-size:9px;">${item.refAb}</small>` : ''}</td>
+                            <td style="padding: 8px; border: 1px solid #e2e8f0; text-align: center;">${item.rendu}</td>
+                        </tr>
+                    `;
+                });
+            } else {
+                tbody.innerHTML = `<tr><td colspan="4" style="padding: 8px; border: 1px solid #e2e8f0; text-align: center; font-style: italic; color: #64748b;">Aucun colis déclaré</td></tr>`;
+            }
+
+            // Remplir le tableau financier
+            document.getElementById('pdfDeclCash').innerText = formatEUR(payload.cash);
+            document.getElementById('pdfDeclCB').innerText = formatEUR(payload.cb);
+            document.getElementById('pdfDeclVirement').innerText = formatEUR(payload.virement);
+            document.getElementById('pdfDeclRemise').innerText = formatEUR(payload.remise);
+            document.getElementById('pdfDeclRefCB').innerText = payload.refCB ? `Réf: ${payload.refCB}` : '';
+            document.getElementById('pdfDeclRefVirement').innerText = payload.refVirement ? `Réf: ${payload.refVirement}` : '';
+            document.getElementById('pdfDeclMotifRemise').innerText = payload.motifRemise ? `Motif: ${payload.motifRemise}` : '';
+            
+            const total = payload.cash + payload.cb + payload.virement;
+            document.getElementById('pdfDeclTotal').innerText = formatEUR(total);
+
+            // Afficher temporairement pour html2pdf
+            const container = document.getElementById('pdfDeclarationContainerHidden');
+            container.style.display = 'block';
+
+            const opt = { margin: 0, filename: `Declaration_${payload.vendeur}_${payload.date}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+            html2pdf().set(opt).from(document.getElementById('pdfDeclarationArea')).save().then(() => { container.style.display = 'none'; });
+        }
+
         async function submitDeclaration() {
             if(!pendingDeclarationPayload) return;
             try {
@@ -689,7 +793,7 @@
                 closeDeclarationModal();
                 // Reset formulaire
                 document.querySelectorAll('.decl-input').forEach(i => i.value = '');
-                ['declCash', 'declCB', 'declVirement', 'declRemise'].forEach(id => document.getElementById(id).value = '');
+                ['declCash', 'declCB', 'declRefCB', 'declVirement', 'declRefVirement', 'declRemise', 'declMotifRemise'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; });
                 calculateEcart();
             } catch (e) { alert("Erreur d'envoi."); }
         }

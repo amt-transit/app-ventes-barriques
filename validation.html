@@ -201,7 +201,11 @@
                     <input type="number" id="reviewDeclVir" style="padding:10px; width:100%; box-sizing:border-box;">
                     <input type="text" id="reviewDeclRefVir" placeholder="Réf. Vir." style="font-size:10px; margin-top:2px; border:1px solid #ddd; padding:4px; box-sizing:border-box;">
                 </div>
-                <div><label style="font-size:10px; font-weight:bold;">Remises (€)</label><input type="number" id="reviewDeclRem" style="padding:10px; width:100%; box-sizing:border-box;"></div>
+                <div style="display:flex; flex-direction:column;">
+                    <label style="font-size:10px; font-weight:bold;">Remises (€)</label>
+                    <input type="number" id="reviewDeclRem" style="padding:10px; width:100%; box-sizing:border-box;">
+                    <input type="text" id="reviewDeclMotifRem" placeholder="Motif Remise" style="font-size:10px; margin-top:2px; border:1px solid #ddd; padding:4px; box-sizing:border-box;">
+                </div>
             </div>
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -702,6 +706,7 @@
             
             let aggItems = {};
             let tCash = 0, tCb = 0, tVir = 0, tRem = 0;
+            let tRefCB = [], tRefVir = [], tMotifRem = [];
             
             // Compilation de toutes les déclarations de ce vendeur
             decls.forEach(d => {
@@ -711,12 +716,17 @@
                 tVir += (parseFloat(d.virement) || 0);
                 tRem += (parseFloat(d.remise) || 0);
                 
+                if (d.refCB) tRefCB.push(d.refCB);
+                if (d.refVirement) tRefVir.push(d.refVirement);
+                if (d.motifRemise) tMotifRem.push(d.motifRemise);
+                
                 if (d.items) {
                     d.items.forEach(item => {
-                        if (!aggItems[item.produit]) aggItems[item.produit] = { venduAg: 0, venduAb: 0, rendu: 0 };
+                        if (!aggItems[item.produit]) aggItems[item.produit] = { venduAg: 0, venduAb: 0, rendu: 0, refsAb: [] };
                         aggItems[item.produit].venduAg += (item.venduAg !== undefined ? parseInt(item.venduAg) : parseInt(item.vendu)) || 0;
                         aggItems[item.produit].venduAb += parseInt(item.venduAb) || 0;
                         aggItems[item.produit].rendu += parseInt(item.rendu) || 0;
+                        if (item.refAb) aggItems[item.produit].refsAb.push(item.refAb);
                     });
                 }
             });
@@ -727,6 +737,7 @@
                     const item = aggItems[p];
                     const it = inventoryData[p];
                     const enMain = it ? it.pT - it.vT - it.rT - it.cT : 0;
+                    const refAbVal = item.refsAb ? item.refsAb.filter(Boolean).join(" / ") : "";
                     tbody.innerHTML += `
                         <tr id="revRow_${index}">
                             <td style="font-weight:bold; font-size:11px;">
@@ -737,7 +748,7 @@
                             <td><input type="number" min="0" id="revItemVenduAg_${index}" value="${item.venduAg}" style="width:50px; padding:8px; text-align:center;" oninput="checkReviewExcess(${index})"></td>
                             <td>
                                 <input type="number" min="0" id="revItemVenduAb_${index}" value="${item.venduAb}" style="width:50px; padding:8px; text-align:center;" oninput="checkReviewExcess(${index})">
-                                <br><input type="text" id="revItemRefAb_${index}" placeholder="Réf. Client" style="width:70px; padding:4px; font-size:9px; margin-top:2px; text-align:center; border:1px solid #cbd5e1; border-radius:4px;">
+                                <br><input type="text" id="revItemRefAb_${index}" value="${refAbVal}" placeholder="Réf. Client" style="width:70px; padding:4px; font-size:9px; margin-top:2px; text-align:center; border:1px solid #cbd5e1; border-radius:4px;">
                             </td>
                             <td><input type="number" min="0" id="revItemRendu_${index}" value="${item.rendu}" style="width:50px; padding:8px; text-align:center;" oninput="checkReviewExcess(${index})"></td>
                         </tr>`;
@@ -749,8 +760,9 @@
             document.getElementById('reviewDeclCB').value = tCb;
             document.getElementById('reviewDeclVir').value = tVir;
             document.getElementById('reviewDeclRem').value = tRem;
-            document.getElementById('reviewDeclRefCB').value = "";
-            document.getElementById('reviewDeclRefVir').value = "";
+            document.getElementById('reviewDeclRefCB').value = tRefCB.filter(Boolean).join(" / ");
+            document.getElementById('reviewDeclRefVir').value = tRefVir.filter(Boolean).join(" / ");
+            if (document.getElementById('reviewDeclMotifRem')) document.getElementById('reviewDeclMotifRem').value = tMotifRem.filter(Boolean).join(" / ");
             document.getElementById('reviewDeclItemsBody').setAttribute('data-count', keys.length);
 
             document.getElementById('pendingDeclModal').style.display = 'none';
@@ -884,9 +896,10 @@
             const rem = parseFloat(document.getElementById('reviewDeclRem').value) || 0;
             const refCB = document.getElementById('reviewDeclRefCB').value.trim();
             const refVir = document.getElementById('reviewDeclRefVir').value.trim();
+            const motifRem = document.getElementById('reviewDeclMotifRem') ? document.getElementById('reviewDeclMotifRem').value.trim() : "";
 
             if (cash > 0 || cb > 0 || vir > 0 || rem > 0) {
-                batch.set(db.collection("encaissements_vendeurs").doc(), { date: declDate, vendeur: declVendeur, montantRecu: cash, montantCB: cb, refCB: refCB, montantVirement: vir, refVirement: refVir, remise: rem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
+                batch.set(db.collection("encaissements_vendeurs").doc(), { date: declDate, vendeur: declVendeur, montantRecu: cash, montantCB: cb, refCB: refCB, montantVirement: vir, refVirement: refVir, remise: rem, note: motifRem, timestamp: firebase.firestore.FieldValue.serverTimestamp() });
             }
 
             // 3. Mise à jour du statut de TOUTES les déclarations fusionnées
