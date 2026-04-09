@@ -422,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const newRef = document.getElementById('editSaleRef').value.trim();
         const newStatus = document.getElementById('editSaleStatus').value; // 'agence' ou 'abidjan'
         const newPayment = document.getElementById('editSalePayment').value;
-        const price = parseFloat(document.getElementById('editSalePrice').value) || 0;
+        const price = Math.max(0, parseFloat(document.getElementById('editSalePrice').value) || 0);
 
         if (isNaN(newQty) || newQty <= 0) return alert("Quantité invalide.");
 

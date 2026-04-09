@@ -173,6 +173,7 @@
                                 <th style="text-align:left;">Produit</th>
                                 <th>Pris (Confirmé)</th>
                                 <th>Vendus</th>
+                                <th>Conso.</th>
                                 <th style="color:#1877f2;">En Main</th>
                             </tr>
                         </thead>
@@ -309,7 +310,7 @@
     <script>
         let currentSellerName = "";
         let userRole = "";
-        let rawData = { recups: [], ventes: [] };
+        let rawData = { recups: [], ventes: [], consos: [] };
         let stockDisponibleMagasin = {};
         const recupProduitSelect = document.getElementById('recupProduit');
         let currentSellerEnMain = {}; // Pour le calcul de l'écart
@@ -486,11 +487,13 @@
             // 2. Filtrage par période (Uniquement pour Pris et Vendus)
             rawData.recups = allRecups.filter(d => d.date >= dateDebut && d.date <= dateFin);
             rawData.ventes = allVentes.filter(d => d.date >= dateDebut && d.date <= dateFin);
+            rawData.consos = allConsos.filter(d => d.date >= dateDebut && d.date <= dateFin);
             const encaiss = encaissSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
             
             let stats = {};
-            rawData.recups.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0, v:0, enMain:0}; stats[d.produit].p += parseInt(d.quantite)||0; });
-            rawData.ventes.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0, v:0, enMain:0}; stats[d.produit].v += parseInt(d.quantite)||0; });
+            rawData.recups.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0, v:0, c:0, enMain:0}; stats[d.produit].p += parseInt(d.quantite)||0; });
+            rawData.ventes.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0, v:0, c:0, enMain:0}; stats[d.produit].v += parseInt(d.quantite)||0; });
+            rawData.consos.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0, v:0, c:0, enMain:0}; stats[d.produit].c += parseInt(d.quantite)||0; });
             
             // 3. Calcul du stock global "En main" (Sans filtre de date)
             let globalInventory = {};
@@ -501,7 +504,7 @@
 
             // On fusionne l'inventaire global dans stats
             for(let p in globalInventory) {
-                if(!stats[p]) stats[p] = {p:0, v:0, enMain:0};
+                if(!stats[p]) stats[p] = {p:0, v:0, c:0, enMain:0};
                 stats[p].enMain = globalInventory[p] || 0;
             }
 
@@ -509,12 +512,13 @@
             tbody.innerHTML = '';
             for(let p in stats) {
                 // On n'affiche que s'il y a eu un mouvement sur la période OU s'il reste du stock
-                if(stats[p].p > 0 || stats[p].v > 0 || stats[p].enMain > 0) {
+                if(stats[p].p > 0 || stats[p].v > 0 || stats[p].c > 0 || stats[p].enMain > 0) {
                     tbody.innerHTML += `
                         <tr class="clickable-row" onclick="openHistoryModal('${p}')">
                             <td style="text-align:left;">${p} ${pVenteMap[p] <= 0 ? '🛠️' : 'ℹ️'}</td>
                             <td>${stats[p].p}</td>
                             <td style="color:#ef4444;">${stats[p].v}</td>
+                            <td style="color:#64748b; font-weight:bold;">${stats[p].c}</td>
                             <td style="font-weight:bold; color:#1877f2;">${stats[p].enMain}</td>
                         </tr>`;
                 }
@@ -634,9 +638,9 @@
             
             for(let p in currentSellerEnMain) {
                 let enMain = currentSellerEnMain[p];
-                let venduAg = parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0;
-                let venduAb = parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0;
-                let rendu = parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0;
+                let venduAg = Math.max(0, parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0);
+                let venduAb = Math.max(0, parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0);
+                let rendu = Math.max(0, parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0);
                 let ecart = enMain - (venduAg + venduAb + rendu);
                 let td = document.getElementById(`declEcart_${p}`);
                 
@@ -678,10 +682,10 @@
 
             for(let p in currentSellerEnMain) {
                 let enMain = currentSellerEnMain[p];
-                let vAg = parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0;
-                let vAb = parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0;
+                let vAg = Math.max(0, parseInt(document.getElementById(`declVenduAg_${p}`)?.value) || 0);
+                let vAb = Math.max(0, parseInt(document.getElementById(`declVenduAb_${p}`)?.value) || 0);
                 let refAb = document.getElementById(`declRefAb_${p}`)?.value || "";
-                let r = parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0;
+                let r = Math.max(0, parseInt(document.getElementById(`declRendu_${p}`)?.value) || 0);
                 let total = vAg + vAb + r;
 
                 if (total > enMain) {
@@ -689,6 +693,12 @@
                     errorMsg += `• ${p} : Vous déclarez ${total} mais n'avez que ${enMain} en main (Excédent: ${total - enMain})\n`;
                 }
                 if (total > 0) items.push({ produit: p, venduAg: vAg, venduAb: vAb, refAb: refAb, rendu: r });
+            }
+
+            // --- RÈGLE ABSOLUE : BLOCAGE DE L'OPÉRATION ---
+            if (hasSurplus) {
+                showStockError("Opération impossible :\nVous ne pouvez pas déclarer, vendre ou utiliser plus de produits que vous n'en possédez actuellement.\n\n" + errorMsg);
+                return; // Stoppe l'exécution et empêche l'ouverture de la modale
             }
 
             if (items.length === 0 && parseFloat(document.getElementById('declCash').value || 0) === 0) {
@@ -858,6 +868,7 @@
             let h = [];
             rawData.recups.filter(r => r.produit === p).forEach(r => h.push({d:r.date, t:'Retrait', q:r.quantite, c:'#1877f2'}));
             rawData.ventes.filter(v => v.produit === p).forEach(v => h.push({d:v.date, t:'Vente', q:v.quantite, c:'#ef4444'}));
+            if (rawData.consos) rawData.consos.filter(c => c.produit === p).forEach(c => h.push({d:c.date, t:'Conso.', q:c.quantite, c:'#64748b'}));
             h.sort((a,b) => new Date(b.d) - new Date(a.d));
             h.forEach(x => { b.innerHTML += `<tr><td>${x.d}</td><td style="color:${x.c}; font-weight:bold;">${x.t}</td><td>${x.q}</td></tr>`; });
             document.getElementById('historyModal').style.display = 'block';

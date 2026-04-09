@@ -210,7 +210,7 @@
 
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button onclick="rejectDeclaration()" style="flex: 1; padding: 12px; background: #cbd5e1; color: #334155; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Refuser & Supprimer</button>
-                <button onclick="confirmDeclaration()" style="flex: 2; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">Confirmer & Encaisser</button>
+                <button id="btnConfirmDeclModal" onclick="confirmDeclaration()" style="flex: 2; padding: 12px; background: #10b981; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; transition: all 0.3s;">Confirmer & Encaisser</button>
             </div>
         </div>
     </div>
@@ -405,12 +405,12 @@
             }
 
             // Récupération des montants financiers
-            const aco = parseFloat(document.getElementById('valAcompte').value) || 0;
-            const cb = parseFloat(document.getElementById('valCB').value) || 0;
-            const vir = parseFloat(document.getElementById('valVirement').value) || 0;
+            const aco = Math.max(0, parseFloat(document.getElementById('valAcompte').value) || 0);
+            const cb = Math.max(0, parseFloat(document.getElementById('valCB').value) || 0);
+            const vir = Math.max(0, parseFloat(document.getElementById('valVirement').value) || 0);
             const refCB = document.getElementById('valRefCB').value.trim();
             const refVir = document.getElementById('valRefVirement').value.trim();
-            const rem = parseFloat(document.getElementById('valRemise').value) || 0;
+            const rem = Math.max(0, parseFloat(document.getElementById('valRemise').value) || 0);
 
             if (!name || !date) return alert("Choisissez un vendeur et une date.");
             
@@ -777,9 +777,9 @@
         // Fonction pour vérifier les excédents dans le tableau de révision
         window.checkReviewExcess = function(index) {
             const enMain = parseInt(document.getElementById(`revEnMain_${index}`).innerText) || 0;
-            const ag = parseInt(document.getElementById(`revItemVenduAg_${index}`).value) || 0;
-            const ab = parseInt(document.getElementById(`revItemVenduAb_${index}`).value) || 0;
-            const rendu = parseInt(document.getElementById(`revItemRendu_${index}`).value) || 0;
+            const ag = Math.max(0, parseInt(document.getElementById(`revItemVenduAg_${index}`).value) || 0);
+            const ab = Math.max(0, parseInt(document.getElementById(`revItemVenduAb_${index}`).value) || 0);
+            const rendu = Math.max(0, parseInt(document.getElementById(`revItemRendu_${index}`).value) || 0);
             
             const total = ag + ab + rendu;
             const tr = document.getElementById(`revRow_${index}`);
@@ -813,9 +813,9 @@
             const itemCount = parseInt(document.getElementById('reviewDeclItemsBody').getAttribute('data-count') || 0);
             for (let i = 0; i < itemCount; i++) {
                 const eM = parseInt(document.getElementById(`revEnMain_${i}`)?.innerText) || 0;
-                const vAg = parseInt(document.getElementById(`revItemVenduAg_${i}`)?.value) || 0;
-                const vAb = parseInt(document.getElementById(`revItemVenduAb_${i}`)?.value) || 0;
-                const rR = parseInt(document.getElementById(`revItemRendu_${i}`)?.value) || 0;
+                const vAg = Math.max(0, parseInt(document.getElementById(`revItemVenduAg_${i}`)?.value) || 0);
+                const vAb = Math.max(0, parseInt(document.getElementById(`revItemVenduAb_${i}`)?.value) || 0);
+                const rR = Math.max(0, parseInt(document.getElementById(`revItemRendu_${i}`)?.value) || 0);
                 if ((vAg + vAb + rR) > eM) {
                     hasSurplus = true;
                     break;
@@ -854,9 +854,9 @@
             // RE-VÉRIFICATION DU STOCK RÉEL AU MOMENT DE LA VALIDATION
             for (let i = 0; i < itemCount; i++) {
                 const prod = document.getElementById(`revItemProd_${i}`).value;
-                const totalSortant = (parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0) +
-                                     (parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0) +
-                                     (parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0);
+                const totalSortant = (Math.max(0, parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0)) +
+                                     (Math.max(0, parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0)) +
+                                     (Math.max(0, parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0));
                 
                 const info = inventoryData[prod];
                 const enMain = info ? info.pT - info.vT - info.rT - info.cT : 0;
@@ -873,9 +873,9 @@
             // 1. Génération des Ventes et Retours
             for (let i = 0; i < itemCount; i++) {
                 const prod = document.getElementById(`revItemProd_${i}`).value;
-                const venduAg = parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0;
-                const venduAb = parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0;
-                const rendu = parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0;
+                const venduAg = Math.max(0, parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0);
+                const venduAb = Math.max(0, parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0);
+                const rendu = Math.max(0, parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0);
                 const refAb = document.getElementById(`revItemRefAb_${i}`) ? document.getElementById(`revItemRefAb_${i}`).value.trim() : "";
 
                 if (venduAg > 0) {
@@ -890,10 +890,10 @@
             }
 
             // 2. Génération de l'Encaissement
-            const cash = parseFloat(document.getElementById('reviewDeclCash').value) || 0;
-            const cb = parseFloat(document.getElementById('reviewDeclCB').value) || 0;
-            const vir = parseFloat(document.getElementById('reviewDeclVir').value) || 0;
-            const rem = parseFloat(document.getElementById('reviewDeclRem').value) || 0;
+            const cash = Math.max(0, parseFloat(document.getElementById('reviewDeclCash').value) || 0);
+            const cb = Math.max(0, parseFloat(document.getElementById('reviewDeclCB').value) || 0);
+            const vir = Math.max(0, parseFloat(document.getElementById('reviewDeclVir').value) || 0);
+            const rem = Math.max(0, parseFloat(document.getElementById('reviewDeclRem').value) || 0);
             const refCB = document.getElementById('reviewDeclRefCB').value.trim();
             const refVir = document.getElementById('reviewDeclRefVir').value.trim();
             const motifRem = document.getElementById('reviewDeclMotifRem') ? document.getElementById('reviewDeclMotifRem').value.trim() : "";
@@ -922,10 +922,10 @@
             document.getElementById('pdfBilanDate').innerText = currentDeclReviewDate;
             document.getElementById('pdfPrintTime').innerText = new Date().toLocaleString('fr-FR');
 
-            const cash = parseFloat(document.getElementById('reviewDeclCash').value) || 0;
-            const cb = parseFloat(document.getElementById('reviewDeclCB').value) || 0;
-            const vir = parseFloat(document.getElementById('reviewDeclVir').value) || 0;
-            const rem = parseFloat(document.getElementById('reviewDeclRem').value) || 0;
+            const cash = Math.max(0, parseFloat(document.getElementById('reviewDeclCash').value) || 0);
+            const cb = Math.max(0, parseFloat(document.getElementById('reviewDeclCB').value) || 0);
+            const vir = Math.max(0, parseFloat(document.getElementById('reviewDeclVir').value) || 0);
+            const rem = Math.max(0, parseFloat(document.getElementById('reviewDeclRem').value) || 0);
 
             document.getElementById('pdfBilanCash').innerText = formatEUR(cash);
             document.getElementById('pdfBilanCB').innerText = formatEUR(cb);
@@ -939,9 +939,9 @@
 
             for (let i = 0; i < itemCount; i++) {
                 const prod = document.getElementById(`revItemProd_${i}`).value;
-                const venduAg = parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0;
-                const venduAb = parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0;
-                const rendu = parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0;
+                const venduAg = Math.max(0, parseInt(document.getElementById(`revItemVenduAg_${i}`).value) || 0);
+                const venduAb = Math.max(0, parseInt(document.getElementById(`revItemVenduAb_${i}`).value) || 0);
+                const rendu = Math.max(0, parseInt(document.getElementById(`revItemRendu_${i}`).value) || 0);
 
                 if (venduAg > 0 || venduAb > 0 || rendu > 0) {
                     tbodyPdf.innerHTML += `
