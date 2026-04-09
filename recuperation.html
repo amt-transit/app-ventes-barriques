@@ -476,25 +476,51 @@
             ]);
             let pVenteMap = {};
             pricesSnap.forEach(doc => { pVenteMap[doc.data().produit] = parseFloat(doc.data().prixVente) || 0; });
-            rawData.recups = recupSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin && d.statut === "confirme");
-            rawData.ventes = ventesSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
+            
+            // 1. Données brutes (Toutes périodes)
+            const allRecups = recupSnap.docs.map(doc => doc.data()).filter(d => d.statut === "confirme" || !d.statut);
+            const allVentes = ventesSnap.docs.map(doc => doc.data());
+            const allRetours = retoursSnap.docs.map(doc => doc.data());
+            const allConsos = consosSnap.docs.map(doc => doc.data());
+
+            // 2. Filtrage par période (Uniquement pour Pris et Vendus)
+            rawData.recups = allRecups.filter(d => d.date >= dateDebut && d.date <= dateFin);
+            rawData.ventes = allVentes.filter(d => d.date >= dateDebut && d.date <= dateFin);
             const encaiss = encaissSnap.docs.map(doc => doc.data()).filter(d => d.date >= dateDebut && d.date <= dateFin);
+            
             let stats = {};
-            rawData.recups.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0,v:0}; stats[d.produit].p += d.quantite; });
-            rawData.ventes.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0,v:0}; stats[d.produit].v += d.quantite; });
+            rawData.recups.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0, v:0, enMain:0}; stats[d.produit].p += parseInt(d.quantite)||0; });
+            rawData.ventes.forEach(d => { if(!stats[d.produit]) stats[d.produit]={p:0, v:0, enMain:0}; stats[d.produit].v += parseInt(d.quantite)||0; });
+            
+            // 3. Calcul du stock global "En main" (Sans filtre de date)
+            let globalInventory = {};
+            allRecups.forEach(d => { globalInventory[d.produit] = (globalInventory[d.produit]||0) + (parseInt(d.quantite)||0); });
+            allVentes.forEach(d => { globalInventory[d.produit] = (globalInventory[d.produit]||0) - (parseInt(d.quantite)||0); });
+            allRetours.forEach(d => { globalInventory[d.produit] = (globalInventory[d.produit]||0) - (parseInt(d.quantite)||0); });
+            allConsos.forEach(d => { globalInventory[d.produit] = (globalInventory[d.produit]||0) - (parseInt(d.quantite)||0); });
+
+            // On fusionne l'inventaire global dans stats
+            for(let p in globalInventory) {
+                if(!stats[p]) stats[p] = {p:0, v:0, enMain:0};
+                stats[p].enMain = globalInventory[p] || 0;
+            }
+
             const tbody = document.getElementById('myStockBody');
             tbody.innerHTML = '';
             for(let p in stats) {
-                tbody.innerHTML += `
-                    <tr class="clickable-row" onclick="openHistoryModal('${p}')">
-                        <td style="text-align:left;">${p} ${pVenteMap[p] <= 0 ? '🛠️' : 'ℹ️'}</td>
-                        <td>${stats[p].p}</td>
-                        <td style="color:#ef4444;">${stats[p].v}</td>
-                        <td style="font-weight:bold; color:#1877f2;">${stats[p].p - stats[p].v}</td>
-                    </tr>`;
+                // On n'affiche que s'il y a eu un mouvement sur la période OU s'il reste du stock
+                if(stats[p].p > 0 || stats[p].v > 0 || stats[p].enMain > 0) {
+                    tbody.innerHTML += `
+                        <tr class="clickable-row" onclick="openHistoryModal('${p}')">
+                            <td style="text-align:left;">${p} ${pVenteMap[p] <= 0 ? '🛠️' : 'ℹ️'}</td>
+                            <td>${stats[p].p}</td>
+                            <td style="color:#ef4444;">${stats[p].v}</td>
+                            <td style="font-weight:bold; color:#1877f2;">${stats[p].enMain}</td>
+                        </tr>`;
+                }
             }
-            let totalVenduArgent = rawData.ventes.filter(d => pVenteMap[d.produit] > 0).reduce((s,d) => s + (parseFloat(d.total)||0), 0);
-            let totalVerse = encaiss.reduce((s,d) => s + (parseFloat(d.montantRecu)||0) + (parseFloat(d.remise)||0), 0);
+            let totalVenduArgent = rawData.ventes.filter(d => pVenteMap[d.produit] > 0 && !d.payeAbidjan).reduce((s,d) => s + (parseFloat(d.total)||0), 0);
+            let totalVerse = encaiss.reduce((s,d) => s + (parseFloat(d.montantRecu)||0) + (parseFloat(d.remise)||0) + (parseFloat(d.montantCB)||0) + (parseFloat(d.montantVirement)||0), 0);
             const fmt = n => new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(n);
             document.getElementById('myTotalVendu').innerText = fmt(totalVenduArgent);
             document.getElementById('myTotalVerse').innerText = fmt(totalVerse);
@@ -502,7 +528,7 @@
 
             // --- CALCUL RÉPARTITION ANCIEN / NOUVEAU STOCK ---
             let inventory = {};
-            let allRecups = [];
+            let allRecupsAge = [];
 
             // 1. Entrées (Récupérations)
             recupSnap.forEach(doc => {
@@ -510,7 +536,7 @@
                 if (d.statut === "confirme" || !d.statut) {
                     if (!inventory[d.produit]) inventory[d.produit] = { in: 0, out: 0 };
                     inventory[d.produit].in += (parseInt(d.quantite) || 0);
-                    allRecups.push({ p: d.produit, q: parseInt(d.quantite)||0, d: d.date });
+                    allRecupsAge.push({ p: d.produit, q: parseInt(d.quantite)||0, d: d.date });
                 }
             });
 
@@ -528,14 +554,14 @@
             // 3. Rendu du tableau
             const tbodyAge = document.getElementById('stockAgeBody');
             tbodyAge.innerHTML = '';
-            if (allRecups.length > 0) {
-                const dates = allRecups.map(r => r.d).sort();
+            if (allRecupsAge.length > 0) {
+                const dates = allRecupsAge.map(r => r.d).sort();
                 const latestDate = dates[dates.length - 1];
 
                 for (const p in inventory) {
                     const item = inventory[p];
                     let remainingToCover = item.out; // On déduit les sorties des stocks les plus anciens (FIFO)
-                    const pRecups = allRecups.filter(r => r.p === p).sort((a, b) => a.d.localeCompare(b.d));
+                    const pRecups = allRecupsAge.filter(r => r.p === p).sort((a, b) => a.d.localeCompare(b.d));
                     
                     let oldStock = 0, newStock = 0;
                     let oldDate = "-", newDate = "-";
@@ -570,7 +596,7 @@
                 const d = doc.data();
                 if(d.statut === "confirme" || !d.statut) inventory[d.produit] = (inventory[d.produit]||0) + parseInt(d.quantite);
             });
-            const sub = (snap) => { snap.forEach(doc => { const d = doc.data(); if(inventory[d.produit]) inventory[d.produit] -= parseInt(d.quantite); }); };
+            const sub = (snap) => { snap.forEach(doc => { const d = doc.data(); inventory[d.produit] = (inventory[d.produit]||0) - (parseInt(d.quantite)||0); }); };
             sub(ventesSnap); sub(retoursSnap); sub(consosSnap);
 
             const tbody = document.getElementById('declarationBody');

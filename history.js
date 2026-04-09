@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let salesDataAll = [];  
     let retoursDataAll = []; 
     let consommationsData = []; 
+    let consosDataAll = []; // TOUT l'historique des consommations pour le calcul "En main"
     let recuperationsData = [];
     let currentModalSeller = ""; // Pour nommer le PDF
     let paymentsDataAll = [];
@@ -92,6 +93,11 @@ document.addEventListener('DOMContentLoaded', () => {
         db.collection("encaissements_vendeurs").onSnapshot(snap => {
             paymentsDataAll = snap.docs.map(doc => doc.data());
         });
+
+        db.collection("consommations").onSnapshot(snap => {
+            consosDataAll = snap.docs.map(doc => doc.data());
+            renderInvendus();
+        });
     }
 
     // Listeners dynamiques (dépendants des dates sélectionnées)
@@ -141,19 +147,21 @@ document.addEventListener('DOMContentLoaded', () => {
             const uRecups = recupsDataAll.filter(r => r.vendeur === user.nom && (r.statut === "confirme" || !r.statut));
             const uSales = salesDataAll.filter(s => s.vendeur === user.nom);
             const uRetours = retoursDataAll.filter(ret => ret.vendeur === user.nom);
+            const uConsos = consosDataAll.filter(c => c.vendeur === user.nom);
 
-            const distinctProds = [...new Set([...uRecups.map(r=>r.produit), ...uSales.map(s=>s.produit), ...uRetours.map(ret=>ret.produit)])];
+            const distinctProds = [...new Set([...uRecups.map(r=>r.produit), ...uSales.map(s=>s.produit), ...uRetours.map(ret=>ret.produit), ...uConsos.map(c=>c.produit)])];
             if (distinctProds.length === 0) return; 
 
-            let totalPris = 0, totalAg = 0, totalAbi = 0, totalRendu = 0;
+            let totalPris = 0, totalAg = 0, totalAbi = 0, totalRendu = 0, totalConso = 0;
             distinctProds.forEach(p => {
                 totalPris += uRecups.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
                 totalAg += uSales.filter(s => s.produit === p && !s.payeAbidjan).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
                 totalAbi += uSales.filter(s => s.produit === p && s.payeAbidjan === true).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
                 totalRendu += uRetours.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+                totalConso += uConsos.filter(c => c.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
             });
 
-            const totalEnMain = totalPris - (totalAg + totalAbi + totalRendu);
+            const totalEnMain = totalPris - (totalAg + totalAbi + totalRendu + totalConso);
 
             const tr = document.createElement('tr');
             tr.className = "clickable-row";
@@ -190,15 +198,17 @@ document.addEventListener('DOMContentLoaded', () => {
         const uRecupsAll = recupsDataAll.filter(r => r.vendeur === vendeur && (r.statut === "confirme" || !r.statut));
         const uSalesAll = salesDataAll.filter(s => s.vendeur === vendeur);
         const uRetoursAll = retoursDataAll.filter(ret => ret.vendeur === vendeur);
+        const uConsosAll = consosDataAll.filter(c => c.vendeur === vendeur);
         
-        const prods = [...new Set([...uRecupsAll.map(r=>r.produit), ...uSalesAll.map(s=>s.produit), ...uRetoursAll.map(ret=>ret.produit)])];
+        const prods = [...new Set([...uRecupsAll.map(r=>r.produit), ...uSalesAll.map(s=>s.produit), ...uRetoursAll.map(ret=>ret.produit), ...uConsosAll.map(c=>c.produit)])];
 
         prods.forEach(p => {
             const pPris = uRecupsAll.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
             const pAg = uSalesAll.filter(s => s.produit === p && !s.payeAbidjan).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
             const pAbi = uSalesAll.filter(s => s.produit === p && s.payeAbidjan === true).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
             const pRendu = uRetoursAll.filter(r => r.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
-            const pReste = pPris - (pAg + pAbi + pRendu);
+            const pConso = uConsosAll.filter(c => c.produit === p).reduce((s,c) => s + (parseInt(c.quantite)||0), 0);
+            const pReste = pPris - (pAg + pAbi + pRendu + pConso);
             sumBody.innerHTML += `<tr><td><b>${p}</b></td><td>${pPris}</td><td>${pAg}</td><td>${pAbi}</td><td>${pRendu}</td><td style="font-weight:bold; color:${pReste < 0 ? '#be123c' : '#1877f2'};">${pReste}</td></tr>`;
         });
 
@@ -208,6 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Mouvements de stock (impact financier = 0)
         uRecupsAll.forEach(d => logs.push({date: d.date, time: formatTime(d.timestamp), produit: d.produit, op: '📦 Récup.', v: '-', q: d.quantite, m: 0, n: '-', c: '#1877f2'}));
         uRetoursAll.forEach(d => logs.push({date: d.date, time: formatTime(d.timestamp), produit: d.produit, op: '🔄 Retour', v: '-', q: d.quantite, m: 0, n: '-', c: '#f59e0b'}));
+        uConsosAll.forEach(d => logs.push({date: d.date, time: formatTime(d.timestamp), produit: d.produit, op: '🛠️ Conso.', v: '-', q: d.quantite, m: 0, n: '-', c: '#64748b'}));
         
         // Ventes (impact financier si Agence)
         uSalesAll.forEach(d => {
@@ -463,7 +474,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function renderConsommables() {
         tableBodyConsommables.innerHTML = '';
-        consommationsData.forEach(d => { tableBodyConsommables.innerHTML += `<tr><td>${d.date}</td><td><b>${d.produit}</b></td><td>${d.quantite}</td><td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:10px;">USAGE INTERNE</span></td><td><button class="deleteBtn" onclick="deleteDocument('consommations','${d.id}')">Suppr.</button></td></tr>`; });
+        const selV = filterVendeur.value;
+        let filtered = selV ? consommationsData.filter(d => d.vendeur === selV) : consommationsData;
+
+        filtered.forEach(d => { 
+            const user = d.vendeur || "MAGASIN";
+            tableBodyConsommables.innerHTML += `<tr><td>${d.date}</td><td><b>${d.produit}</b></td><td>${d.quantite}</td><td>${user}</td><td><span style="background:#f1f5f9; padding:2px 6px; border-radius:4px; font-size:10px;">USAGE INTERNE</span></td><td><button class="deleteBtn" onclick="deleteDocument('consommations','${d.id}')">Suppr.</button></td></tr>`; 
+        });
     }
 
     function renderRecuperations() {
@@ -540,11 +557,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById(`btn${type.charAt(0).toUpperCase() + type.slice(1)}`).classList.add('active');
         document.getElementById(`section-${type}`).classList.add('active');
         const gFilters = document.getElementById('global-filters');
-        if (gFilters) gFilters.style.display = (type === 'audit' || type === 'consommables') ? 'none' : 'flex';
+        if (gFilters) gFilters.style.display = (type === 'audit') ? 'none' : 'flex';
     };
 
     // Mise à jour des événements pour recharger les données lors du changement de date
-    if (filterVendeur) filterVendeur.addEventListener('input', () => { renderVentes(); renderInvendus(); renderRecuperations(); });
+    if (filterVendeur) filterVendeur.addEventListener('input', () => { renderVentes(); renderInvendus(); renderRecuperations(); renderConsommables(); });
     if (filterClientRef) filterClientRef.addEventListener('input', () => { renderVentes(); renderRecuperations(); });
     
     [dateStartInput, dateEndInput].forEach(el => {
